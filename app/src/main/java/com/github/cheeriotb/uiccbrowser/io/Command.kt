@@ -12,18 +12,31 @@ class Command(
     val ins: Int,
     val p1: Int = 0x00,
     val p2: Int = 0x00,
-    val data: String = NO_COMMAND_DATA,
     val le: Int = NO_EXPECTED_DATA
 ) {
     constructor(
         ins: Int,
         p1: Int = 0x00,
         p2: Int = 0x00,
-        le: Int
-    ) : this(ins, p1, p2, NO_COMMAND_DATA, le)
+        data: String,
+        le: Int = NO_EXPECTED_DATA
+    ) : this(ins, p1, p2, le) {
+        require(data.length % 2 == 0) { "The format of data is incorrect" }
+        dataStringPrivate = data
+    }
+
+    constructor(
+        ins: Int,
+        p1: Int = 0x00,
+        p2: Int = 0x00,
+        data: ByteArray,
+        le: Int = NO_EXPECTED_DATA
+    ) : this(ins, p1, p2, le) {
+        dataArrayPrivate = data
+    }
 
     companion object {
-        private const val NO_COMMAND_DATA = ""
+        private const val NO_COMMAND_DATA_STRING = ""
         private const val NO_EXPECTED_DATA = 0
         private const val FURTHER_INTER_INDUSTRY_CLASS = 0x40
     }
@@ -55,7 +68,19 @@ class Command(
     var smi: SecureMessaging = SecureMessaging.NO
 
     val lc: Int
-        get() = data.length / 2
+        get() = if (dataStringPrivate.isNotEmpty()) dataStringPrivate.length / 2
+                else dataArrayPrivate.size
+
+    private var dataStringPrivate = NO_COMMAND_DATA_STRING
+    private var dataArrayPrivate = ByteArray(0)
+
+    val dataString: String
+        get() = if (dataStringPrivate.isNotEmpty()) dataStringPrivate
+                else byteArrayToHexString(dataArrayPrivate)
+
+    val dataArray: ByteArray
+        get() = if (dataArrayPrivate.isNotEmpty()) dataArrayPrivate
+                else hexString2ByteArray(dataStringPrivate)
 
     init {
         require(ins in 0..255) { "INS must not be greater than 255" }
@@ -65,7 +90,6 @@ class Command(
         require(p1 in 0..255) { "P1 and P2 must not be greater than 255" }
         require(p2 in 0..255) { "P1 and P2 must not be greater than 255" }
         require(lc in 0..65535) { "Lc must not be greater than 65535" }
-        require(data.length % 2 == 0) { "The format of data is incorrect" }
         require(le in 0..65536) { "Le must not be greater than 65536" }
     }
 
@@ -100,14 +124,14 @@ class Command(
         return value
     }
 
-    fun build(channel: Int = 0): String {
+    fun buildString(channel: Int = 0): String {
         val builder = StringBuilder()
 
         // Add CLA + INS + P1 + P2 for header bytes
-        builder.append(byte2HexChars(cla(channel)))
-        builder.append(byte2HexChars(ins))
-        builder.append(byte2HexChars(p1))
-        builder.append(byte2HexChars(p2))
+        builder.append(byte2HexString(cla(channel)))
+        builder.append(byte2HexString(ins))
+        builder.append(byte2HexString(p1))
+        builder.append(byte2HexString(p2))
 
         // Extended format shall be applied to both Lc and Le
         val extended: Boolean = (lc > 255) || (le > 256)
@@ -116,12 +140,12 @@ class Command(
             if (extended) {
                 // The first byte of the extended Lc field is 00.
                 // The remaining 2 bytes have any value from 0001 to FFFF (never be 0000).
-                builder.append(extendedBytes2HexChars(lc))
+                builder.append(extendedBytes2HexString(lc))
             } else {
                 // The short Lc field consists of one byte from 01 to FF (never be 00).
-                builder.append(byte2HexChars(lc))
+                builder.append(byte2HexString(lc))
             }
-            builder.append(data)
+            builder.append(dataString)
         }
 
         if (le > 0) {
@@ -129,17 +153,71 @@ class Command(
                 // The extended Le field consists of three bytes.
                 // The first byte is 00 and the remaining 2 bytes have any value from 0000 to FFFF.
                 // The value 0000 means FFFF + 1 (65536).
-                builder.append(extendedBytes2HexChars(le))
+                builder.append(extendedBytes2HexString(le))
             } else {
                 // A short Le field consists of one byte with any value.
                 // The value 00 means FF + 1 (256).
-                builder.append(byte2HexChars(le))
+                builder.append(byte2HexString(le))
             }
         }
 
         return builder.toString()
     }
 
-    private fun byte2HexChars(byte: Int) = "%02X".format(byte % 0x100)
-    private fun extendedBytes2HexChars(byte: Int) = "%06X".format(byte % 0x10000)
+    fun buildArray(channel: Int = 0): ByteArray {
+        // Extended format shall be applied to both Lc and Le
+        val extended: Boolean = (lc > 255) || (le > 256)
+
+        // CLA + INS + P1 + P2 for header bytes
+        var array = byteArrayOf(cla(channel).toByte(), ins.toByte(), p1.toByte(), p2.toByte())
+
+        if (lc > 0) {
+            if (extended) {
+                // The first byte of the extended Lc field is 00.
+                // The remaining 2 bytes have any value from 0001 to FFFF (never be 0000).
+                array = array.plus(byteArrayOf(0x00, lc.shr(8).toByte(), lc.toByte()))
+            } else {
+                // The short Lc field consists of one byte from 01 to FF (never be 00).
+                array = array.plus(lc.toByte())
+            }
+            array = array.plus(dataArray)
+        }
+
+        if (le > 0) {
+            if (extended) {
+                // The extended Le field consists of three bytes.
+                // The first byte is 00 and the remaining 2 bytes have any value from 0000 to FFFF.
+                // The value 0000 means FFFF + 1 (65536).
+                array = array.plus(byteArrayOf(0x00, le.shr(8).toByte(), le.toByte()))
+            } else {
+                // A short Le field consists of one byte with any value.
+                // The value 00 means FF + 1 (256).
+                array = array.plus(le.toByte())
+            }
+        }
+
+        return array
+    }
+
+    private fun byte2HexString(byte: Int) = "%02X".format(byte % 0x100)
+    private fun extendedBytes2HexString(byte: Int) = "%06X".format(byte % 0x10000)
+
+    private fun hexString2ByteArray(hex: String): ByteArray {
+        var index = 0
+        val array = ByteArray(hex.length / 2)
+        while (index < array.count()) {
+            val pointer = index * 2
+            array[index] = hex.substring(pointer, pointer + 2).toInt(16).toByte()
+            index++
+        }
+        return array
+    }
+
+    private fun byteArrayToHexString(bytes: ByteArray): String {
+        val builder = StringBuilder()
+        for (byte in bytes) {
+            builder.append("%02X".format(byte.toInt() and 0xFF))
+        }
+        return builder.toString()
+    }
 }

@@ -26,9 +26,12 @@ class CommandUnitTest {
         assertThat(command.p1).isEqualTo(0x00)
         assertThat(command.p2).isEqualTo(0x00)
         assertThat(command.lc).isEqualTo(0)
-        assertThat(command.data.length).isEqualTo(0)
+        assertThat(command.dataString.length).isEqualTo(0)
+        assertThat(command.dataArray.size).isEqualTo(0)
         assertThat(command.le).isEqualTo(0)
-        assertThat(command.build()).isEqualTo("00FF0000")
+
+        assertThat(command.buildString()).isEqualTo("00FF0000")
+        assertThat(command.buildArray()).isEqualTo(byteArrayOf(0x00, 0xFF.toByte(), 0x00, 0x00))
     }
 
     @Test
@@ -38,10 +41,12 @@ class CommandUnitTest {
         val command = Command(0xFF)
 
         assertThat(command.cla(0)).isEqualTo(0x00)
-        assertThat(command.build(0).substring(0..1)).isEqualTo("00")
+        assertThat(command.buildString(0).substring(0..1)).isEqualTo("00")
+        assertThat(command.buildArray(0)[0]).isEqualTo(0x00)
 
         assertThat(command.cla(3)).isEqualTo(0x03)
-        assertThat(command.build(3).substring(0..1)).isEqualTo("03")
+        assertThat(command.buildString(3).substring(0..1)).isEqualTo("03")
+        assertThat(command.buildArray(3)[0]).isEqualTo(0x03)
     }
 
     @Test
@@ -51,11 +56,13 @@ class CommandUnitTest {
 
         command.ccc = Command.Chaining.LAST_OR_ONLY
         assertThat(command.cla(3)).isEqualTo(0x03)
-        assertThat(command.build(3).substring(0..1)).isEqualTo("03")
+        assertThat(command.buildString(3).substring(0..1)).isEqualTo("03")
+        assertThat(command.buildArray(3)[0]).isEqualTo(0x03)
 
         command.ccc = Command.Chaining.NOT_LAST
         assertThat(command.cla(3)).isEqualTo(0x13)
-        assertThat(command.build(3).substring(0..1)).isEqualTo("13")
+        assertThat(command.buildString(3).substring(0..1)).isEqualTo("13")
+        assertThat(command.buildArray(3)[0]).isEqualTo(0x13)
     }
 
     @Test
@@ -65,19 +72,23 @@ class CommandUnitTest {
 
         command.smi = Command.SecureMessaging.NO
         assertThat(command.cla(3)).isEqualTo(0x03)
-        assertThat(command.build(3).substring(0..1)).isEqualTo("03")
+        assertThat(command.buildString(3).substring(0..1)).isEqualTo("03")
+        assertThat(command.buildArray(3)[0]).isEqualTo(0x03)
 
         command.smi = Command.SecureMessaging.PROPRIETARY
         assertThat(command.cla(3)).isEqualTo(0x07)
-        assertThat(command.build(3).substring(0..1)).isEqualTo("07")
+        assertThat(command.buildString(3).substring(0..1)).isEqualTo("07")
+        assertThat(command.buildArray(3)[0]).isEqualTo(0x07)
 
         command.smi = Command.SecureMessaging.HEADER_NOT_PROCESSED
         assertThat(command.cla(3)).isEqualTo(0x0B)
-        assertThat(command.build(3).substring(0..1)).isEqualTo("0B")
+        assertThat(command.buildString(3).substring(0..1)).isEqualTo("0B")
+        assertThat(command.buildArray(3)[0]).isEqualTo(0x0B)
 
         command.smi = Command.SecureMessaging.HEADER_AUTHENTICATED
         assertThat(command.cla(3)).isEqualTo(0x0F)
-        assertThat(command.build(3).substring(0..1)).isEqualTo("0F")
+        assertThat(command.buildString(3).substring(0..1)).isEqualTo("0F")
+        assertThat(command.buildArray(3)[0]).isEqualTo(0x0F)
     }
 
     @Test
@@ -87,10 +98,12 @@ class CommandUnitTest {
         val command = Command(0xFF)
 
         assertThat(command.cla(4)).isEqualTo(0x40)
-        assertThat(command.build(4).substring(0..1)).isEqualTo("40")
+        assertThat(command.buildString(4).substring(0..1)).isEqualTo("40")
+        assertThat(command.buildArray(4)[0]).isEqualTo(0x40)
 
         assertThat(command.cla(19)).isEqualTo(0x4F)
-        assertThat(command.build(19).substring(0..1)).isEqualTo("4F")
+        assertThat(command.buildString(19).substring(0..1)).isEqualTo("4F")
+        assertThat(command.buildArray(19)[0]).isEqualTo(0x4F)
     }
 
     @Test
@@ -100,11 +113,13 @@ class CommandUnitTest {
 
         command.ccc = Command.Chaining.LAST_OR_ONLY
         assertThat(command.cla(4)).isEqualTo(0x40)
-        assertThat(command.build(4).substring(0..1)).isEqualTo("40")
+        assertThat(command.buildString(4).substring(0..1)).isEqualTo("40")
+        assertThat(command.buildArray(4)[0]).isEqualTo(0x40)
 
         command.ccc = Command.Chaining.NOT_LAST
         assertThat(command.cla(4)).isEqualTo(0x50)
-        assertThat(command.build(4).substring(0..1)).isEqualTo("50")
+        assertThat(command.buildString(4).substring(0..1)).isEqualTo("50")
+        assertThat(command.buildArray(4)[0]).isEqualTo(0x50)
     }
 
     @Test
@@ -114,39 +129,45 @@ class CommandUnitTest {
 
         command.smi = Command.SecureMessaging.NO
         assertThat(command.cla(4)).isEqualTo(0x40)
-        assertThat(command.build(4).substring(0..1)).isEqualTo("40")
+        assertThat(command.buildString(4).substring(0..1)).isEqualTo("40")
+        assertThat(command.buildArray(4)[0]).isEqualTo(0x40)
 
         command.smi = Command.SecureMessaging.PROPRIETARY
         assertThat(command.cla(4)).isEqualTo(0x60)
-        assertThat(command.build(4).substring(0..1)).isEqualTo("60")
+        assertThat(command.buildString(4).substring(0..1)).isEqualTo("60")
+        assertThat(command.buildArray(4)[0]).isEqualTo(0x60)
 
         command.smi = Command.SecureMessaging.HEADER_NOT_PROCESSED
         assertThat(command.cla(4)).isEqualTo(0x60)
-        assertThat(command.build(4).substring(0..1)).isEqualTo("60")
+        assertThat(command.buildString(4).substring(0..1)).isEqualTo("60")
+        assertThat(command.buildArray(4)[0]).isEqualTo(0x60)
 
         command.smi = Command.SecureMessaging.HEADER_AUTHENTICATED
         assertThat(command.cla(4)).isEqualTo(0x60)
-        assertThat(command.build(4).substring(0..1)).isEqualTo("60")
+        assertThat(command.buildString(4).substring(0..1)).isEqualTo("60")
+        assertThat(command.buildArray(4)[0]).isEqualTo(0x60)
     }
 
     @Test
     fun ins() {
-        for (instruction in 0..255) {
-            val higherOctet = (instruction and 0xF0)
+        for (ins in 0..255) {
+            val higherOctet = (ins and 0xF0)
             // The values '6X' and '9X' are invalid for instruction byte.
             val invalid = (higherOctet == 0x60) or (higherOctet == 0x90)
 
             try {
-                val command = Command(instruction)
+                val command = Command(ins)
                 if (invalid) {
-                    Assert.fail("%02X shall never be allowed".format(instruction))
+                    Assert.fail("%02X shall never be allowed".format(ins))
                     return
                 }
-                assertThat(command.ins).isEqualTo(instruction)
-                assertThat(command.build().substring(2..3)).isEqualTo("%02X".format(instruction))
+                assertThat(command.ins).isEqualTo(ins)
+                assertThat(command.buildString().substring(1 * 2, (1 + 1) * 2))
+                        .isEqualTo("%02X".format(ins))
+                assertThat(command.buildArray()[1]).isEqualTo(ins.toByte())
             } catch (iae: IllegalArgumentException) {
                 if (!invalid) {
-                    Assert.fail("%02X shall be allowed".format(instruction))
+                    Assert.fail("%02X shall be allowed".format(ins))
                     return
                 }
             }
@@ -158,7 +179,9 @@ class CommandUnitTest {
         for (value in 0x00..0xFF) {
             val command = Command(0xFF, value, 0x02)
             assertThat(command.p1).isEqualTo(value)
-            assertThat(command.build().substring(4..5)).isEqualTo("%02X".format(value))
+            assertThat(command.buildString().substring(2 * 2, (2 + 1) * 2))
+                    .isEqualTo("%02X".format(value))
+            assertThat(command.buildArray()[2]).isEqualTo(value.toByte())
         }
     }
 
@@ -167,7 +190,9 @@ class CommandUnitTest {
         for (value in 0x00..0xFF) {
             val command = Command(0xFF, 0x01, value)
             assertThat(command.p2).isEqualTo(value)
-            assertThat(command.build().substring(6..7)).isEqualTo("%02X".format(value))
+            assertThat(command.buildString().substring(3 * 2, (3 + 1) * 2))
+                    .isEqualTo("%02X".format(value))
+            assertThat(command.buildArray()[3]).isEqualTo(value.toByte())
         }
     }
 
@@ -176,23 +201,23 @@ class CommandUnitTest {
         // CLA + INS + P1 + P2 + Short Le (1 byte).
         // A short Le field consists of one byte with any value.
         // The value of 00 means FF + 1 (256).
-        val command1 = Command(0xFF, le = 0x01)
-        assertThat(command1.lc).isEqualTo(0x00)
-        assertThat(command1.le).isEqualTo(0x01)
-        assertThat(command1.build().length).isEqualTo(10 /* 5 byte APDU */)
-        assertThat(command1.build().substring(8..9)).isEqualTo("01")
+        case2sInternal(0x01, "01")
+        case2sInternal(0xFF, "FF")
+        case2sInternal(0x100, "00")
+    }
 
-        val command2 = Command(0xFF, 0x01, 0x02, 0xFF)
-        assertThat(command2.lc).isEqualTo(0x00)
-        assertThat(command2.le).isEqualTo(0xFF)
-        assertThat(command2.build().length).isEqualTo(10 /* 5 byte APDU */)
-        assertThat(command2.build().substring(8..9)).isEqualTo("FF")
+    private fun case2sInternal(leValue: Int, leField: String) {
+        val command = Command(0xFF, le = leValue)
+        assertThat(command.lc).isEqualTo(0x00)
+        assertThat(command.le).isEqualTo(leValue)
 
-        val command3 = Command(0xFF, 0x01, 0x02, 0x100)
-        assertThat(command3.lc).isEqualTo(0x00)
-        assertThat(command3.le).isEqualTo(0x100)
-        assertThat(command3.build().length).isEqualTo(10 /* 5 byte APDU */)
-        assertThat(command3.build().substring(8..9)).isEqualTo("00")
+        val apduString = command.buildString()
+        assertThat(apduString.length).isEqualTo((4 + 1) * 2)
+        assertThat(apduString.substring(4 * 2)).isEqualTo(leField)
+
+        val apduArray = command.buildArray()
+        assertThat(apduArray.size).isEqualTo(4 + 1)
+        assertThat("%02X".format(apduArray[4])).isEqualTo(leField)
     }
 
     @Test
@@ -201,114 +226,250 @@ class CommandUnitTest {
         // The extended Le field consists of three bytes.
         // The first byte is 00 and the remaining bytes have any value from 0000 to FFFF.
         // The value of 0000 means FFFF + 1 (65536)
-        val command1 = Command(0xFF, le = 0x101)
-        assertThat(command1.lc).isEqualTo(0x00)
-        assertThat(command1.le).isEqualTo(0x101)
-        assertThat(command1.build().length).isEqualTo(14 /* 7 bytes APDU */)
-        assertThat(command1.build().substring(8..13)).isEqualTo("000101")
+        case2eInternal(0x101, "000101")
+        case2eInternal(0xFFFF, "00FFFF")
+        case2eInternal(0x10000, "000000")
+    }
 
-        val command2 = Command(0xFF, 0x01, 0x02, 0xFFFF)
-        assertThat(command2.lc).isEqualTo(0x00)
-        assertThat(command2.le).isEqualTo(0xFFFF)
-        assertThat(command2.build().length).isEqualTo(14 /* 7 bytes APDU */)
-        assertThat(command2.build().substring(8..13)).isEqualTo("00FFFF")
+    private fun case2eInternal(leValue: Int, leField: String) {
+        val command = Command(0xFF, le = leValue)
+        assertThat(command.lc).isEqualTo(0x00)
+        assertThat(command.le).isEqualTo(leValue)
 
-        val command3 = Command(0xFF, 0x01, 0x02, 0x10000)
-        assertThat(command3.lc).isEqualTo(0x00)
-        assertThat(command3.le).isEqualTo(0x10000)
-        assertThat(command3.build().length).isEqualTo(14 /* 7 bytes APDU */)
-        assertThat(command3.build().substring(8..13)).isEqualTo("000000")
+        val apduString = command.buildString()
+        assertThat(apduString.length).isEqualTo((4 + 3) * 2)
+        assertThat(apduString.substring(4 * 2)).isEqualTo(leField)
+
+        val apduArray = command.buildArray()
+        assertThat(apduArray.size).isEqualTo(4 + 3)
+        assertThat("%02X%02X%02X".format(apduArray[4], apduArray[5], apduArray[6]))
+                .isEqualTo(leField)
     }
 
     @Test
     fun case3s() {
-        case3sInternal(lc = 0x01)
-        case3sInternal(lc = 0xFF)
+        case3sInternal(0x01, "01")
+        case3sInternal(0xFF, "FF")
     }
 
-    private fun case3sInternal(lc: Int) {
-        val data = "AB".repeat(lc)
-        val command = Command(0xFF, 0x01, 0x02, data)
-        val apdu = command.build()
+    private fun case3sInternal(lcValue: Int, lcField: String) {
+        case3sString(lcValue, lcField)
+        case3sArray(lcValue, lcField)
+    }
+
+    private fun case3sString(lcValue: Int, lcField: String) {
+        val dataString = "AB".repeat(lcValue)
+        val dataArray = ByteArray(lcValue)
+        dataArray.fill(0xAB.toByte())
+        val command = Command(0xFF, data = dataString)
 
         // CLA + INS + P1 + P2 + Short Lc (1 byte) + Data.
         // The short Lc field consists of one byte from 01 to FF (never be 00).
-        assertThat(command.lc).isEqualTo(lc)
+        assertThat(command.lc).isEqualTo(lcValue)
         assertThat(command.le).isEqualTo(0x00)
-        assertThat(apdu.length).isEqualTo((5 + lc) * 2)
-        assertThat(apdu.substring(8..9)).isEqualTo("%02X".format(lc))
-        assertThat(apdu.substring(10, 10 + lc * 2)).isEqualTo(data)
+        assertThat(command.dataString).isEqualTo(dataString)
+        assertThat(command.dataArray).isEqualTo(dataArray)
+
+        val apduString = command.buildString()
+        assertThat(apduString.length).isEqualTo((4 + 1 + lcValue) * 2)
+        assertThat(apduString.substring(4 * 2, (4 + 1) * 2)).isEqualTo(lcField)
+        assertThat(apduString.substring((4 + 1) * 2)).isEqualTo(dataString)
+
+        val apduArray = command.buildArray()
+        assertThat(apduArray.size).isEqualTo(4 + 1 + lcValue)
+        assertThat("%02X".format(apduArray[4])).isEqualTo(lcField)
+        assertThat(apduArray.sliceArray(IntRange(4 + 1, 4 + 1 + lcValue - 1))).isEqualTo(dataArray)
+    }
+
+    private fun case3sArray(lcValue: Int, lcField: String) {
+        val dataString = "AB".repeat(lcValue)
+        val dataArray = ByteArray(lcValue)
+        dataArray.fill(0xAB.toByte())
+        val command = Command(0xFF, data = dataArray)
+
+        // CLA + INS + P1 + P2 + Short Lc (1 byte) + Data.
+        // The short Lc field consists of one byte from 01 to FF (never be 00).
+        assertThat(command.lc).isEqualTo(lcValue)
+        assertThat(command.le).isEqualTo(0x00)
+        assertThat(command.dataString).isEqualTo(dataString)
+        assertThat(command.dataArray).isEqualTo(dataArray)
+
+        val apduString = command.buildString()
+        assertThat(apduString.length).isEqualTo((4 + 1 + lcValue) * 2)
+        assertThat(apduString.substring(4 * 2, (4 + 1) * 2)).isEqualTo(lcField)
+        assertThat(apduString.substring((4 + 1) * 2)).isEqualTo(dataString)
+
+        val apduArray = command.buildArray()
+        assertThat(apduArray.size).isEqualTo(4 + 1 + lcValue)
+        assertThat("%02X".format(apduArray[4])).isEqualTo(lcField)
+        assertThat(apduArray.sliceArray(IntRange(4 + 1, 4 + 1 + lcValue - 1))).isEqualTo(dataArray)
     }
 
     @Test
     fun case3e() {
-        case3eInternal(lc = 0x100)
-        case3eInternal(lc = 0xFFFF)
+        case3eInternal(0x100, "000100")
+        case3eInternal(0xFFFF, "00FFFF")
     }
 
-    private fun case3eInternal(lc: Int) {
-        val data = "AB".repeat(lc)
-        val command = Command(0xFF, 0x01, 0x02, data)
-        val apdu = command.build()
+    private fun case3eInternal(lcValue: Int, lcField: String) {
+        case3eString(lcValue, lcField)
+        case3eArray(lcValue, lcField)
+    }
+
+    private fun case3eString(lcValue: Int, lcField: String) {
+        val dataString = "AB".repeat(lcValue)
+        val dataArray = ByteArray(lcValue)
+        dataArray.fill(0xAB.toByte())
+        val command = Command(0xFF, data = dataString)
 
         // CLA + INS + P1 + P2 + Extended Lc (3 byte) + Data.
         // The first byte of the extended Lc field is 00.
         // The remaining 2 bytes have any value from 0001 to FFFF (never be 0000).
-        assertThat(command.lc).isEqualTo(lc)
+        assertThat(command.lc).isEqualTo(lcValue)
         assertThat(command.le).isEqualTo(0x00)
-        assertThat(apdu.length).isEqualTo((7 + lc) * 2)
-        assertThat(apdu.substring(8..13)).isEqualTo("%06X".format(lc))
-        assertThat(apdu.substring(14, 14 + lc * 2)).isEqualTo(data)
+        assertThat(command.dataString).isEqualTo(dataString)
+        assertThat(command.dataArray).isEqualTo(dataArray)
+
+        val apduString = command.buildString()
+        assertThat(apduString.length).isEqualTo((4 + 3 + lcValue) * 2)
+        assertThat(apduString.substring(4 * 2, (4 + 3) * 2)).isEqualTo(lcField)
+        assertThat(apduString.substring((4 + 3) * 2)).isEqualTo(dataString)
+
+        val apduArray = command.buildArray()
+        assertThat(apduArray.size).isEqualTo(4 + 3 + lcValue)
+        assertThat("%02X%02X%02X".format(apduArray[4], apduArray[5], apduArray[6]))
+                .isEqualTo(lcField)
+        assertThat(apduArray.sliceArray(IntRange(4 + 3, 4 + 3 + lcValue - 1))).isEqualTo(dataArray)
+    }
+
+    private fun case3eArray(lcValue: Int, lcField: String) {
+        val dataString = "AB".repeat(lcValue)
+        val dataArray = ByteArray(lcValue)
+        dataArray.fill(0xAB.toByte())
+        val command = Command(0xFF, data = dataArray)
+
+        // CLA + INS + P1 + P2 + Extended Lc (3 byte) + Data.
+        // The first byte of the extended Lc field is 00.
+        // The remaining 2 bytes have any value from 0001 to FFFF (never be 0000).
+        assertThat(command.lc).isEqualTo(lcValue)
+        assertThat(command.le).isEqualTo(0x00)
+        assertThat(command.dataString).isEqualTo(dataString)
+        assertThat(command.dataArray).isEqualTo(dataArray)
+
+        val apduString = command.buildString()
+        assertThat(apduString.length).isEqualTo((4 + 3 + lcValue) * 2)
+        assertThat(apduString.substring(4 * 2, (4 + 3) * 2)).isEqualTo(lcField)
+        assertThat(apduString.substring((4 + 3) * 2)).isEqualTo(dataString)
+
+        val apduArray = command.buildArray()
+        assertThat(apduArray.size).isEqualTo(4 + 3 + lcValue)
+        assertThat("%02X%02X%02X".format(apduArray[4], apduArray[5], apduArray[6]))
+                .isEqualTo(lcField)
+        assertThat(apduArray.sliceArray(IntRange(4 + 3, 4 + 3 + lcValue - 1))).isEqualTo(dataArray)
     }
 
     @Test
     fun case4s() {
-        case4sInternal(lc = 0x01, le = 0xFF)
-        case4sInternal(lc = 0xFF, le = 0x01)
-        case4sInternal(lc = 0x01, le = 0x100)
+        case4sString(0x01, "01", 0xFF, "FF")
+        case4sString(0xFF, "FF", 0x01, "01")
+        case4sString(0x01, "01", 0x100, "00")
     }
 
-    private fun case4sInternal(lc: Int, le: Int) {
-        val data = "AB".repeat(lc)
-        val command = Command(0xFF, 0x01, 0x02, data, le)
-        val apdu = command.build()
+    private fun case4sString(lcValue: Int, lcField: String, leValue: Int, leField: String) {
+        val dataString = "AB".repeat(lcValue)
+        val dataArray = ByteArray(lcValue)
+        dataArray.fill(0xAB.toByte())
+        val command = Command(0xFF, 0x01, 0x02, dataString, leValue)
 
         // CLA + INS + P1 + P2 + Short Lc (1 byte) + Data + Short Le (1 byte).
         // The short Lc field must be 01 to FF.
         // The short Le field must be 01 to FF and 00 (256).
-        assertThat(command.lc).isEqualTo(lc)
-        assertThat(command.le).isEqualTo(le)
-        assertThat(apdu.length).isEqualTo((6 + lc) * 2)
-        assertThat(apdu.substring(8..9)).isEqualTo("%02X".format(lc))
-        assertThat(apdu.substring(10, 10 + lc * 2)).isEqualTo(data)
-        assertThat(apdu.substring(10 + lc * 2, 10 + lc * 2 + 2))
-                .isEqualTo(if (le < 0x100) "%02X".format(le) else "00")
+        assertThat(command.lc).isEqualTo(lcValue)
+        assertThat(command.le).isEqualTo(leValue)
+        assertThat(command.dataString).isEqualTo(dataString)
+        assertThat(command.dataArray).isEqualTo(dataArray)
+
+        val apduString = command.buildString()
+        assertThat(apduString.length).isEqualTo((4 + 1 + lcValue + 1) * 2)
+        assertThat(apduString.substring(4 * 2, (4 + 1) * 2)).isEqualTo(lcField)
+        assertThat(apduString.substring((4 + 1) * 2, (4 + 1 + lcValue) * 2)).isEqualTo(dataString)
+        assertThat(apduString.substring((4 + 1 + lcValue) * 2)).isEqualTo(leField)
+
+        val apduArray = command.buildArray()
+        assertThat(apduArray.size).isEqualTo(4 + 1 + lcValue + 1)
+        assertThat("%02X".format(apduArray[4])).isEqualTo(lcField)
+        assertThat(apduArray.sliceArray(IntRange(4 + 1, 4 + 1 + lcValue - 1))).isEqualTo(dataArray)
+        assertThat("%02X".format(apduArray[4 + 1 + lcValue])).isEqualTo(leField)
     }
 
     @Test
     fun case4e() {
         // Big Lc x Small Le
-        case4eInternal(lc = 0x100, le = 0x01)
+        case4eInternal(0x100, "000100", 0x01, "000001")
         // Small Lc x Big Le
-        case4eInternal(lc = 0x01, le = 0x101)
+        case4eInternal(0x01, "000001", 0x101, "000101")
         // Big Lc x Big Le
-        case4eInternal(lc = 0xFFFF, le = 0x10000)
+        case4eInternal(0xFFFF, "00FFFF", 0x10000, "000000")
     }
 
-    private fun case4eInternal(lc: Int, le: Int) {
-        val data = "AB".repeat(lc)
-        val command = Command(0xFF, 0x01, 0x02, data, le)
-        val apdu = command.build()
+    private fun case4eInternal(lcValue: Int, lcField: String, leValue: Int, leField: String) {
+        case4eString(lcValue, lcField, leValue, leField)
+        case4eArray(lcValue, lcField, leValue, leField)
+    }
+
+    private fun case4eString(lcValue: Int, lcField: String, leValue: Int, leField: String) {
+        val dataString = "AB".repeat(lcValue)
+        val dataArray = ByteArray(lcValue)
+        dataArray.fill(0xAB.toByte())
+        val command = Command(0xFF, 0x01, 0x02, dataString, leValue)
 
         // CLA + INS + P1 + P2 + Extended Lc (3 byte) + Data + Extended Le (3 byte).
         // The extended Lc field must be 000001 to 00FFFF.
         // The extended Le field must be 000001 to 00FFFF and 000000 (65536).
-        assertThat(command.lc).isEqualTo(lc)
-        assertThat(command.le).isEqualTo(le)
-        assertThat(apdu.length).isEqualTo((10 + lc) * 2)
-        assertThat(apdu.substring(8..13)).isEqualTo("%06X".format(lc))
-        assertThat(apdu.substring(14, 14 + lc * 2)).isEqualTo(data)
-        assertThat(apdu.substring(14 + lc * 2, 14 + (lc + 3) * 2))
-            .isEqualTo(if (le < 0x10000) "%06X".format(le) else "000000")
+        assertThat(command.lc).isEqualTo(lcValue)
+        assertThat(command.le).isEqualTo(leValue)
+        assertThat(command.dataString).isEqualTo(dataString)
+
+        val apduString = command.buildString()
+        assertThat(apduString.length).isEqualTo((4 + 3 + lcValue + 3) * 2)
+        assertThat(apduString.substring(4 * 2, (4 + 3) * 2)).isEqualTo(lcField)
+        assertThat(apduString.substring((4 + 3) * 2, (4 + 3 + lcValue) * 2)).isEqualTo(dataString)
+        assertThat(apduString.substring((4 + 3 + lcValue) * 2)).isEqualTo(leField)
+
+        val apduArray = command.buildArray()
+        assertThat(apduArray.size).isEqualTo(4 + 3 + lcValue + 3)
+        assertThat("%02X%02X%02X".format(apduArray[4], apduArray[5], apduArray[6]))
+                .isEqualTo(lcField)
+        assertThat(apduArray.sliceArray(IntRange(4 + 3, 4 + 3 + lcValue - 1))).isEqualTo(dataArray)
+        assertThat("%02X%02X%02X".format(apduArray[4 + 3 + lcValue], apduArray[4 + 3 + lcValue + 1],
+                apduArray[4 + 3 + lcValue + 2])).isEqualTo(leField)
+    }
+
+    private fun case4eArray(lcValue: Int, lcField: String, leValue: Int, leField: String) {
+        val dataString = "AB".repeat(lcValue)
+        val dataArray = ByteArray(lcValue)
+        dataArray.fill(0xAB.toByte())
+        val command = Command(0xFF, 0x01, 0x02, dataArray, leValue)
+
+        // CLA + INS + P1 + P2 + Extended Lc (3 byte) + Data + Extended Le (3 byte).
+        // The extended Lc field must be 000001 to 00FFFF.
+        // The extended Le field must be 000001 to 00FFFF and 000000 (65536).
+        assertThat(command.lc).isEqualTo(lcValue)
+        assertThat(command.le).isEqualTo(leValue)
+        assertThat(command.dataString).isEqualTo(dataString)
+
+        val apduString = command.buildString()
+        assertThat(apduString.length).isEqualTo((4 + 3 + lcValue + 3) * 2)
+        assertThat(apduString.substring(4 * 2, (4 + 3) * 2)).isEqualTo(lcField)
+        assertThat(apduString.substring((4 + 3) * 2, (4 + 3 + lcValue) * 2)).isEqualTo(dataString)
+        assertThat(apduString.substring((4 + 3 + lcValue) * 2)).isEqualTo(leField)
+
+        val apduArray = command.buildArray()
+        assertThat(apduArray.size).isEqualTo(4 + 3 + lcValue + 3)
+        assertThat("%02X%02X%02X".format(apduArray[4], apduArray[5], apduArray[6]))
+                .isEqualTo(lcField)
+        assertThat(apduArray.sliceArray(IntRange(4 + 3, 4 + 3 + lcValue - 1))).isEqualTo(dataArray)
+        assertThat("%02X%02X%02X".format(apduArray[4 + 3 + lcValue], apduArray[4 + 3 + lcValue + 1],
+                apduArray[4 + 3 + lcValue + 2])).isEqualTo(leField)
     }
 }
