@@ -22,6 +22,7 @@ class Command(
         le: Int = NO_EXPECTED_DATA
     ) : this(ins, p1, p2, le) {
         require(data.length % 2 == 0) { "The format of data is incorrect" }
+        require(dataStringPrivate.length / 2 in 0..65535) { "Lc must not be greater than 65535" }
         dataStringPrivate = data
     }
 
@@ -32,6 +33,7 @@ class Command(
         data: ByteArray,
         le: Int = NO_EXPECTED_DATA
     ) : this(ins, p1, p2, le) {
+        require(dataArrayPrivate.size in 0..65535) { "Lc must not be greater than 65535" }
         dataArrayPrivate = data
     }
 
@@ -67,20 +69,22 @@ class Command(
     var ccc: Chaining = Chaining.LAST_OR_ONLY
     var smi: SecureMessaging = SecureMessaging.NO
 
-    val lc: Int
-        get() = if (dataStringPrivate.isNotEmpty()) dataStringPrivate.length / 2
-                else dataArrayPrivate.size
+    val lc: Int by lazy {
+        if (dataStringPrivate.isNotEmpty()) dataStringPrivate.length / 2 else dataArrayPrivate.size
+    }
 
     private var dataStringPrivate = NO_COMMAND_DATA_STRING
     private var dataArrayPrivate = ByteArray(0)
 
-    val dataString: String
-        get() = if (dataStringPrivate.isNotEmpty()) dataStringPrivate
+    val dataString: String by lazy {
+        if (dataStringPrivate.isNotEmpty()) dataStringPrivate
                 else byteArrayToHexString(dataArrayPrivate)
+    }
 
-    val dataArray: ByteArray
-        get() = if (dataArrayPrivate.isNotEmpty()) dataArrayPrivate
+    val dataArray: ByteArray by lazy {
+        if (dataArrayPrivate.isNotEmpty()) dataArrayPrivate
                 else hexString2ByteArray(dataStringPrivate)
+    }
 
     init {
         require(ins in 0..255) { "INS must not be greater than 255" }
@@ -89,7 +93,6 @@ class Command(
         }
         require(p1 in 0..255) { "P1 and P2 must not be greater than 255" }
         require(p2 in 0..255) { "P1 and P2 must not be greater than 255" }
-        require(lc in 0..65535) { "Lc must not be greater than 65535" }
         require(le in 0..65536) { "Le must not be greater than 65536" }
     }
 
@@ -172,27 +175,27 @@ class Command(
         var array = byteArrayOf(cla(channel).toByte(), ins.toByte(), p1.toByte(), p2.toByte())
 
         if (lc > 0) {
-            if (extended) {
+            array = if (extended) {
                 // The first byte of the extended Lc field is 00.
                 // The remaining 2 bytes have any value from 0001 to FFFF (never be 0000).
-                array = array.plus(byteArrayOf(0x00, lc.shr(8).toByte(), lc.toByte()))
+                array.plus(byteArrayOf(0x00, lc.shr(8).toByte(), lc.toByte()))
             } else {
                 // The short Lc field consists of one byte from 01 to FF (never be 00).
-                array = array.plus(lc.toByte())
+                array.plus(lc.toByte())
             }
             array = array.plus(dataArray)
         }
 
         if (le > 0) {
-            if (extended) {
+            array = if (extended) {
                 // The extended Le field consists of three bytes.
                 // The first byte is 00 and the remaining 2 bytes have any value from 0000 to FFFF.
                 // The value 0000 means FFFF + 1 (65536).
-                array = array.plus(byteArrayOf(0x00, le.shr(8).toByte(), le.toByte()))
+                array.plus(byteArrayOf(0x00, le.shr(8).toByte(), le.toByte()))
             } else {
                 // A short Le field consists of one byte with any value.
                 // The value 00 means FF + 1 (256).
-                array = array.plus(le.toByte())
+                array.plus(le.toByte())
             }
         }
 
