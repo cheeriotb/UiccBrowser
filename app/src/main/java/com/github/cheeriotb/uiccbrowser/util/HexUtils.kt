@@ -8,17 +8,17 @@
 
 package com.github.cheeriotb.uiccbrowser.util
 
-fun byteToHexString(byte: Int) = "%02X".format(byte % 0x100)
+fun byteToHexString(byte: Int) = "%02X".format(byte.toByte())
 
-fun extendedBytesToHexString(byte: Int) = "%06X".format(byte % 0x10000)
+fun hexStringToByte(hexString: String) = hexString.toInt(16).toByte()
 
-fun hexStringToByteArray(hex: String): ByteArray {
-    var index = 0
-    val array = ByteArray(hex.length / 2)
-    while (index < array.count()) {
+fun extendedBytesToHexString(byte: Int) = "%06X".format(byte and 0xFFFF)
+
+fun hexStringToByteArray(hexString: String): ByteArray {
+    val array = ByteArray(hexString.length / 2)
+    for (index in 0 until array.count()) {
         val pointer = index * 2
-        array[index] = hex.substring(pointer, pointer + 2).toInt(16).toByte()
-        index++
+        array[index] = hexStringToByte(hexString.substring(pointer, pointer + 2))
     }
     return array
 }
@@ -26,7 +26,7 @@ fun hexStringToByteArray(hex: String): ByteArray {
 fun byteArrayToHexString(bytes: ByteArray): String {
     val builder = StringBuilder()
     for (byte in bytes) {
-        builder.append("%02X".format(byte.toInt() and 0xFF))
+        builder.append(byteToHexString(byte.toInt()))
     }
     return builder.toString()
 }

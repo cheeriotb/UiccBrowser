@@ -26,6 +26,15 @@ class HexUtilsTest {
     }
 
     @Test
+    fun return_hexStringToByte() {
+        assertThat(hexStringToByte("00")).isEqualTo(b(0x00))
+        assertThat(hexStringToByte("01")).isEqualTo(b(0x01))
+        assertThat(hexStringToByte("7F")).isEqualTo(b(0x7F))
+        assertThat(hexStringToByte("80")).isEqualTo(b(0x80))
+        assertThat(hexStringToByte("FF")).isEqualTo(b(0xFF))
+    }
+
+    @Test
     fun return_extendedBytesToHexString() {
         assertThat(extendedBytesToHexString(0x000000)).isEqualTo("000000")
         assertThat(extendedBytesToHexString(0x000001)).isEqualTo("000001")
