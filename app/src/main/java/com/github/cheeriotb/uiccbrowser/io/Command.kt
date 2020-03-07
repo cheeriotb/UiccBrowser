@@ -8,6 +8,11 @@
 
 package com.github.cheeriotb.uiccbrowser.io
 
+import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
+import com.github.cheeriotb.uiccbrowser.util.byteToHexString
+import com.github.cheeriotb.uiccbrowser.util.extendedBytesToHexString
+import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
+
 class Command(
     val ins: Int,
     val p1: Int = 0x00,
@@ -83,7 +88,7 @@ class Command(
 
     val dataArray: ByteArray by lazy {
         if (dataArrayPrivate.isNotEmpty()) dataArrayPrivate
-                else hexString2ByteArray(dataStringPrivate)
+                else hexStringToByteArray(dataStringPrivate)
     }
 
     init {
@@ -131,10 +136,10 @@ class Command(
         val builder = StringBuilder()
 
         // Add CLA + INS + P1 + P2 for header bytes
-        builder.append(byte2HexString(cla(channel)))
-        builder.append(byte2HexString(ins))
-        builder.append(byte2HexString(p1))
-        builder.append(byte2HexString(p2))
+        builder.append(byteToHexString(cla(channel)))
+        builder.append(byteToHexString(ins))
+        builder.append(byteToHexString(p1))
+        builder.append(byteToHexString(p2))
 
         // Extended format shall be applied to both Lc and Le
         val extended: Boolean = (lc > 255) || (le > 256)
@@ -143,10 +148,10 @@ class Command(
             if (extended) {
                 // The first byte of the extended Lc field is 00.
                 // The remaining 2 bytes have any value from 0001 to FFFF (never be 0000).
-                builder.append(extendedBytes2HexString(lc))
+                builder.append(extendedBytesToHexString(lc))
             } else {
                 // The short Lc field consists of one byte from 01 to FF (never be 00).
-                builder.append(byte2HexString(lc))
+                builder.append(byteToHexString(lc))
             }
             builder.append(dataString)
         }
@@ -156,11 +161,11 @@ class Command(
                 // The extended Le field consists of three bytes.
                 // The first byte is 00 and the remaining 2 bytes have any value from 0000 to FFFF.
                 // The value 0000 means FFFF + 1 (65536).
-                builder.append(extendedBytes2HexString(le))
+                builder.append(extendedBytesToHexString(le))
             } else {
                 // A short Le field consists of one byte with any value.
                 // The value 00 means FF + 1 (256).
-                builder.append(byte2HexString(le))
+                builder.append(byteToHexString(le))
             }
         }
 
@@ -200,27 +205,5 @@ class Command(
         }
 
         return array
-    }
-
-    private fun byte2HexString(byte: Int) = "%02X".format(byte % 0x100)
-    private fun extendedBytes2HexString(byte: Int) = "%06X".format(byte % 0x10000)
-
-    private fun hexString2ByteArray(hex: String): ByteArray {
-        var index = 0
-        val array = ByteArray(hex.length / 2)
-        while (index < array.count()) {
-            val pointer = index * 2
-            array[index] = hex.substring(pointer, pointer + 2).toInt(16).toByte()
-            index++
-        }
-        return array
-    }
-
-    private fun byteArrayToHexString(bytes: ByteArray): String {
-        val builder = StringBuilder()
-        for (byte in bytes) {
-            builder.append("%02X".format(byte.toInt() and 0xFF))
-        }
-        return builder.toString()
     }
 }
