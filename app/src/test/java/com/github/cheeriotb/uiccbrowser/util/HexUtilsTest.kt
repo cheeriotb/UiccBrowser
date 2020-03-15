@@ -36,12 +36,12 @@ class HexUtilsTest {
 
     @Test
     fun return_extendedBytesToHexString() {
-        assertThat(extendedBytesToHexString(0x000000)).isEqualTo("000000")
-        assertThat(extendedBytesToHexString(0x000001)).isEqualTo("000001")
-        assertThat(extendedBytesToHexString(0x007FFF)).isEqualTo("007FFF")
-        assertThat(extendedBytesToHexString(0x008000)).isEqualTo("008000")
-        assertThat(extendedBytesToHexString(0x00FFFF)).isEqualTo("00FFFF")
-        assertThat(extendedBytesToHexString(0x010000)).isEqualTo("000000")
+        assertThat(extendedBytesToHexString(0x000000)).isEqualTo("0000")
+        assertThat(extendedBytesToHexString(0x000001)).isEqualTo("0001")
+        assertThat(extendedBytesToHexString(0x007FFF)).isEqualTo("7FFF")
+        assertThat(extendedBytesToHexString(0x008000)).isEqualTo("8000")
+        assertThat(extendedBytesToHexString(0x00FFFF)).isEqualTo("FFFF")
+        assertThat(extendedBytesToHexString(0x010000)).isEqualTo("0000")
     }
 
     @Test

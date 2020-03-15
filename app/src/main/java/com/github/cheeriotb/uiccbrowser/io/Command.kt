@@ -56,6 +56,11 @@ class Command(
     val lc: Int
         get() = data.size
 
+    val extended: Boolean by lazy {
+        // Extended format shall be applied to both Lc and Le
+        (lc > 255) || (le > 256)
+    }
+
     init {
         require(ins in 0..255) { "INS must not be greater than 255" }
         require((ins and 0xF0) != 0x60 && (ins and 0xF0) != 0x90) {
@@ -99,19 +104,16 @@ class Command(
     }
 
     fun build(channel: Int = 0): ByteArray {
-        // Extended format shall be applied to both Lc and Le
-        val extended: Boolean = (lc > 255) || (le > 256)
-
         // CLA + INS + P1 + P2 for header bytes
         var array = byteArrayOf(cla(channel).toByte(), ins.toByte(), p1.toByte(), p2.toByte())
 
         if (lc > 0) {
             array = if (extended) {
                 // The first byte of the extended Lc field is 00.
-                // The remaining 2 bytes have any value from 0001 to FFFF (never be 0000).
+                // The remaining 2 bytes have any value from 0001 - FFFF (never be 0000).
                 array.plus(byteArrayOf(0x00, lc.shr(8).toByte(), lc.toByte()))
             } else {
-                // The short Lc field consists of one byte from 01 to FF (never be 00).
+                // The short Lc field consists of one byte from 01 - FF (never be 00).
                 array.plus(lc.toByte())
             }
             array = array.plus(data)
@@ -119,10 +121,17 @@ class Command(
 
         if (le > 0) {
             array = if (extended) {
-                // The extended Le field consists of three bytes.
-                // The first byte is 00 and the remaining 2 bytes have any value from 0000 to FFFF.
-                // The value 0000 means FFFF + 1 (65536).
-                array.plus(byteArrayOf(0x00, le.shr(8).toByte(), le.toByte()))
+                if (lc > 0) {
+                    // The extended Le field of Case 4E format consists of two bytes.
+                    // The range of the value is 0000 - FFFF.
+                    // The value 0000 means FFFF + 1 (65536).
+                    array.plus(byteArrayOf(le.shr(8).toByte(), le.toByte()))
+                } else {
+                    // The extended Le field of Case 2E format consists of three bytes.
+                    // The first byte is 00 and the remaining bytes have any value from 0000 - FFFF.
+                    // The value 0000 means FFFF + 1 (65536).
+                    array.plus(byteArrayOf(0x00, le.shr(8).toByte(), le.toByte()))
+                }
             } else {
                 // A short Le field consists of one byte with any value.
                 // The value 00 means FF + 1 (256).

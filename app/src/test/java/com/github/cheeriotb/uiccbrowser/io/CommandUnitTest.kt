@@ -28,6 +28,7 @@ class CommandUnitTest {
         assertThat(command.lc).isEqualTo(0)
         assertThat(command.data.size).isEqualTo(0)
         assertThat(command.le).isEqualTo(0)
+        assertThat(command.extended).isEqualTo(false)
 
         assertThat(command.build()).isEqualTo(byteArrayOf(0x00, 0xFF.toByte(), 0x00, 0x00))
     }
@@ -186,6 +187,7 @@ class CommandUnitTest {
         val command = Command(0xFF, le = leValue)
         assertThat(command.lc).isEqualTo(0x00)
         assertThat(command.le).isEqualTo(leValue)
+        assertThat(command.extended).isEqualTo(false)
 
         val apduArray = command.build()
         assertThat(apduArray.size).isEqualTo(4 + 1)
@@ -207,6 +209,7 @@ class CommandUnitTest {
         val command = Command(0xFF, le = leValue)
         assertThat(command.lc).isEqualTo(0x00)
         assertThat(command.le).isEqualTo(leValue)
+        assertThat(command.extended).isEqualTo(true)
 
         val apduArray = command.build()
         assertThat(apduArray.size).isEqualTo(4 + 3)
@@ -229,6 +232,7 @@ class CommandUnitTest {
         assertThat(command.lc).isEqualTo(lcValue)
         assertThat(command.le).isEqualTo(0x00)
         assertThat(command.data).isEqualTo(dataArray)
+        assertThat(command.extended).isEqualTo(false)
 
         val apduArray = command.build()
         assertThat(apduArray.size).isEqualTo(4 + 1 + lcValue)
@@ -253,6 +257,7 @@ class CommandUnitTest {
         assertThat(command.lc).isEqualTo(lcValue)
         assertThat(command.le).isEqualTo(0x00)
         assertThat(command.data).isEqualTo(dataArray)
+        assertThat(command.extended).isEqualTo(true)
 
         val apduArray = command.build()
         assertThat(apduArray.size).isEqualTo(4 + 3 + lcValue)
@@ -278,6 +283,7 @@ class CommandUnitTest {
         assertThat(command.lc).isEqualTo(lcValue)
         assertThat(command.le).isEqualTo(leValue)
         assertThat(command.data).isEqualTo(dataArray)
+        assertThat(command.extended).isEqualTo(false)
 
         val apduArray = command.build()
         assertThat(apduArray.size).isEqualTo(4 + 1 + lcValue + 1)
@@ -289,11 +295,11 @@ class CommandUnitTest {
     @Test
     fun case4e() {
         // Big Lc x Small Le
-        case4eInternal(0x100, "000100", 0x01, "000001")
+        case4eInternal(0x100, "000100", 0x01, "0001")
         // Small Lc x Big Le
-        case4eInternal(0x01, "000001", 0x101, "000101")
+        case4eInternal(0x01, "000001", 0x101, "0101")
         // Big Lc x Big Le
-        case4eInternal(0xFFFF, "00FFFF", 0x10000, "000000")
+        case4eInternal(0xFFFF, "00FFFF", 0x10000, "0000")
     }
 
     private fun case4eInternal(lcValue: Int, lcField: String, leValue: Int, leField: String) {
@@ -306,13 +312,14 @@ class CommandUnitTest {
         assertThat(command.lc).isEqualTo(lcValue)
         assertThat(command.le).isEqualTo(leValue)
         assertThat(command.data).isEqualTo(dataArray)
+        assertThat(command.extended).isEqualTo(true)
 
         val apduArray = command.build()
-        assertThat(apduArray.size).isEqualTo(4 + 3 + lcValue + 3)
+        assertThat(apduArray.size).isEqualTo(4 + 3 + lcValue + 2)
         assertThat("%02X%02X%02X".format(apduArray[4], apduArray[5], apduArray[6]))
                 .isEqualTo(lcField)
         assertThat(apduArray.sliceArray(IntRange(4 + 3, 4 + 3 + lcValue - 1))).isEqualTo(dataArray)
-        assertThat("%02X%02X%02X".format(apduArray[4 + 3 + lcValue], apduArray[4 + 3 + lcValue + 1],
-                apduArray[4 + 3 + lcValue + 2])).isEqualTo(leField)
+        assertThat("%02X%02X".format(apduArray[4 + 3 + lcValue], apduArray[4 + 3 + lcValue + 1]))
+                .isEqualTo(leField)
     }
 }

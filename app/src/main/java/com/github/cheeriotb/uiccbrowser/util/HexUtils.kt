@@ -12,7 +12,7 @@ fun byteToHexString(byte: Int) = "%02X".format(byte.toByte())
 
 fun hexStringToByte(hexString: String) = hexString.toInt(16).toByte()
 
-fun extendedBytesToHexString(byte: Int) = "%06X".format(byte and 0xFFFF)
+fun extendedBytesToHexString(byte: Int) = "%04X".format(byte and 0xFFFF)
 
 fun hexStringToByteArray(hexString: String): ByteArray {
     val array = ByteArray(hexString.length / 2)
