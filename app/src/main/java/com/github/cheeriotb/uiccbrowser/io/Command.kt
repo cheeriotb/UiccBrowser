@@ -8,6 +8,8 @@
 
 package com.github.cheeriotb.uiccbrowser.io
 
+import com.github.cheeriotb.uiccbrowser.util.Iso7816
+
 class Command(
     val ins: Int,
     val p1: Int = 0x00,
@@ -21,6 +23,10 @@ class Command(
         p2: Int = 0x00,
         le: Int = 0
     ) : this(ins, p1, p2, ByteArray(0), le)
+
+    constructor(
+        command: Command
+    ) : this(command.ins, command.p1, command.p2, command.data, command.le)
 
     companion object {
         private const val FURTHER_INTER_INDUSTRY_CLASS = 0x40
@@ -68,8 +74,8 @@ class Command(
         }
         require(p1 in 0..255) { "P1 and P2 must not be greater than 255" }
         require(p2 in 0..255) { "P1 and P2 must not be greater than 255" }
-        require(lc in 0..65535) { "Lc must not be greater than 65535" }
-        require(le in 0..65536) { "Le must not be greater than 65536" }
+        require(lc in IntRange(0, Iso7816.MAX_LC)) { "Lc must not be greater than 65535" }
+        require(le in IntRange(0, Iso7816.MAX_LE)) { "Le must not be greater than 65536" }
     }
 
     fun cla(channel: Int = 0): Int {

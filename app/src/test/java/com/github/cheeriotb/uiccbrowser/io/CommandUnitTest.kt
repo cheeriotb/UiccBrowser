@@ -34,6 +34,19 @@ class CommandUnitTest {
     }
 
     @Test
+    fun copy() {
+        val original = Command(0x01, 0x02, 0x03, byteArrayOf(0x04, 0x05), 0x06)
+        val copy = Command(original)
+
+        assertThat(copy.cla).isEqualTo(original.cla)
+        assertThat(copy.ins).isEqualTo(original.ins)
+        assertThat(copy.p1).isEqualTo(original.p1)
+        assertThat(copy.p2).isEqualTo(original.p2)
+        assertThat(copy.data).isEqualTo(original.data)
+        assertThat(copy.le).isEqualTo(original.le)
+    }
+
+    @Test
     fun cla_firstInterIndustry_channelNumber() {
         // Bits 8, 7 and 6 (b7..b5) are set to 000.
         // Bits 2 and 1 (b1..b0) encode a logical channel number.

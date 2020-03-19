@@ -16,10 +16,12 @@ import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.github.cheeriotb.uiccbrowser.util.Iso7816
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import com.github.cheeriotb.uiccbrowser.util.byteToHexString
 import com.github.cheeriotb.uiccbrowser.util.extendedBytesToHexString
 import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
+import java.lang.Exception
 
 class TelephonyInterface private constructor (
     context: Context,
@@ -61,7 +63,7 @@ class TelephonyInterface private constructor (
 
         if (!this.aid.contentEquals(aid)) {
             closeRemainingChannel()
-            if (aid.isNotEmpty()) {
+            if (!aid.contentEquals(BASIC_CHANNEL_AID)) {
                 val aidString = byteArrayToHexString(aid)
                 val result = telephony.iccOpenLogicalChannel(aidString, Interface.OPEN_P2)
                 when (result.status) {
@@ -96,31 +98,59 @@ class TelephonyInterface private constructor (
             return Response(Interface.SW_INTERNAL_EXCEPTION)
         }
 
-        val p3 = if (command.lc > 0) command.lc else if (command.le > 0) command.le else CASE1_P3
+        var apdu = Command(command)
+        var response = Response(Interface.SW_SUCCESS)
 
-        val builder = StringBuilder().append(byteArrayToHexString(command.data))
-        if ((command.lc > 0) and (command.le > 0)) {
-            // Le field of Case 4 command shall be appended to the end of data.
-            builder.append(if (command.extended) extendedBytesToHexString(command.le)
-                    else byteToHexString(command.le))
-        }
+        do {
+            val p3 = if (apdu.lc > 0) apdu.lc else if (apdu.le > 0) apdu.le else CASE1_P3
 
-        val response = if (aid.isNotEmpty()) {
-            telephony.iccTransmitApduLogicalChannel(channelId, command.cla(channelId), command.ins,
-                    command.p1, command.p2, p3, builder.toString())
-        } else {
-            telephony.iccTransmitApduBasicChannel(command.cla(channelId), command.ins, command.p1,
-                    command.p2, p3, builder.toString())
-        }
+            val dataBuilder = StringBuilder().append(byteArrayToHexString(apdu.data))
+            if ((apdu.lc > 0) and (apdu.le > 0)) {
+                // Le field of Case 4 command shall be appended to the end of data.
+                dataBuilder.append(if (apdu.extended) extendedBytesToHexString(apdu.le)
+                        else byteToHexString(apdu.le))
+            }
 
-        return Response(hexStringToByteArray(response))
+            try {
+                Log.v(tag, "Sent: " + byteArrayToHexString(apdu.build()))
+                val receivedString = if (!aid.contentEquals(BASIC_CHANNEL_AID)) {
+                    telephony.iccTransmitApduLogicalChannel(channelId, apdu.cla(channelId),
+                            apdu.ins, apdu.p1, apdu.p2, p3, dataBuilder.toString())
+                } else {
+                    telephony.iccTransmitApduBasicChannel(apdu.cla(channelId), apdu.ins,
+                            apdu.p1, apdu.p2, p3, dataBuilder.toString())
+                }
+                Log.v(tag, "Received: $receivedString")
+                val receivedArray = hexStringToByteArray(receivedString)
+
+                if (receivedArray.size < Response.SW_SIZE) {
+                    Log.e(tag, "At least two bytes shall be responded for status word")
+                    return Response(Interface.SW_INTERNAL_EXCEPTION)
+                }
+
+                response = Response(response.data + receivedArray)
+            } catch (ex: Exception) {
+                Log.e(tag, "Unexpected error happened during command execution", ex)
+                return Response(Interface.SW_INTERNAL_EXCEPTION)
+            }
+
+            apdu = when (response.sw1) {
+                // Send the same command except for replacing Le with SW2 received.
+                Iso7816.SW1_WRONG_LE -> Command(apdu.ins, apdu.p1, apdu.p2, apdu.data,
+                        if (response.sw2 > 0x00) response.sw2 else 0x100)
+                // Send GET RESPONSE command with Le specified by SW2.
+                Iso7816.SW1_DATA_AVAILABLE -> Command(Iso7816.INS_GET_RESPONSE,
+                        le = if (response.sw2 > 0x00) response.sw2 else 0x100)
+                else -> return response
+            }
+        } while (true)
     }
 
     override fun closeRemainingChannel() {
-        if (telephony != null && this.aid.isNotEmpty()) {
+        if (telephony != null && !aid.contentEquals(BASIC_CHANNEL_AID)) {
             telephony.iccCloseLogicalChannel(channelId)
             Log.i(tag, "Closed the logical channel #$channelId")
-            this.aid = BASIC_CHANNEL_AID
+            aid = BASIC_CHANNEL_AID
             channelId = BASIC_CHANNEL_ID
         }
     }

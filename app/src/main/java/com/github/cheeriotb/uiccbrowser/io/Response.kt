@@ -8,22 +8,24 @@
 
 package com.github.cheeriotb.uiccbrowser.io
 
+import com.github.cheeriotb.uiccbrowser.util.Iso7816
+
 class Response(private val response: ByteArray) {
     companion object {
-        private const val STATUS_WORD_SIZE = 2
+        const val SW_SIZE = 2
     }
 
     init {
-        require(response.size >= STATUS_WORD_SIZE) {
+        require(response.size >= SW_SIZE) {
             "The size of the response data must be at least 2 for the status word"
         }
-        require((response.size - STATUS_WORD_SIZE) <= 65536) {
+        require((response.size - SW_SIZE) <= Iso7816.MAX_LE) {
             "The size of the response data must not be greater than 65536 (+ 2)"
         }
     }
 
     val data: ByteArray by lazy {
-        response.copyOf(response.size - STATUS_WORD_SIZE)
+        response.copyOf(response.size - SW_SIZE)
     }
 
     val sw: Int by lazy {
