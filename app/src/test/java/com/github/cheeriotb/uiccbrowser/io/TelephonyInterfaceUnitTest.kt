@@ -15,7 +15,6 @@ import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.rule.GrantPermissionRule
-import com.github.cheeriotb.uiccbrowser.util.Iso7816
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import com.github.cheeriotb.uiccbrowser.util.byteToHexString
 import com.github.cheeriotb.uiccbrowser.util.extendedBytesToHexString
@@ -497,7 +496,7 @@ class TelephonyInterfaceUnitTest {
 
         tif.openChannel(AID1)
         assertThat(tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, data)).sw)
-            .isEqualTo(Response(SW_SUCCESS).sw)
+                .isEqualTo(Response(SW_SUCCESS).sw)
         tif.closeRemainingChannel()
 
         verify(tmMock, times(1)).iccTransmitApduLogicalChannel(TEST_CHANNEL_ID, TEST_CLA_LOGICAL,
@@ -514,7 +513,7 @@ class TelephonyInterfaceUnitTest {
 
         tif.openChannel(AID1)
         assertThat(tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, data)).sw)
-            .isEqualTo(Response(SW_SUCCESS).sw)
+                .isEqualTo(Response(SW_SUCCESS).sw)
         tif.closeRemainingChannel()
 
         verify(tmMock, times(1)).iccTransmitApduLogicalChannel(TEST_CHANNEL_ID, TEST_CLA_LOGICAL,

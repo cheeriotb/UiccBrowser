@@ -8,8 +8,6 @@
 
 package com.github.cheeriotb.uiccbrowser.io
 
-import com.github.cheeriotb.uiccbrowser.util.Iso7816
-
 class Response(private val response: ByteArray) {
     companion object {
         const val SW_SIZE = 2

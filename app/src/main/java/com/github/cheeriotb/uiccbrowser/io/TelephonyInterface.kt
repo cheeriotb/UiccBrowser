@@ -16,7 +16,6 @@ import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.github.cheeriotb.uiccbrowser.util.Iso7816
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import com.github.cheeriotb.uiccbrowser.util.byteToHexString
 import com.github.cheeriotb.uiccbrowser.util.extendedBytesToHexString
@@ -139,7 +138,8 @@ class TelephonyInterface private constructor (
                 Iso7816.SW1_WRONG_LE -> Command(apdu.ins, apdu.p1, apdu.p2, apdu.data,
                         if (response.sw2 > 0x00) response.sw2 else 0x100)
                 // Send GET RESPONSE command with Le specified by SW2.
-                Iso7816.SW1_DATA_AVAILABLE -> Command(Iso7816.INS_GET_RESPONSE,
+                Iso7816.SW1_DATA_AVAILABLE -> Command(
+                    Iso7816.INS_GET_RESPONSE,
                         le = if (response.sw2 > 0x00) response.sw2 else 0x100)
                 else -> return response
             }

@@ -6,7 +6,7 @@
  *  See the license information described in LICENSE file.
  */
 
-package com.github.cheeriotb.uiccbrowser.util
+package com.github.cheeriotb.uiccbrowser.io
 
 class Iso7816 {
     companion object {

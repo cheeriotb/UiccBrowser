@@ -8,8 +8,6 @@
 
 package com.github.cheeriotb.uiccbrowser.io
 
-import com.github.cheeriotb.uiccbrowser.util.Iso7816
-
 class Command(
     val ins: Int,
     val p1: Int = 0x00,
