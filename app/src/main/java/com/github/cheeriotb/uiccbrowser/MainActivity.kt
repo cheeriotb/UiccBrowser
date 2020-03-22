@@ -11,8 +11,8 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.github.cheeriotb.uiccbrowser.io.Command
-import com.github.cheeriotb.uiccbrowser.io.TelephonyInterface
+import com.github.cheeriotb.uiccbrowser.cardio.Command
+import com.github.cheeriotb.uiccbrowser.cardio.TelephonyInterface
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import java.lang.Exception
 import java.security.MessageDigest

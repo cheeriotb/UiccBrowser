@@ -6,7 +6,7 @@
  *  See the license information described in LICENSE file.
  */
 
-package com.github.cheeriotb.uiccbrowser.io
+package com.github.cheeriotb.uiccbrowser.cardio
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
