@@ -80,7 +80,7 @@ class TelephonyInterfaceUnitTest {
         private val SW_SUCCESS = byteArrayOf(b(0x90), b(0x00))
         private const val SW_SUCCESS_STRING = "9000"
 
-        private const val TEST_OPEN_P2 = 0x00
+        private const val TEST_OPEN_P2 = Interface.OPEN_P2
         private const val TEST_CHANNEL_ID = 0x01
 
         private fun b(byte: Int) = byte.toByte()

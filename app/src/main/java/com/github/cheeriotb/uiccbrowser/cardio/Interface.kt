@@ -13,7 +13,7 @@ interface Interface {
     companion object {
         val SW_SUCCESS = byteArrayOf(b(0x90), b(0x00))
         val SW_INTERNAL_EXCEPTION = byteArrayOf(b(0x6F), b(0x00))
-        const val OPEN_P2 = 0x00
+        const val OPEN_P2 = 0x04
         private fun b(byte: Int) = byte.toByte()
     }
 
