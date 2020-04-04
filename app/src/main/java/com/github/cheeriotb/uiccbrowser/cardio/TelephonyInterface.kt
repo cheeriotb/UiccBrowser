@@ -101,7 +101,10 @@ class TelephonyInterface private constructor (
         var response = Response(Interface.SW_SUCCESS)
 
         do {
-            val p3 = if (apdu.lc > 0) apdu.lc else if (apdu.le > 0) apdu.le else CASE1_P3
+            val p3 = if (apdu.lc > 0) apdu.lc /* Lc set as P3 if there is a command data */
+                    else if (apdu.le == 0) CASE1_P3 /* No Lc/Le means Case 1 command */
+                    else if (apdu.extended || apdu.le < 0x100) apdu.le
+                    else 0x00 /* Le (P3) 0x00 means 256 bytes of expected data */
 
             val dataBuilder = StringBuilder().append(byteArrayToHexString(apdu.data))
             if ((apdu.lc > 0) and (apdu.le > 0)) {
