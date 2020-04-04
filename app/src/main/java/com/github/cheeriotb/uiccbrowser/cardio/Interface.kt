@@ -9,6 +9,7 @@
 package com.github.cheeriotb.uiccbrowser.cardio
 
 interface Interface {
+    val isAvailable: Boolean
 
     companion object {
         val SW_SUCCESS = byteArrayOf(b(0x90), b(0x00))
@@ -28,7 +29,6 @@ interface Interface {
         GENERIC_FAILURE
     }
 
-    fun isAvailable(): Boolean
     fun openChannel(aid: ByteArray): OpenChannelResult
     fun transmit(command: Command): Response
     fun closeRemainingChannel()

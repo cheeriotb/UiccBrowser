@@ -26,6 +26,8 @@ class TelephonyInterface private constructor (
     context: Context,
     slotId: Int
 ) : Interface {
+    override val isAvailable: Boolean
+
     private val tag = TelephonyInterface::class.java.simpleName + slotId
     private val telephony: TelephonyManager?
     private var aid = BASIC_CHANNEL_AID
@@ -45,16 +47,15 @@ class TelephonyInterface private constructor (
         val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE)
                 as SubscriptionManager?
         val subscriptionInfo = subscriptionManager?.getActiveSubscriptionInfoForSimSlotIndex(slotId)
-
         val telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
+
+        isAvailable = (telephony != null && slotId < telephony.phoneCount)
         if (telephony != null && subscriptionInfo != null) {
             this.telephony = telephony.createForSubscriptionId(subscriptionInfo.subscriptionId)
         } else {
             this.telephony = null
         }
     }
-
-    override fun isAvailable() = telephony != null
 
     override fun openChannel(aid: ByteArray): Interface.OpenChannelResult {
         if (telephony == null) {
