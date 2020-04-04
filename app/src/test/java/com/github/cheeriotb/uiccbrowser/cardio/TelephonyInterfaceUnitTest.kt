@@ -112,9 +112,15 @@ class TelephonyInterfaceUnitTest {
     }
 
     @Test
-    fun notAvailable() {
+    fun available() {
+        assertThat(tif.isAvailable()).isEqualTo(true)
+    }
+
+    @Test
+    fun unavailable() {
         tif = TelephonyInterface.from(context, TEST_SLOT_ID_NOT_AVAILABLE)
 
+        assertThat(tif.isAvailable()).isEqualTo(false)
         assertThat(tif.openChannel(AID1)).isEqualTo(Interface.OpenChannelResult.GENERIC_FAILURE)
         assertThat(tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2)).sw)
                 .isEqualTo(Response(Interface.SW_INTERNAL_EXCEPTION).sw)

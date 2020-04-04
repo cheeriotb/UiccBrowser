@@ -54,6 +54,8 @@ class TelephonyInterface private constructor (
         }
     }
 
+    override fun isAvailable() = telephony != null
+
     override fun openChannel(aid: ByteArray): Interface.OpenChannelResult {
         if (telephony == null) {
             Log.w(tag, "No subscription info is available")

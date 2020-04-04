@@ -28,6 +28,7 @@ interface Interface {
         GENERIC_FAILURE
     }
 
+    fun isAvailable(): Boolean
     fun openChannel(aid: ByteArray): OpenChannelResult
     fun transmit(command: Command): Response
     fun closeRemainingChannel()
