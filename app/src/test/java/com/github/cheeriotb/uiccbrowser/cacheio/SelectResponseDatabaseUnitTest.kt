@@ -8,8 +8,6 @@
 
 package com.github.cheeriotb.uiccbrowser.cacheio
 
-import android.content.Context
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
 import com.google.common.truth.Truth.assertThat
@@ -53,7 +51,7 @@ class SelectResponseDatabaseUnitTest {
         private const val SW_FILE_NOT_FOUND = 0x6A82
     }
 
-    private val entry1Root= SelectResponse(ICC_ID_1, AID_NONE, PATH_ROOT, FILE_ID_1,
+    private val entry1Root = SelectResponse(ICC_ID_1, AID_NONE, PATH_ROOT, FILE_ID_1,
             hexStringToByteArray(DATA_1), SW_SUCCESS)
     private val entry1MfA = SelectResponse(ICC_ID_1, AID_NONE, PATH_MF, FILE_ID_1,
             hexStringToByteArray(DATA_1), SW_SUCCESS)
