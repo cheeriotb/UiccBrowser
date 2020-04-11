@@ -26,16 +26,16 @@ class TelephonyInterface private constructor (
     context: Context,
     slotId: Int
 ) : Interface {
+    /* Indicates whether the card slot is available regardless of the existence of card */
     override val isAvailable: Boolean
 
     private val tag = TelephonyInterface::class.java.simpleName + slotId
     private val telephony: TelephonyManager?
-    private var aid = BASIC_CHANNEL_AID
+    private var aid = Interface.BASIC_CHANNEL_AID
     private var channelId = BASIC_CHANNEL_ID
 
     companion object {
         private const val BASIC_CHANNEL_ID = 0
-        val BASIC_CHANNEL_AID = ByteArray(0)
         const val CASE1_P3 = -1
         fun from(context: Context, slotId: Int) = TelephonyInterface(context, slotId)
     }
@@ -65,7 +65,7 @@ class TelephonyInterface private constructor (
 
         if (!this.aid.contentEquals(aid)) {
             closeRemainingChannel()
-            if (!aid.contentEquals(BASIC_CHANNEL_AID)) {
+            if (!aid.contentEquals(Interface.BASIC_CHANNEL_AID)) {
                 val aidString = byteArrayToHexString(aid)
                 val result = telephony.iccOpenLogicalChannel(aidString, Interface.OPEN_P2)
                 when (result.status) {
@@ -118,7 +118,7 @@ class TelephonyInterface private constructor (
 
             try {
                 Log.v(tag, "Sent: " + byteArrayToHexString(apdu.build()))
-                val receivedString = if (!aid.contentEquals(BASIC_CHANNEL_AID)) {
+                val receivedString = if (!aid.contentEquals(Interface.BASIC_CHANNEL_AID)) {
                     telephony.iccTransmitApduLogicalChannel(channelId, apdu.cla(channelId),
                             apdu.ins, apdu.p1, apdu.p2, p3, dataBuilder.toString())
                 } else {
@@ -153,10 +153,10 @@ class TelephonyInterface private constructor (
     }
 
     override fun closeRemainingChannel() {
-        if (telephony != null && !aid.contentEquals(BASIC_CHANNEL_AID)) {
+        if (telephony != null && !aid.contentEquals(Interface.BASIC_CHANNEL_AID)) {
             telephony.iccCloseLogicalChannel(channelId)
             Log.i(tag, "Closed the logical channel #$channelId")
-            aid = BASIC_CHANNEL_AID
+            aid = Interface.BASIC_CHANNEL_AID
             channelId = BASIC_CHANNEL_ID
         }
     }
