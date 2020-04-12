@@ -33,11 +33,10 @@ class SelectResponseDatabaseUnitTest {
         private const val AID_1 = "00000000000000000000000000000001"
         private const val AID_2 = "00000000000000000000000000000002"
 
-        private const val PATH_INVALID = "3F00FFFF"
-        private const val PATH_ROOT = ""
-        private const val PATH_MF = "3F00"
-        private const val PATH_TELECOM = "3F007F10"
-        private const val PATH_ADF = "3F007FFF"
+        private const val PATH_INVALID = "FFFF"
+        private const val PATH_MF = ""
+        private const val PATH_TELECOM = "7F10"
+        private const val PATH_ADF = "7FFF"
 
         private const val FILE_ID_INVALID = "FFFF"
         private const val FILE_ID_1 = "0001"
@@ -51,12 +50,8 @@ class SelectResponseDatabaseUnitTest {
         private const val SW_FILE_NOT_FOUND = 0x6A82
     }
 
-    private val entry1Root = SelectResponse(ICC_ID_1, AID_NONE, PATH_ROOT, FILE_ID_1,
+    private val entry1Root = SelectResponse(ICC_ID_1, AID_NONE, PATH_MF, FILE_ID_1,
             hexStringToByteArray(DATA_1), SW_SUCCESS)
-    private val entry1MfA = SelectResponse(ICC_ID_1, AID_NONE, PATH_MF, FILE_ID_1,
-            hexStringToByteArray(DATA_1), SW_SUCCESS)
-    private val entry1MfB = SelectResponse(ICC_ID_1, AID_NONE, PATH_MF, FILE_ID_2,
-            hexStringToByteArray(DATA_NONE), SW_FILE_NOT_FOUND)
     private val entry1TelecomA = SelectResponse(ICC_ID_1, AID_NONE, PATH_TELECOM, FILE_ID_1,
             hexStringToByteArray(DATA_1), SW_SUCCESS)
     private val entry1TelecomB = SelectResponse(ICC_ID_1, AID_NONE, PATH_TELECOM, FILE_ID_2,
@@ -70,12 +65,8 @@ class SelectResponseDatabaseUnitTest {
     private val entry1Adf2B = SelectResponse(ICC_ID_1, AID_2, PATH_ADF, FILE_ID_2,
             hexStringToByteArray(DATA_NONE), SW_FILE_NOT_FOUND)
 
-    private val entry2Root = SelectResponse(ICC_ID_2, AID_NONE, PATH_ROOT, FILE_ID_1,
+    private val entry2Root = SelectResponse(ICC_ID_2, AID_NONE, PATH_MF, FILE_ID_1,
             hexStringToByteArray(DATA_2), SW_SUCCESS)
-    private val entry2MfA = SelectResponse(ICC_ID_2, AID_NONE, PATH_MF, FILE_ID_1,
-            hexStringToByteArray(DATA_2), SW_SUCCESS)
-    private val entry2MfB = SelectResponse(ICC_ID_2, AID_NONE, PATH_MF, FILE_ID_2,
-            hexStringToByteArray(DATA_NONE), SW_FILE_NOT_FOUND)
     private val entry2TelecomA = SelectResponse(ICC_ID_2, AID_NONE, PATH_TELECOM, FILE_ID_1,
             hexStringToByteArray(DATA_2), SW_SUCCESS)
     private val entry2TelecomB = SelectResponse(ICC_ID_2, AID_NONE, PATH_TELECOM, FILE_ID_2,
@@ -95,8 +86,6 @@ class SelectResponseDatabaseUnitTest {
         dao = db.getDao()
 
         dao.insert(entry1Root)
-        dao.insert(entry1MfA)
-        dao.insert(entry1MfB)
         dao.insert(entry1TelecomA)
         dao.insert(entry1TelecomB)
         dao.insert(entry1Adf1A)
@@ -105,8 +94,6 @@ class SelectResponseDatabaseUnitTest {
         dao.insert(entry1Adf2B)
 
         dao.insert(entry2Root)
-        dao.insert(entry2MfA)
-        dao.insert(entry2MfB)
         dao.insert(entry2TelecomA)
         dao.insert(entry2TelecomB)
         dao.insert(entry2Adf1A)
@@ -122,65 +109,44 @@ class SelectResponseDatabaseUnitTest {
 
     @Test
     fun get_notFound() = runBlocking {
-        assertThat(dao.get(ICC_ID_INVALID, AID_NONE, PATH_ROOT, FILE_ID_1)).isEqualTo(null)
+        assertThat(dao.get(ICC_ID_INVALID, AID_NONE, PATH_MF, FILE_ID_1)).isEqualTo(null)
 
-        assertThat(dao.get(ICC_ID_1, AID_INVALID, PATH_ROOT, FILE_ID_1)).isEqualTo(null)
-        assertThat(dao.get(ICC_ID_2, AID_INVALID, PATH_ROOT, FILE_ID_1)).isEqualTo(null)
+        assertThat(dao.get(ICC_ID_1, AID_INVALID, PATH_MF, FILE_ID_1)).isEqualTo(null)
+        assertThat(dao.get(ICC_ID_2, AID_INVALID, PATH_MF, FILE_ID_1)).isEqualTo(null)
 
         assertThat(dao.get(ICC_ID_1, AID_NONE, PATH_INVALID, FILE_ID_1)).isEqualTo(null)
         assertThat(dao.get(ICC_ID_2, AID_NONE, PATH_INVALID, FILE_ID_1)).isEqualTo(null)
 
-        assertThat(dao.get(ICC_ID_1, AID_NONE, PATH_ROOT, FILE_ID_INVALID)).isEqualTo(null)
-        assertThat(dao.get(ICC_ID_2, AID_NONE, PATH_ROOT, FILE_ID_INVALID)).isEqualTo(null)
+        assertThat(dao.get(ICC_ID_1, AID_NONE, PATH_MF, FILE_ID_INVALID)).isEqualTo(null)
+        assertThat(dao.get(ICC_ID_2, AID_NONE, PATH_MF, FILE_ID_INVALID)).isEqualTo(null)
     }
 
     @Test
     fun getAll_notFound() = runBlocking {
-        assertThat(dao.getAll(ICC_ID_INVALID, AID_NONE, PATH_ROOT).size).isEqualTo(0)
+        assertThat(dao.getAll(ICC_ID_INVALID, AID_NONE, PATH_MF).size).isEqualTo(0)
 
-        assertThat(dao.getAll(ICC_ID_1, AID_INVALID, PATH_ROOT).size).isEqualTo(0)
-        assertThat(dao.getAll(ICC_ID_2, AID_INVALID, PATH_ROOT).size).isEqualTo(0)
+        assertThat(dao.getAll(ICC_ID_1, AID_INVALID, PATH_MF).size).isEqualTo(0)
+        assertThat(dao.getAll(ICC_ID_2, AID_INVALID, PATH_MF).size).isEqualTo(0)
 
         assertThat(dao.getAll(ICC_ID_1, AID_NONE, PATH_INVALID).size).isEqualTo(0)
         assertThat(dao.getAll(ICC_ID_2, AID_NONE, PATH_INVALID).size).isEqualTo(0)
     }
 
     @Test
-    fun get_root() = runBlocking {
-        assertThat(dao.get(ICC_ID_1, AID_NONE, PATH_ROOT, FILE_ID_1)).isEqualTo(entry1Root)
-        assertThat(dao.get(ICC_ID_2, AID_NONE, PATH_ROOT, FILE_ID_1)).isEqualTo(entry2Root)
-    }
-
-    @Test
-    fun getAll_root() = runBlocking {
-        val all1 = dao.getAll(ICC_ID_1, AID_NONE, PATH_ROOT)
-        assertThat(all1.size).isEqualTo(1)
-        assertThat(all1[0]).isEqualTo(entry1Root)
-
-        val all2 = dao.getAll(ICC_ID_2, AID_NONE, PATH_ROOT)
-        assertThat(all2.size).isEqualTo(1)
-        assertThat(all2[0]).isEqualTo(entry2Root)
-    }
-
-    @Test
     fun get_mf() = runBlocking {
-        assertThat(dao.get(ICC_ID_1, AID_NONE, PATH_MF, FILE_ID_1)).isEqualTo(entry1MfA)
-        assertThat(dao.get(ICC_ID_1, AID_NONE, PATH_MF, FILE_ID_2)).isEqualTo(entry1MfB)
-        assertThat(dao.get(ICC_ID_2, AID_NONE, PATH_MF, FILE_ID_1)).isEqualTo(entry2MfA)
-        assertThat(dao.get(ICC_ID_2, AID_NONE, PATH_MF, FILE_ID_2)).isEqualTo(entry2MfB)
+        assertThat(dao.get(ICC_ID_1, AID_NONE, PATH_MF, FILE_ID_1)).isEqualTo(entry1Root)
+        assertThat(dao.get(ICC_ID_2, AID_NONE, PATH_MF, FILE_ID_1)).isEqualTo(entry2Root)
     }
 
     @Test
     fun getAll_mf() = runBlocking {
         val all1 = dao.getAll(ICC_ID_1, AID_NONE, PATH_MF)
-        assertThat(all1.size).isEqualTo(2)
-        assertThat(all1[0]).isEqualTo(entry1MfA)
-        assertThat(all1[1]).isEqualTo(entry1MfB)
+        assertThat(all1.size).isEqualTo(1)
+        assertThat(all1[0]).isEqualTo(entry1Root)
 
         val all2 = dao.getAll(ICC_ID_2, AID_NONE, PATH_MF)
-        assertThat(all2.size).isEqualTo(2)
-        assertThat(all2[0]).isEqualTo(entry2MfA)
-        assertThat(all2[1]).isEqualTo(entry2MfB)
+        assertThat(all2.size).isEqualTo(1)
+        assertThat(all2[0]).isEqualTo(entry2Root)
     }
 
     @Test
@@ -247,11 +213,23 @@ class SelectResponseDatabaseUnitTest {
     }
 
     @Test
+    fun delete() = runBlocking {
+        dao.delete(ICC_ID_1)
+
+        assertThat(dao.getAll(ICC_ID_1, AID_NONE, PATH_MF).size).isEqualTo(0)
+        assertThat(dao.getAll(ICC_ID_1, AID_NONE, PATH_TELECOM).size).isEqualTo(0)
+        assertThat(dao.getAll(ICC_ID_1, AID_1, PATH_ADF).size).isEqualTo(0)
+        assertThat(dao.getAll(ICC_ID_1, AID_2, PATH_ADF).size).isEqualTo(0)
+
+        assertThat(dao.getAll(ICC_ID_2, AID_NONE, PATH_MF).size).isEqualTo(1)
+        assertThat(dao.getAll(ICC_ID_2, AID_NONE, PATH_TELECOM).size).isEqualTo(2)
+        assertThat(dao.getAll(ICC_ID_2, AID_1, PATH_ADF).size).isEqualTo(2)
+        assertThat(dao.getAll(ICC_ID_2, AID_2, PATH_ADF).size).isEqualTo(2)
+    }
+
+    @Test
     fun deleteAll() = runBlocking {
         dao.deleteAll()
-
-        assertThat(dao.getAll(ICC_ID_1, AID_NONE, PATH_ROOT).size).isEqualTo(0)
-        assertThat(dao.getAll(ICC_ID_2, AID_NONE, PATH_ROOT).size).isEqualTo(0)
 
         assertThat(dao.getAll(ICC_ID_1, AID_NONE, PATH_MF).size).isEqualTo(0)
         assertThat(dao.getAll(ICC_ID_2, AID_NONE, PATH_MF).size).isEqualTo(0)
