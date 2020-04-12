@@ -8,11 +8,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.github.cheeriotb.uiccbrowser.cardio.Command
-import com.github.cheeriotb.uiccbrowser.cardio.Interface
-import com.github.cheeriotb.uiccbrowser.cardio.TelephonyInterface
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
-import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import kotlinx.coroutines.runBlocking
 
 class MainActivity : AppCompatActivity() {
