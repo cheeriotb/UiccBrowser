@@ -45,5 +45,13 @@ class ResponseUnitTest {
         assertThat(response.sw2).isEqualTo(0x1A)
     }
 
+    @Test
+    fun isOk() {
+        assertThat(Response(byteArrayOf(b(0x90), b(0x00))).isOk).isEqualTo(true)
+        assertThat(Response(byteArrayOf(b(0x91), b(0x00))).isOk).isEqualTo(true)
+        assertThat(Response(byteArrayOf(b(0x92), b(0x00))).isOk).isEqualTo(true)
+        assertThat(Response(byteArrayOf(b(0x93), b(0x00))).isOk).isEqualTo(false)
+    }
+
     private fun b(byte: Int) = byte.toByte()
 }

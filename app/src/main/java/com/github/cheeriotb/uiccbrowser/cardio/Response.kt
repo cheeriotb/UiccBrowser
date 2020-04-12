@@ -37,4 +37,16 @@ class Response(private val response: ByteArray) {
     val sw2: Int by lazy {
         0xFF and response[response.size - 1].toInt()
     }
+
+    val isOk: Boolean =
+        // Refer to the clause 10.2.1.1 Normal processing in ETSI TS 102 221.
+        when (sw1) {
+            0x90 -> true /* Normal ending of the command */
+            0x91 -> true /* Normal ending of the command, with extra information
+                            from the proactive UICC containing a command for the terminal.
+                            SW2 is the length of the response data */
+            0x92 -> true /* Normal ending of the command, with extra information
+                            concerning an ongoing data transfer session. */
+            else -> false
+        }
 }
