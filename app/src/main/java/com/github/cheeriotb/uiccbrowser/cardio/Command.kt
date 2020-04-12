@@ -145,4 +145,30 @@ class Command(
 
         return array
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Command
+
+        if (cla != other.cla) return false
+        if (ins != other.ins) return false
+        if (p1 != other.p1) return false
+        if (p2 != other.p2) return false
+        if (!data.contentEquals(other.data)) return false
+        if (le != other.le) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = cla.hashCode()
+        result = 31 * result + ins.hashCode()
+        result = 31 * result + p1.hashCode()
+        result = 31 * result + p2.hashCode()
+        result = 31 * result + data.contentHashCode()
+        result = 31 * result + le
+        return result
+    }
 }
