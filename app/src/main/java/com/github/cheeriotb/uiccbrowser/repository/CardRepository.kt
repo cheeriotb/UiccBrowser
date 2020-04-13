@@ -52,7 +52,10 @@ class CardRepository private constructor (
         @Volatile
         private var instances: ArrayList<CardRepository>? = null
 
-        fun from(context: Context, slotId: Int): CardRepository? {
+        fun from(
+            context: Context,
+            slotId: Int
+        ): CardRepository? {
             synchronized(this) {
                 if (instances == null) {
                     instances = ArrayList()
@@ -74,9 +77,10 @@ class CardRepository private constructor (
         const val AID_NONE = ""
         const val LEVEL_MF = ""
         const val SIZE_MAX = 0x100
-
         const val EF_ICCID = "2FE2"
-        const val SW_INTERNAL_EXCEPTION = Iso7816.SW1_INTERNAL_EXCEPTION shl 8
+
+        private const val SW_INTERNAL_EXCEPTION = Iso7816.SW1_INTERNAL_EXCEPTION shl 8
+        private val DATA_NONE = ByteArray(0)
     }
 
     suspend fun initialize(): Boolean {
@@ -160,7 +164,7 @@ class CardRepository private constructor (
     ): Result {
         if (!isAccessible || !openChannel(aid) || !select(path, fileId).isOk) {
             startClosingTimer()
-            return Result(fileId, ByteArray(0), SW_INTERNAL_EXCEPTION)
+            return Result(fileId, DATA_NONE, SW_INTERNAL_EXCEPTION)
         }
 
         val response = readBinary(offset, size)
@@ -178,7 +182,7 @@ class CardRepository private constructor (
     ): Result {
         if (!isAccessible || !openChannel(aid) || !select(path, fileId).isOk) {
             startClosingTimer()
-            return Result(fileId, ByteArray(0), SW_INTERNAL_EXCEPTION)
+            return Result(fileId, DATA_NONE, SW_INTERNAL_EXCEPTION)
         }
 
         val response = cardIo.transmit(Command(Iso7816.INS_READ_RECORD, recordNo,
@@ -188,7 +192,33 @@ class CardRepository private constructor (
         return Result(fileId, response.data, response.sw)
     }
 
-    private suspend fun openChannel(aid: String = AID_NONE): Boolean {
+    suspend fun readAllRecords(
+        aid: String = AID_NONE,
+        path: String = LEVEL_MF,
+        fileId: String,
+        size: Int = SIZE_MAX,
+        numOfRecords: Int
+    ): List<Result> {
+        if (!isAccessible || (numOfRecords < 1) || (numOfRecords > 254)
+                || !openChannel(aid) || !select(path, fileId).isOk) {
+            startClosingTimer()
+            return mutableListOf(Result(fileId, DATA_NONE, SW_INTERNAL_EXCEPTION))
+        }
+
+        val records: MutableList<Result> = mutableListOf()
+        for (recordNo in IntRange(1, numOfRecords)) {
+            val response = cardIo.transmit(Command(Iso7816.INS_READ_RECORD, recordNo,
+                    0x04 /* Absolute/current mode, the record number is given in P1 */, size))
+            records.add(Result(fileId, response.data, response.sw))
+        }
+        startClosingTimer()
+
+        return records
+    }
+
+    private suspend fun openChannel(
+        aid: String = AID_NONE
+    ): Boolean {
         val aidArray = if (aid.isNotEmpty()) hexStringToByteArray(aid)
                 else hexStringToByteArray(lastSelectedAdf ?: AID_NONE)
 
@@ -218,7 +248,10 @@ class CardRepository private constructor (
                 p2, hexStringToByteArray(path + fileId)))
     }
 
-    private fun readBinary(offset: Int = 0, size: Int = SIZE_MAX): Response {
+    private fun readBinary(
+        offset: Int = 0,
+        size: Int = SIZE_MAX
+    ): Response {
         val p1 = offset.and(0x7F00).shr(8)
         val p2 = offset.and(0x00FF)
         return cardIo.transmit(Command(Iso7816.INS_READ_BINARY, p1, p2, size))
@@ -243,7 +276,7 @@ class CardRepository private constructor (
                 closingJob!!.cancel()
                 controller = closingJob
                 closingJob = null
-                Log.d(tag, "Canceled a job for releasing the logical channel")
+                Log.d(tag, "Canceled the launched job")
             }
         }
         controller?.join()
