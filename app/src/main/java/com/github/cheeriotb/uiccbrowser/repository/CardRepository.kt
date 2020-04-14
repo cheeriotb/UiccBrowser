@@ -78,13 +78,16 @@ class CardRepository private constructor (
         const val LEVEL_MF = ""
         const val SIZE_MAX = 0x100
         const val EF_ICCID = "2FE2"
+        // Refer to the table A.1 of ETSI TS 131 110 or ISO/IEC 7916-5 for this 3GPP RID
+        const val RID_3GPP = "A000000087"
 
         private const val SW_INTERNAL_EXCEPTION = Iso7816.SW1_INTERNAL_EXCEPTION shl 8
         private val DATA_NONE = ByteArray(0)
     }
 
     suspend fun initialize(): Boolean {
-        if (openChannel()) {
+        // Try to select a 3GPP application by partial DF name first
+        if (openChannel(RID_3GPP) || openChannel()) {
             val selectResponse = select(LEVEL_MF, EF_ICCID, fcpRequest = true)
             if (selectResponse.isOk) {
                 val readResponse = readBinary()
