@@ -10,7 +10,7 @@ package com.github.cheeriotb.uiccbrowser.cacheio
 
 interface CachedSubscriptionDataSource {
     suspend fun insert(cachedSubscription: CachedSubscription)
-    suspend fun get(iccId: String): CachedSubscription
+    suspend fun get(iccId: String): CachedSubscription?
     suspend fun getAll(): List<CachedSubscription>
     suspend fun delete(iccId: String)
     suspend fun deleteAll()

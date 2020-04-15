@@ -25,7 +25,7 @@ class CachedSubscriptionDataSourceImpl private constructor(
         return dao.insert(cachedSubscription)
     }
 
-    override suspend fun get(iccId: String): CachedSubscription {
+    override suspend fun get(iccId: String): CachedSubscription? {
         return dao.get(iccId)
     }
 

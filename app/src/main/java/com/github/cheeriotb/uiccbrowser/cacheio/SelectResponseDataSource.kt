@@ -10,7 +10,7 @@ package com.github.cheeriotb.uiccbrowser.cacheio
 
 interface SelectResponseDataSource {
     suspend fun insert(selectResponse: SelectResponse)
-    suspend fun get(iccId: String, aid: String, path: String, fileId: String): SelectResponse
+    suspend fun get(iccId: String, aid: String, path: String, fileId: String): SelectResponse?
     suspend fun getAll(iccId: String, aid: String, path: String): List<SelectResponse>
     suspend fun delete(iccId: String)
     suspend fun deleteAll()

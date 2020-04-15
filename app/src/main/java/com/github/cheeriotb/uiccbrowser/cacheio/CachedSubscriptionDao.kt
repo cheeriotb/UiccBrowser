@@ -17,7 +17,7 @@ interface CachedSubscriptionDao {
     @Insert
     suspend fun insert(cachedSubscription: CachedSubscription)
     @Query("select * from subscription where icc_id = :iccId")
-    suspend fun get(iccId: String): CachedSubscription
+    suspend fun get(iccId: String): CachedSubscription?
     @Query("select * from subscription")
     suspend fun getAll(): List<CachedSubscription>
     @Query("delete from subscription where icc_id = :iccId")

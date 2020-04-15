@@ -29,7 +29,7 @@ class SelectResponseDataSourceImpl private constructor(
         aid: String,
         path: String,
         fileId: String
-    ): SelectResponse {
+    ): SelectResponse? {
         return dao.get(iccId, aid, path, fileId)
     }
 
