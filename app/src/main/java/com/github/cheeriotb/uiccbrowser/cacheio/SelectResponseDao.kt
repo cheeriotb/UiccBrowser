@@ -16,14 +16,15 @@ import androidx.room.Query
 interface SelectResponseDao {
     @Insert
     suspend fun insert(selectResponse: SelectResponse)
-    @Query("select * from response"
-            + " where icc_id = :iccId and aid = :aid and path = :path and file_id = :fileId")
+    @Query("SELECT * FROM response"
+            + " WHERE icc_id = :iccId AND aid = :aid AND path = :path AND file_id = :fileId")
     suspend fun get(iccId: String, aid: String, path: String, fileId: String): SelectResponse?
-    @Query("select * from response"
-            + " where icc_id = :iccId and aid = :aid and path = :path ORDER BY file_id ASC")
+    @Query("SELECT * FROM response "
+            + "WHERE icc_id = :iccId AND aid = :aid AND path = :path AND LENGTH(data) > 0 "
+            + "ORDER BY file_id ASC")
     suspend fun getAll(iccId: String, aid: String, path: String): List<SelectResponse>
-    @Query("delete from response where icc_id = :iccId")
+    @Query("DELETE FROM response WHERE icc_id = :iccId")
     suspend fun delete(iccId: String)
-    @Query("delete from response")
+    @Query("DELETE FROM response")
     suspend fun deleteAll()
 }

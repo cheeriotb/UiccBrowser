@@ -16,12 +16,12 @@ import androidx.room.Query
 interface CachedSubscriptionDao {
     @Insert
     suspend fun insert(cachedSubscription: CachedSubscription)
-    @Query("select * from subscription where icc_id = :iccId")
+    @Query("SELECT * FROM subscription WHERE icc_id = :iccId")
     suspend fun get(iccId: String): CachedSubscription?
-    @Query("select * from subscription")
+    @Query("SELECT * FROM subscription")
     suspend fun getAll(): List<CachedSubscription>
-    @Query("delete from subscription where icc_id = :iccId")
+    @Query("DELETE FROM subscription WHERE icc_id = :iccId")
     suspend fun delete(iccId: String)
-    @Query("delete from subscription")
+    @Query("DELETE FROM subscription")
     suspend fun deleteAll()
 }

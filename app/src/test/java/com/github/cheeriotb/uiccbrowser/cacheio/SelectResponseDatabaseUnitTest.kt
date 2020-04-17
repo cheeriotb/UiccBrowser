@@ -160,14 +160,12 @@ class SelectResponseDatabaseUnitTest {
     @Test
     fun getAll_telecom() = runBlocking {
         val all1 = dao.getAll(ICC_ID_1, AID_NONE, PATH_TELECOM)
-        assertThat(all1.size).isEqualTo(2)
+        assertThat(all1.size).isEqualTo(1)
         assertThat(all1[0]).isEqualTo(entry1TelecomA)
-        assertThat(all1[1]).isEqualTo(entry1TelecomB)
 
         val all2 = dao.getAll(ICC_ID_2, AID_NONE, PATH_TELECOM)
-        assertThat(all2.size).isEqualTo(2)
+        assertThat(all2.size).isEqualTo(1)
         assertThat(all2[0]).isEqualTo(entry2TelecomA)
-        assertThat(all2[1]).isEqualTo(entry2TelecomB)
     }
 
     @Test
@@ -181,14 +179,12 @@ class SelectResponseDatabaseUnitTest {
     @Test
     fun getAll_adf1() = runBlocking {
         val all1 = dao.getAll(ICC_ID_1, AID_1, PATH_ADF)
-        assertThat(all1.size).isEqualTo(2)
+        assertThat(all1.size).isEqualTo(1)
         assertThat(all1[0]).isEqualTo(entry1Adf1A)
-        assertThat(all1[1]).isEqualTo(entry1Adf1B)
 
         val all2 = dao.getAll(ICC_ID_2, AID_1, PATH_ADF)
-        assertThat(all2.size).isEqualTo(2)
+        assertThat(all2.size).isEqualTo(1)
         assertThat(all2[0]).isEqualTo(entry2Adf1A)
-        assertThat(all2[1]).isEqualTo(entry2Adf1B)
     }
 
     @Test
@@ -202,14 +198,12 @@ class SelectResponseDatabaseUnitTest {
     @Test
     fun getAll_adf2() = runBlocking {
         val all1 = dao.getAll(ICC_ID_1, AID_2, PATH_ADF)
-        assertThat(all1.size).isEqualTo(2)
+        assertThat(all1.size).isEqualTo(1)
         assertThat(all1[0]).isEqualTo(entry1Adf2A)
-        assertThat(all1[1]).isEqualTo(entry1Adf2B)
 
         val all2 = dao.getAll(ICC_ID_2, AID_2, PATH_ADF)
-        assertThat(all2.size).isEqualTo(2)
+        assertThat(all2.size).isEqualTo(1)
         assertThat(all2[0]).isEqualTo(entry2Adf2A)
-        assertThat(all2[1]).isEqualTo(entry2Adf2B)
     }
 
     @Test
@@ -222,9 +216,9 @@ class SelectResponseDatabaseUnitTest {
         assertThat(dao.getAll(ICC_ID_1, AID_2, PATH_ADF).size).isEqualTo(0)
 
         assertThat(dao.getAll(ICC_ID_2, AID_NONE, PATH_MF).size).isEqualTo(1)
-        assertThat(dao.getAll(ICC_ID_2, AID_NONE, PATH_TELECOM).size).isEqualTo(2)
-        assertThat(dao.getAll(ICC_ID_2, AID_1, PATH_ADF).size).isEqualTo(2)
-        assertThat(dao.getAll(ICC_ID_2, AID_2, PATH_ADF).size).isEqualTo(2)
+        assertThat(dao.getAll(ICC_ID_2, AID_NONE, PATH_TELECOM).size).isEqualTo(1)
+        assertThat(dao.getAll(ICC_ID_2, AID_1, PATH_ADF).size).isEqualTo(1)
+        assertThat(dao.getAll(ICC_ID_2, AID_2, PATH_ADF).size).isEqualTo(1)
     }
 
     @Test
