@@ -79,18 +79,24 @@ class CardRepository private constructor (
         const val SIZE_MAX = 0x100
         const val EF_ICCID = "2FE2"
         // Refer to the table A.1 of ETSI TS 131 110 or ISO/IEC 7916-5 for this 3GPP RID
-        const val RID_3GPP = "A000000087"
+        const val RID_3GPP_USIM = "A0000000871002"
 
-        private const val SW_INTERNAL_EXCEPTION = Iso7816.SW1_INTERNAL_EXCEPTION shl 8
-        private val DATA_NONE = ByteArray(0)
+        const val SW_INTERNAL_EXCEPTION = Iso7816.SW1_INTERNAL_EXCEPTION shl 8
+        val DATA_NONE = ByteArray(0)
+
+        private const val CLOSING_TIMER_MILLIS = 500L
     }
 
     suspend fun initialize(): Boolean {
+        iccId = null
+        isCached = false
+
         // Try to select a 3GPP application by partial DF name first
-        if (openChannel(RID_3GPP) || openChannel()) {
+        if (openChannel(RID_3GPP_USIM) || openChannel()) {
             val selectResponse = select(LEVEL_MF, EF_ICCID, fcpRequest = true)
             if (selectResponse.isOk) {
                 val readResponse = readBinary()
+                startClosingTimer()
                 if (readResponse.isOk && (readResponse.data.size == 10)) {
                     // Refer to the clause 13.2 of ETSI TS 102 221 for the format of ICCID
                     val builder = StringBuilder()
@@ -103,7 +109,7 @@ class CardRepository private constructor (
                     iccId = builder.toString()
                     Log.d(tag, "ICCID: $iccId")
 
-                    val subscription: CachedSubscription? = subscriptionIo.get(iccId!!)
+                    val subscription = subscriptionIo.get(iccId!!)
                     isCached = (subscription != null)
                     if (!isCached) {
                         // Delete all incomplete cache for this ICCID, if exists
@@ -131,13 +137,14 @@ class CardRepository private constructor (
         if (!isAccessible || isCached || !openChannel(aid)) {
             return false // means that the caching process cannot be continued.
         }
+        if (cacheIo.get(iccId!!, aid, path, fileId) != null) {
+            return true // No need to cache it again
+        }
 
         val response = select(path, fileId, fcpRequest = true)
         startClosingTimer()
 
-        if (response.data.isNotEmpty()) {
-            cacheIo.insert(SelectResponse(iccId!!, aid, path, fileId, response.data, response.sw))
-        }
+        cacheIo.insert(SelectResponse(iccId!!, aid, path, fileId, response.data, response.sw))
 
         return true // means that the caching process can be continued.
     }
@@ -264,8 +271,9 @@ class CardRepository private constructor (
         if (lastSelectedAdf != null) {
             synchronized(this) {
                 closingJob = GlobalScope.launch {
-                    delay(500)
+                    delay(CLOSING_TIMER_MILLIS)
                     cardIo.closeRemainingChannel()
+                    closingJob = null
                 }
                 Log.d(tag, "Started a job for releasing the logical channel")
             }
@@ -285,7 +293,11 @@ class CardRepository private constructor (
         controller?.join()
     }
 
-    fun dispose() {
+    suspend fun dispose() {
+        cancelClosingTimer()
+        lastSelectedAdf = null
+        iccId = null
+        isCached = false
         cardIo.dispose()
         Log.d(tag, "Disposed")
     }
