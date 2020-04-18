@@ -9,6 +9,10 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
+import com.github.cheeriotb.uiccbrowser.repository.FileId
+import com.github.cheeriotb.uiccbrowser.repository.ReadAllRecordsParams
+import com.github.cheeriotb.uiccbrowser.repository.ReadBinaryParams
+import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import kotlinx.coroutines.runBlocking
 
 class MainActivity : AppCompatActivity() {
@@ -51,38 +55,48 @@ class MainActivity : AppCompatActivity() {
         val repository = CardRepository.from(this, 0)
         runBlocking {
             repository!!.initialize()
-            repository.cacheFileControlParameters(fileId = "3F00")
-            repository.cacheFileControlParameters(fileId = "2F05")
-            repository.cacheFileControlParameters(
+            repository.cacheFileControlParameters(FileId(fileId = "3F00"))
+            repository.cacheFileControlParameters(FileId(fileId = "2F05"))
+            repository.cacheFileControlParameters(FileId(
                 "A0000000871002FFFFFFFF8907090000",
                 "7FFF",
                 "5F3B"
-            )
-            repository.cacheFileControlParameters(
+            ))
+            repository.cacheFileControlParameters(FileId(
                 "A0000000871002FFFFFFFF8907090000",
                 "7FFF5F3B",
                 "4F20"
-            )
-            repository.cacheFileControlParameters(
+            ))
+            repository.cacheFileControlParameters(FileId(
                 "A0000000871002FFFFFFFF8907090000",
                 "7FFF5F3B",
                 "4F52"
-            )
-            val list0 = repository.queryFileControlParameters()
-            val list1 = repository.queryFileControlParameters(
+            ))
+            val list0 = repository.queryFileControlParameters(FileId())
+            val list1 = repository.queryFileControlParameters(FileId(
                 "A0000000871002FFFFFFFF8907090000",
                 "7FFF"
-            )
-            val list2 = repository.queryFileControlParameters(
+            ))
+            val list2 = repository.queryFileControlParameters(FileId(
                 "A0000000871002FFFFFFFF8907090000",
                 "7FFF5F3B"
-            )
+            ))
             Log.d("UiccBrowser", "$list0")
             Log.d("UiccBrowser", "$list1")
             Log.d("UiccBrowser", "$list2")
-            repository.readBinary("A0000000871002FFFFFFFF8907090000", "7FFF", "6F46", 0)
-            repository.readRecord(CardRepository.AID_NONE, CardRepository.LEVEL_MF, "2F00", 1)
-            repository.readRecord(CardRepository.AID_NONE, CardRepository.LEVEL_MF, "2F00", 2)
+            val readBinaryParams = ReadBinaryParams.Builder(
+                    FileId.Builder("A0000000871002FFFFFFFF8907090000", "7FFF", "6F46").build())
+                    .build()
+            repository.readBinary(readBinaryParams)
+            val readAllRecordParams = ReadAllRecordsParams.Builder(
+                    FileId.Builder(FileId.AID_NONE, FileId.PATH_MF, "2F00").build())
+                    .numberOfRecords(2)
+                    .build()
+            val records = repository.readAllRecords(readAllRecordParams)
+            Log.d("UiccBrowser", "#1 : " + byteArrayToHexString(records[0].data) + " "
+                    + records[0].sw.toString(16))
+            Log.d("UiccBrowser", "#2 : " + byteArrayToHexString(records[1].data) + " "
+                    + records[1].sw.toString(16))
             repository.dispose()
         }
     }
