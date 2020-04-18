@@ -56,6 +56,10 @@ dependencies {
     kapt "androidx.room:room-compiler:$room_version"
 }
 
+dependencies {
+    testImplementation "io.mockk:mockk:1.9.3"
+}
+
 configurations {
     ktlint
 }
