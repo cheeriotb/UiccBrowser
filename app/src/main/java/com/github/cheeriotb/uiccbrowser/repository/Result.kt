@@ -35,7 +35,7 @@ data class Result (
             else -> false
         }
 
-    data class Builder(
+    class Builder(
         private var fileId: String = "",
         private var data: ByteArray = DATA_NONE,
         private var sw: Int = SW_NORMAL
@@ -54,6 +54,19 @@ data class Result (
                         .fileId(it.fileId)
                         .data(it.data)
                         .sw(it.sw)
+                        .build()
+                destination.add(result)
+            }
+            return destination
+        }
+
+        fun from(source: SelectResponse?): List<Result> {
+            val destination: MutableList<Result> = mutableListOf()
+            if (source != null) {
+                val result = Builder()
+                        .fileId(source.fileId)
+                        .data(source.data)
+                        .sw(source.sw)
                         .build()
                 destination.add(result)
             }
