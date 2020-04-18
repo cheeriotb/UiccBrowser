@@ -8,7 +8,7 @@
 
 package com.github.cheeriotb.uiccbrowser.cardio
 
-class Command(
+data class Command(
     val ins: Int,
     val p1: Int = 0x00,
     val p2: Int = 0x00,
@@ -20,14 +20,30 @@ class Command(
         p1: Int = 0x00,
         p2: Int = 0x00,
         le: Int = 0
-    ) : this(ins, p1, p2, ByteArray(0), le)
+    ) : this(ins, p1, p2, DATA_NONE, le)
 
     constructor(
         command: Command
     ) : this(command.ins, command.p1, command.p2, command.data, command.le)
 
+    class Builder(
+        private var ins: Int,
+        private var p1: Int = 0x00,
+        private var p2: Int = 0x00,
+        private var data: ByteArray = DATA_NONE,
+        private var le: Int = 0
+    ) {
+        fun ins(ins: Int) = apply { this.ins = ins }
+        fun p1(p1: Int) = apply { this.p1 = p1 }
+        fun p2(p2: Int) = apply { this.p2 = p2 }
+        fun data(data: ByteArray) = apply { this.data = data }
+        fun le(le: Int) = apply { this.le = le }
+        fun build() = Command(ins, p1, p2, data, le)
+    }
+
     companion object {
         private const val FURTHER_INTER_INDUSTRY_CLASS = 0x40
+        private val DATA_NONE = ByteArray(0)
     }
 
     /** Represents Command chaining control */

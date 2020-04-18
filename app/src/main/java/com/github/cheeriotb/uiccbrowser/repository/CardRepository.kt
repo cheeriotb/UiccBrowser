@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class CardRepository private constructor (
-    private val slotId: Int,
+    slotId: Int,
     private val cardIo: Interface,
     private val cacheIo: SelectResponseDataSource,
     private val subscriptionIo: CachedSubscriptionDataSource
@@ -74,8 +74,6 @@ class CardRepository private constructor (
             return if (instances!!.size > slotId) instances!![slotId] else null
         }
 
-        const val AID_NONE = ""
-        const val LEVEL_MF = ""
         const val SIZE_MAX = 0x100
         const val EF_ICCID = "2FE2"
         // Refer to the table A.1 of ETSI TS 131 110 or ISO/IEC 7916-5 for this 3GPP RID
@@ -93,7 +91,7 @@ class CardRepository private constructor (
 
         // Try to select a 3GPP application by partial DF name first
         if (openChannel(RID_3GPP_USIM) || openChannel()) {
-            val selectResponse = select(LEVEL_MF, EF_ICCID, fcpRequest = true)
+            val selectResponse = select(FileId.PATH_MF, EF_ICCID, fcpRequest = true)
             if (selectResponse.isOk) {
                 val readResponse = readBinary()
                 startClosingTimer()
@@ -115,8 +113,8 @@ class CardRepository private constructor (
                         // Delete all incomplete cache for this ICCID, if exists
                         cacheIo.delete(iccId!!)
                         // Cache the FCP template for this ICCID
-                        cacheIo.insert(SelectResponse(iccId!!, AID_NONE, LEVEL_MF, EF_ICCID,
-                                selectResponse.data, selectResponse.sw))
+                        cacheIo.insert(SelectResponse(iccId!!, FileId.AID_NONE, FileId.PATH_MF,
+                                EF_ICCID, selectResponse.data, selectResponse.sw))
                     }
 
                     Log.i(tag, "The card associated with the slot is accessible")
@@ -130,21 +128,21 @@ class CardRepository private constructor (
     }
 
     suspend fun cacheFileControlParameters(
-        aid: String = AID_NONE,
-        path: String = LEVEL_MF,
-        fileId: String
+        fileId: FileId
     ): Boolean {
-        if (!isAccessible || isCached || !openChannel(aid)) {
+        if (!isAccessible || isCached
+                || !openChannel(fileId.aid)) {
             return false // means that the caching process cannot be continued.
         }
-        if (cacheIo.get(iccId!!, aid, path, fileId) != null) {
+        if (cacheIo.get(iccId!!, fileId.aid, fileId.path, fileId.fileId) != null) {
             return true // No need to cache it again
         }
 
-        val response = select(path, fileId, fcpRequest = true)
+        val response = select(fileId.path, fileId.fileId, fcpRequest = true)
         startClosingTimer()
 
-        cacheIo.insert(SelectResponse(iccId!!, aid, path, fileId, response.data, response.sw))
+        cacheIo.insert(SelectResponse(iccId!!, fileId.aid, fileId.path, fileId.fileId,
+                response.data, response.sw))
 
         return true // means that the caching process can be continued.
     }
@@ -158,87 +156,115 @@ class CardRepository private constructor (
     }
 
     suspend fun queryFileControlParameters(
-        aid: String = AID_NONE,
-        path: String = LEVEL_MF
+        fileId: FileId
     ): List<Result> {
         if (!isAccessible || !isCached) return emptyList()
-        return Result.listFrom(cacheIo.getAll(iccId!!, aid, path))
+        return if (fileId.fileId == FileId.FID_ALMIGHTY) {
+            Result.listFrom(cacheIo.getAll(iccId!!, fileId.aid, fileId.path))
+        } else {
+            Result.from(cacheIo.get(iccId!!, fileId.aid, fileId.path, fileId.fileId))
+        }
     }
 
     suspend fun readBinary(
-        aid: String = AID_NONE,
-        path: String = LEVEL_MF,
-        fileId: String,
-        offset: Int = 0,
-        size: Int = SIZE_MAX
+        params: ReadBinaryParams
     ): Result {
-        if (!isAccessible || !openChannel(aid) || !select(path, fileId).isOk) {
+        if (!isAccessible
+                || !openChannel(params.fileId.aid)
+                || !select(params.fileId.path, params.fileId.fileId).isOk) {
             startClosingTimer()
-            return Result(fileId, DATA_NONE, SW_INTERNAL_EXCEPTION)
+            return Result.Builder(params.fileId.fileId)
+                    .data(DATA_NONE)
+                    .sw(SW_INTERNAL_EXCEPTION)
+                    .build()
         }
 
-        val response = readBinary(offset, size)
+        val response = readBinary(params.offset, params.size)
         startClosingTimer()
 
-        return Result(fileId, response.data, response.sw)
+        return Result.Builder(params.fileId.fileId)
+                .data(response.data)
+                .sw(response.sw)
+                .build()
     }
 
     suspend fun readRecord(
-        aid: String = AID_NONE,
-        path: String = LEVEL_MF,
-        fileId: String,
-        recordNo: Int,
-        size: Int = SIZE_MAX
+        params: ReadRecordParams
     ): Result {
-        if (!isAccessible || !openChannel(aid) || !select(path, fileId).isOk) {
+        if (!isAccessible
+                || !openChannel(params.fileId.aid)
+                || !select(params.fileId.path, params.fileId.fileId).isOk) {
             startClosingTimer()
-            return Result(fileId, DATA_NONE, SW_INTERNAL_EXCEPTION)
+            return Result.Builder(params.fileId.fileId)
+                    .data(DATA_NONE)
+                    .sw(SW_INTERNAL_EXCEPTION)
+                    .build()
         }
 
-        val response = cardIo.transmit(Command(Iso7816.INS_READ_RECORD, recordNo,
-                0x04 /* Absolute/current mode, the record number is given in P1 */, size))
+        val command = Command.Builder(Iso7816.INS_READ_RECORD)
+                .p1(params.recordNo)
+                .p2(0x04 /* Absolute/current mode, the record number is given in P1 */)
+                .le(params.recordSize)
+                .build()
+        val response = cardIo.transmit(command)
         startClosingTimer()
 
-        return Result(fileId, response.data, response.sw)
+        return Result.Builder(params.fileId.fileId)
+                .data(response.data)
+                .sw(response.sw)
+                .build()
     }
 
     suspend fun readAllRecords(
-        aid: String = AID_NONE,
-        path: String = LEVEL_MF,
-        fileId: String,
-        size: Int = SIZE_MAX,
-        numOfRecords: Int
+        params: ReadAllRecordsParams
     ): List<Result> {
-        if (!isAccessible || (numOfRecords < 1) || (numOfRecords > 254)
-                || !openChannel(aid) || !select(path, fileId).isOk) {
+        if (!isAccessible
+                || (params.numberOfRecords < 1) || (params.numberOfRecords > 254)
+                || !openChannel(params.fileId.aid)
+                || !select(params.fileId.path, params.fileId.fileId).isOk) {
             startClosingTimer()
-            return mutableListOf(Result(fileId, DATA_NONE, SW_INTERNAL_EXCEPTION))
+            val result = Result.Builder(params.fileId.fileId)
+                    .data(DATA_NONE)
+                    .sw(SW_INTERNAL_EXCEPTION)
+                    .build()
+            return mutableListOf(result)
         }
 
         val records: MutableList<Result> = mutableListOf()
-        for (recordNo in IntRange(1, numOfRecords)) {
-            val response = cardIo.transmit(Command(Iso7816.INS_READ_RECORD, recordNo,
-                    0x04 /* Absolute/current mode, the record number is given in P1 */, size))
-            records.add(Result(fileId, response.data, response.sw))
+        for (recordNo in IntRange(1, params.numberOfRecords)) {
+            val command = Command.Builder(Iso7816.INS_READ_RECORD)
+                    .p1(recordNo)
+                    .p2(0x04 /* Absolute/current mode, the record number is given in P1 */)
+                    .le(params.recordSize)
+                    .build()
+            val response = cardIo.transmit(command)
+            val result = Result.Builder(params.fileId.fileId)
+                    .data(response.data)
+                    .sw(response.sw)
+                    .build()
+            records.add(result)
         }
         startClosingTimer()
-
         return records
     }
 
     private suspend fun openChannel(
-        aid: String = AID_NONE
+        aid: String = FileId.AID_NONE
     ): Boolean {
         val aidArray = if (aid.isNotEmpty()) hexStringToByteArray(aid)
-                else hexStringToByteArray(lastSelectedAdf ?: AID_NONE)
+                else hexStringToByteArray(lastSelectedAdf ?: FileId.AID_NONE)
 
         cancelClosingTimer()
 
         return when (cardIo.openChannel(aidArray)) {
             Interface.OpenChannelResult.MISSING_RESOURCE -> {
                 lastSelectedAdf = null
-                cardIo.transmit(Command(Iso7816.INS_SELECT_FILE, 0x04 /* Selection by DF name */,
-                        0x0C /* No data returned*/, hexStringToByteArray(aid))).isOk
+                val command = Command.Builder(Iso7816.INS_SELECT_FILE)
+                        .p1(0x04 /* Selection by DF name */)
+                        .p2(0x0C /* No data returned*/)
+                        .data(hexStringToByteArray(aid))
+                        .build()
+                cardIo.transmit(command).isOk
             }
             Interface.OpenChannelResult.SUCCESS -> {
                 if (aid.isNotEmpty()) lastSelectedAdf = aid
@@ -249,22 +275,28 @@ class CardRepository private constructor (
     }
 
     private fun select(
-        path: String = LEVEL_MF,
+        path: String = FileId.PATH_MF,
         fileId: String,
         fcpRequest: Boolean = false
     ): Response {
-        val p2 = if (fcpRequest) 0x04 /* Return FCP template */ else 0x0C /* No data returned */
-        return cardIo.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08 /* Select by path from MF */,
-                p2, hexStringToByteArray(path + fileId)))
+        val command = Command.Builder(Iso7816.INS_SELECT_FILE)
+                .p1(0x08 /* Select by path from MF */)
+                .p2(if (fcpRequest) 0x04 /* Return FCP template */ else 0x0C /* No data returned */)
+                .data(hexStringToByteArray(path + fileId))
+                .build()
+        return cardIo.transmit(command)
     }
 
     private fun readBinary(
         offset: Int = 0,
         size: Int = SIZE_MAX
     ): Response {
-        val p1 = offset.and(0x7F00).shr(8)
-        val p2 = offset.and(0x00FF)
-        return cardIo.transmit(Command(Iso7816.INS_READ_BINARY, p1, p2, size))
+        val command = Command.Builder(Iso7816.INS_READ_BINARY)
+                .p1(offset.and(0x7F00).shr(8))
+                .p2(offset.and(0x00FF))
+                .le(size)
+                .build()
+        return cardIo.transmit(command)
     }
 
     private suspend fun startClosingTimer() {
