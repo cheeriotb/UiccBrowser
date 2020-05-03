@@ -10,7 +10,7 @@ package com.github.cheeriotb.uiccbrowser.repository
 
 import com.github.cheeriotb.uiccbrowser.cacheio.SelectResponse
 
-data class Result (
+data class Result(
     val fileId: String,
     val data: ByteArray,
     val sw: Int

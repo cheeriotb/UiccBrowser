@@ -204,12 +204,12 @@ class CardRepositoryUnitTest {
         // It is unnecessary to request to close the basic channel.
         delay(1000)
 
-        coVerify(inverse = true) { cacheIoMock.delete(any())}
-        coVerify(inverse = true) { cacheIoMock.insert(any())}
+        coVerify(inverse = true) { cacheIoMock.delete(any()) }
+        coVerify(inverse = true) { cacheIoMock.insert(any()) }
         coVerify(inverse = true) {
             subscriptionIoMock.insert(CachedSubscription(ICCID, PROFILE_NAME))
         }
-        verify(inverse = true) { cardIoMock.closeRemainingChannel()}
+        verify(inverse = true) { cardIoMock.closeRemainingChannel() }
     }
 
     @Test

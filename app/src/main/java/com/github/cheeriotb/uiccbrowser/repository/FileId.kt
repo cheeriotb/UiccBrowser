@@ -24,7 +24,7 @@ data class FileId(
         private var path: String = PATH_MF,
         private var fileId: String = FID_ALMIGHTY
     ) {
-        fun aid(aid: String) = apply { this.aid = aid}
+        fun aid(aid: String) = apply { this.aid = aid }
         fun path(path: String) = apply { this.path = path }
         fun fileId(fileId: String) = apply { this.fileId = fileId }
         fun build() = FileId(aid, path, fileId)

@@ -13,7 +13,7 @@ import android.util.Log
 class BerTlv private constructor(
     tag: Int,
     valueArg: ByteArray
-): Tlv(tag, valueArg) {
+) : Tlv(tag, valueArg) {
     // Up to 3 bytes are supported as a tag field in this implementation.
     private val numberOfTagBytes: Int
         get() {
@@ -108,6 +108,6 @@ class BerTlv private constructor(
                 else -> return byteArrayOf()     // Something is wrong if the array size is zero.
             }.format(valueArray.size)
         )
-        return tagArray + lengthArray+ valueArray
+        return tagArray + lengthArray + valueArray
     }
 }
