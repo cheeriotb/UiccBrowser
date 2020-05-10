@@ -14,20 +14,10 @@ class BerTlv private constructor(
     tag: Int,
     valueArg: ByteArray
 ) : Tlv(tag, valueArg) {
-    // Up to 3 bytes are supported as a tag field in this implementation.
-    private val numberOfTagBytes: Int
-        get() {
-            return when {
-                (tag < 0x100) -> 1
-                (tag < 0x10000) -> 2
-                else -> 3
-            }
-        }
-
     // True if the value field contains BER-TLV objects (constructed), false otherwise (primitive).
     override val isConstructed: Boolean
         get() {
-            val identifierOctet = tag shr ((numberOfTagBytes - 1) * 8)
+            val identifierOctet = tag shr ((numberOfTagBytes(tag) - 1) * 8)
             return (identifierOctet and 0x20) != 0x00
         }
 
@@ -83,31 +73,40 @@ class BerTlv private constructor(
             }
             return list
         }
+
+        // Up to 3 bytes are supported as a tag field in this implementation.
+        private fun numberOfTagBytes(tag: Int): Int {
+            return when {
+                (tag < 0x100) -> 1
+                (tag < 0x10000) -> 2
+                else -> 3
+            }
+        }
+
+        fun encode(tag: Int, value: ByteArray): ByteArray {
+            // Up to 3 bytes are supported as a tag field in this implementation.
+            val tagArray = hexStringToByteArray(
+                when (numberOfTagBytes(tag)) {
+                    1 -> "%02X"
+                    2 -> "%04X"
+                    else -> "%06X"
+                }.format(tag)
+            )
+            // The length field is coded onto 1, 2, 3 or 4 bytes
+            // according to the clause 7.1.2 "Length encoding" in ETSI TS 101 220.
+            val lengthArray = hexStringToByteArray(
+                when (value.size) {
+                    in 0x00..0x7F -> "%02X"          // 1 byte  : '00' to '7F'
+                    in 0x80..0xFF -> "81%02X"        // 2 bytes : '81' + '00' to 'FF'
+                    in 0x100..0xFFFF -> "82%04X"     // 3 bytes : '82' + '0100' to 'FFFF'
+                    in 0x10000..0xFFFFFF -> "83%06X" // 4 bytes : '83' + '010000' to 'FFFFFF'
+                    else -> return byteArrayOf()     // Something is wrong if the array size is 0.
+                }.format(value.size)
+            )
+            return tagArray + lengthArray + value
+        }
     }
 
     override fun listFrom(bytes: ByteArray): List<Tlv> = BerTlv.listFrom(bytes)
-
-    override fun toByteArray(): ByteArray {
-        // Up to 3 bytes are supported as a tag field in this implementation.
-        val tagArray = hexStringToByteArray(
-            when (numberOfTagBytes) {
-                1 -> "%02X"
-                2 -> "%04X"
-                else -> "%06X"
-            }.format(tag)
-        )
-        val valueArray = value
-        // The length field is coded onto 1, 2, 3 or 4 bytes
-        // according to the clause 7.1.2 "Length encoding" in ETSI TS 101 220.
-        val lengthArray = hexStringToByteArray(
-            when (valueArray.size) {
-                in 0x00..0x7F -> "%02X"          // 1 byte  : '00' to '7F'
-                in 0x80..0xFF -> "81%02X"        // 2 bytes : '81' + '00' to 'FF'
-                in 0x100..0xFFFF -> "82%04X"     // 3 bytes : '82' + '0100' to 'FFFF'
-                in 0x10000..0xFFFFFF -> "83%06X" // 4 bytes : '83' + '010000' to 'FFFFFF'
-                else -> return byteArrayOf()     // Something is wrong if the array size is zero.
-            }.format(valueArray.size)
-        )
-        return tagArray + lengthArray + valueArray
-    }
+    override fun toByteArray(): ByteArray = encode(tag, value)
 }
