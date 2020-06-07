@@ -12,7 +12,7 @@ interface Interface {
     val isAvailable: Boolean
 
     companion object {
-        val BASIC_CHANNEL_AID = ByteArray(0)
+        val NO_AID_SPECIFIED = ByteArray(0)
         val SW_SUCCESS = byteArrayOf(b(0x90), b(0x00))
         val SW_INTERNAL_EXCEPTION = byteArrayOf(b(0x6F), b(0x00))
         const val OPEN_P2 = 0x04
@@ -30,7 +30,7 @@ interface Interface {
         GENERIC_FAILURE
     }
 
-    fun openChannel(aid: ByteArray): OpenChannelResult
+    fun openChannel(aid: ByteArray = NO_AID_SPECIFIED): OpenChannelResult
     fun transmit(command: Command): Response
     fun closeRemainingChannel()
     fun dispose()

@@ -78,9 +78,7 @@ class CardRepositoryUnitTest {
 
     @Before
     fun setUp() {
-        every { cardIoMock.openChannel(hexStringToByteArray(CardRepository.RID_3GPP_USIM)) } returns
-                Interface.OpenChannelResult.NO_SUCH_ELEMENT
-        every { cardIoMock.openChannel(Interface.BASIC_CHANNEL_AID) } returns
+        every { cardIoMock.openChannel(Interface.NO_AID_SPECIFIED) } returns
                 Interface.OpenChannelResult.SUCCESS
         every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
                 Interface.OpenChannelResult.SUCCESS
@@ -118,7 +116,7 @@ class CardRepositoryUnitTest {
 
     @Test
     fun initialize_failure_openChannel() = runBlocking {
-        every { cardIoMock.openChannel(Interface.BASIC_CHANNEL_AID) } returns
+        every { cardIoMock.openChannel(Interface.NO_AID_SPECIFIED) } returns
                 Interface.OpenChannelResult.GENERIC_FAILURE
 
         assertThat(repository.initialize()).isFalse()
@@ -201,7 +199,7 @@ class CardRepositoryUnitTest {
         // Nothing shall happen as the cache has already been finalized.
         repository.finalizeCache(PROFILE_NAME)
 
-        // It is unnecessary to request to close the basic channel.
+        // The used logical channel must be closed in a certain amount of time.
         delay(1000)
 
         coVerify(inverse = true) { cacheIoMock.delete(any()) }
@@ -209,26 +207,7 @@ class CardRepositoryUnitTest {
         coVerify(inverse = true) {
             subscriptionIoMock.insert(CachedSubscription(ICCID, PROFILE_NAME))
         }
-        verify(inverse = true) { cardIoMock.closeRemainingChannel() }
-    }
-
-    @Test
-    fun initialize_partialDfName() = runBlocking {
-        every { cardIoMock.openChannel(hexStringToByteArray(CardRepository.RID_3GPP_USIM)) } returns
-                Interface.OpenChannelResult.SUCCESS
-
-        assertThat(repository.initialize()).isTrue()
-        assertThat(repository.isAccessible).isTrue()
-        assertThat(repository.isCached).isTrue()
-
-        // The used logical channel must be closed in a certain amount of time.
-        delay(1000)
-
-        verifyOrder {
-            cardIoMock.openChannel(hexStringToByteArray(CardRepository.RID_3GPP_USIM))
-            cardIoMock.closeRemainingChannel()
-        }
-        verify(inverse = true) { cardIoMock.openChannel(Interface.BASIC_CHANNEL_AID) }
+        verify() { cardIoMock.closeRemainingChannel() }
     }
 
     @Test

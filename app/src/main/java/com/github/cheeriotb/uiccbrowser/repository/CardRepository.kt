@@ -37,10 +37,7 @@ class CardRepository private constructor (
     private val subscriptionIo: CachedSubscriptionDataSource
 ) {
     private val tag = TelephonyInterface::class.java.simpleName + slotId
-
-    private var lastSelectedAdf: String? = null
     private var iccId: String? = null
-
     private var closingJob: Job? = null
 
     val isAccessible: Boolean
@@ -76,8 +73,6 @@ class CardRepository private constructor (
 
         const val SIZE_MAX = 0x100
         const val EF_ICCID = "2FE2"
-        // Refer to the table A.1 of ETSI TS 131 110 or ISO/IEC 7916-5 for this 3GPP RID
-        const val RID_3GPP_USIM = "A0000000871002"
 
         const val SW_INTERNAL_EXCEPTION = Iso7816.SW1_INTERNAL_EXCEPTION shl 8
         val DATA_NONE = ByteArray(0)
@@ -89,8 +84,7 @@ class CardRepository private constructor (
         iccId = null
         isCached = false
 
-        // Try to select a 3GPP application by partial DF name first
-        if (openChannel(RID_3GPP_USIM) || openChannel()) {
+        if (openChannel()) {
             val selectResponse = select(FileId.PATH_MF, EF_ICCID, fcpRequest = true)
             if (selectResponse.isOk) {
                 val readResponse = readBinary()
@@ -251,27 +245,8 @@ class CardRepository private constructor (
     private suspend fun openChannel(
         aid: String = FileId.AID_NONE
     ): Boolean {
-        val aidArray = if (aid.isNotEmpty()) hexStringToByteArray(aid)
-                else hexStringToByteArray(lastSelectedAdf ?: FileId.AID_NONE)
-
         cancelClosingTimer()
-
-        return when (cardIo.openChannel(aidArray)) {
-            Interface.OpenChannelResult.MISSING_RESOURCE -> {
-                lastSelectedAdf = null
-                val command = Command.Builder(Iso7816.INS_SELECT_FILE)
-                        .p1(0x04 /* Selection by DF name */)
-                        .p2(0x0C /* No data returned*/)
-                        .data(hexStringToByteArray(aid))
-                        .build()
-                cardIo.transmit(command).isOk
-            }
-            Interface.OpenChannelResult.SUCCESS -> {
-                if (aid.isNotEmpty()) lastSelectedAdf = aid
-                true
-            }
-            else -> false
-        }
+        return cardIo.openChannel(hexStringToByteArray(aid)) == Interface.OpenChannelResult.SUCCESS
     }
 
     private fun select(
@@ -300,15 +275,13 @@ class CardRepository private constructor (
     }
 
     private suspend fun startClosingTimer() {
-        if (lastSelectedAdf != null) {
-            synchronized(this) {
-                closingJob = GlobalScope.launch {
-                    delay(CLOSING_TIMER_MILLIS)
-                    cardIo.closeRemainingChannel()
-                    closingJob = null
-                }
-                Log.d(tag, "Started a job for releasing the logical channel")
+        synchronized(this) {
+            closingJob = GlobalScope.launch {
+                delay(CLOSING_TIMER_MILLIS)
+                cardIo.closeRemainingChannel()
+                closingJob = null
             }
+            Log.d(tag, "Started a job for releasing the logical channel")
         }
     }
 
@@ -327,7 +300,6 @@ class CardRepository private constructor (
 
     suspend fun dispose() {
         cancelClosingTimer()
-        lastSelectedAdf = null
         iccId = null
         isCached = false
         cardIo.dispose()

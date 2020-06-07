@@ -31,11 +31,11 @@ class TelephonyInterface private constructor (
 
     private val tag = TelephonyInterface::class.java.simpleName + slotId
     private val telephony: TelephonyManager?
-    private var aid = Interface.BASIC_CHANNEL_AID
-    private var channelId = BASIC_CHANNEL_ID
+    private var aid = Interface.NO_AID_SPECIFIED
+    private var channelId = NO_LOGICAL_CHANNEL_GRANTED
 
     companion object {
-        private const val BASIC_CHANNEL_ID = 0
+        private const val NO_LOGICAL_CHANNEL_GRANTED = 0
         const val CASE1_P3 = -1
         fun from(context: Context, slotId: Int) = TelephonyInterface(context, slotId)
     }
@@ -57,36 +57,38 @@ class TelephonyInterface private constructor (
         }
     }
 
-    override fun openChannel(aid: ByteArray): Interface.OpenChannelResult {
+    override fun openChannel(
+        aid: ByteArray
+    ): Interface.OpenChannelResult {
         if (telephony == null) {
             Log.w(tag, "No subscription info is available")
             return Interface.OpenChannelResult.GENERIC_FAILURE
         }
 
-        if (!this.aid.contentEquals(aid)) {
+        if (!this.aid.contentEquals(aid) || channelId == NO_LOGICAL_CHANNEL_GRANTED) {
             closeRemainingChannel()
-            if (!aid.contentEquals(Interface.BASIC_CHANNEL_AID)) {
-                val aidString = byteArrayToHexString(aid)
-                val result = telephony.iccOpenLogicalChannel(aidString, Interface.OPEN_P2)
-                when (result.status) {
-                    IccOpenLogicalChannelResponse.STATUS_NO_ERROR -> {
-                        this.aid = aid
-                        channelId = result.channel
-                        Log.i(tag, "Opened the logical channel #$channelId")
-                        Log.d(tag, "AID: $aidString")
-                    }
-                    IccOpenLogicalChannelResponse.STATUS_MISSING_RESOURCE -> {
-                        Log.w(tag, "No logical channel is currently available")
-                        return Interface.OpenChannelResult.MISSING_RESOURCE
-                    }
-                    IccOpenLogicalChannelResponse.STATUS_NO_SUCH_ELEMENT -> {
-                        Log.w(tag, "The specified AID $aidString was not found")
-                        return Interface.OpenChannelResult.NO_SUCH_ELEMENT
-                    }
-                    else -> {
-                        Log.e(tag, "Unknown error happened")
-                        return Interface.OpenChannelResult.GENERIC_FAILURE
-                    }
+            val aidString = byteArrayToHexString(aid)
+            val result = telephony.iccOpenLogicalChannel(
+                    if (aidString.isNotEmpty()) aidString else null,
+                    Interface.OPEN_P2)
+            when (result.status) {
+                IccOpenLogicalChannelResponse.STATUS_NO_ERROR -> {
+                    this.aid = aid
+                    channelId = result.channel
+                    Log.i(tag, "Opened the logical channel #$channelId")
+                    Log.d(tag, "AID: " + if (aidString.isNotEmpty()) aidString else "Not specified")
+                }
+                IccOpenLogicalChannelResponse.STATUS_MISSING_RESOURCE -> {
+                    Log.w(tag, "No logical channel is currently available")
+                    return Interface.OpenChannelResult.MISSING_RESOURCE
+                }
+                IccOpenLogicalChannelResponse.STATUS_NO_SUCH_ELEMENT -> {
+                    Log.w(tag, "The specified AID $aidString was not found")
+                    return Interface.OpenChannelResult.NO_SUCH_ELEMENT
+                }
+                else -> {
+                    Log.e(tag, "Unknown error happened")
+                    return Interface.OpenChannelResult.GENERIC_FAILURE
                 }
             }
         }
@@ -118,13 +120,9 @@ class TelephonyInterface private constructor (
 
             try {
                 Log.v(tag, "Sent: " + byteArrayToHexString(apdu.build()))
-                val receivedString = if (!aid.contentEquals(Interface.BASIC_CHANNEL_AID)) {
-                    telephony.iccTransmitApduLogicalChannel(channelId, apdu.cla(channelId),
-                            apdu.ins, apdu.p1, apdu.p2, p3, dataBuilder.toString())
-                } else {
-                    telephony.iccTransmitApduBasicChannel(apdu.cla(channelId), apdu.ins,
-                            apdu.p1, apdu.p2, p3, dataBuilder.toString())
-                }
+                val receivedString = telephony.iccTransmitApduLogicalChannel(
+                        channelId, apdu.cla(channelId), apdu.ins, apdu.p1, apdu.p2, p3,
+                        dataBuilder.toString())
                 Log.v(tag, "Received: $receivedString")
                 val receivedArray = hexStringToByteArray(receivedString)
 
@@ -153,11 +151,11 @@ class TelephonyInterface private constructor (
     }
 
     override fun closeRemainingChannel() {
-        if (telephony != null && !aid.contentEquals(Interface.BASIC_CHANNEL_AID)) {
+        if (telephony != null && channelId != NO_LOGICAL_CHANNEL_GRANTED) {
             telephony.iccCloseLogicalChannel(channelId)
             Log.i(tag, "Closed the logical channel #$channelId")
-            aid = Interface.BASIC_CHANNEL_AID
-            channelId = BASIC_CHANNEL_ID
+            aid = Interface.NO_AID_SPECIFIED
+            channelId = NO_LOGICAL_CHANNEL_GRANTED
         }
     }
 

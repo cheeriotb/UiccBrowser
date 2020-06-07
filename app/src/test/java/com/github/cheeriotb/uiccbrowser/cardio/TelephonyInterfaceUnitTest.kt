@@ -56,8 +56,6 @@ class TelephonyInterfaceUnitTest {
     private lateinit var tif: TelephonyInterface
 
     companion object {
-        private val NO_AID_ARRAY = ByteArray(0)
-
         private val AID1 = byteArrayOf(b(0x10), b(0x11), b(0x12), b(0x13), b(0x14), b(0x15),
                 b(0x16), b(0x17), b(0x18), b(0x19))
         private const val AID1_STRING = "10111213141516171819"
@@ -70,7 +68,6 @@ class TelephonyInterfaceUnitTest {
         private const val TEST_SLOT_ID_NOT_AVAILABLE = 1 /* SIM #2 */
         private const val TEST_SUBS_ID = 0
 
-        private const val TEST_CLA_BASIC = 0x00
         private const val TEST_CLA_LOGICAL = 0x01
         private const val TEST_INS = 0xF0
         private const val TEST_P1 = 0x01
@@ -102,6 +99,7 @@ class TelephonyInterfaceUnitTest {
         // By default, both AID1 and AID2 are accessible.
         `when`(respMock.channel).thenReturn(TEST_CHANNEL_ID)
         `when`(respMock.status).thenReturn(IccOpenLogicalChannelResponse.STATUS_NO_ERROR)
+        `when`(tmMock.iccOpenLogicalChannel(null, TEST_OPEN_P2)).thenReturn(respMock)
         `when`(tmMock.iccOpenLogicalChannel(AID1_STRING, TEST_OPEN_P2)).thenReturn(respMock)
         `when`(tmMock.iccOpenLogicalChannel(AID2_STRING, TEST_OPEN_P2)).thenReturn(respMock)
     }
@@ -128,9 +126,6 @@ class TelephonyInterfaceUnitTest {
 
         verify(tmMock, never()).iccOpenLogicalChannel(ArgumentMatchers.anyString(),
                 ArgumentMatchers.anyInt())
-        verify(tmMock, never()).iccTransmitApduBasicChannel(ArgumentMatchers.anyInt(),
-                ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(),
-                ArgumentMatchers.anyInt(), ArgumentMatchers.anyString())
         verify(tmMock, never()).iccTransmitApduLogicalChannel(ArgumentMatchers.anyInt(),
                 ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(),
                 ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyString())
@@ -138,25 +133,17 @@ class TelephonyInterfaceUnitTest {
     }
 
     @Test
-    fun openClose_basicChannel() {
-        assertThat(tif.openChannel(NO_AID_ARRAY)).isEqualTo(Interface.OpenChannelResult.SUCCESS)
-        assertThat(tif.openChannel(NO_AID_ARRAY)).isEqualTo(Interface.OpenChannelResult.SUCCESS)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, never()).iccOpenLogicalChannel(ArgumentMatchers.anyString(),
-                ArgumentMatchers.anyInt())
-        verify(tmMock, never()).iccCloseLogicalChannel(ArgumentMatchers.anyInt())
-    }
-
-    @Test
     fun openClose_logicalChannel_success() {
+        assertThat(tif.openChannel(Interface.NO_AID_SPECIFIED)).isEqualTo(
+                Interface.OpenChannelResult.SUCCESS)
         assertThat(tif.openChannel(AID1)).isEqualTo(Interface.OpenChannelResult.SUCCESS)
         assertThat(tif.openChannel(AID2)).isEqualTo(Interface.OpenChannelResult.SUCCESS)
         tif.closeRemainingChannel()
 
-        verify(tmMock).iccOpenLogicalChannel(AID1_STRING, TEST_OPEN_P2)
-        verify(tmMock).iccOpenLogicalChannel(AID2_STRING, TEST_OPEN_P2)
-        verify(tmMock, times(2)).iccCloseLogicalChannel(TEST_CHANNEL_ID)
+        verify(tmMock, times(1)).iccOpenLogicalChannel(null, TEST_OPEN_P2)
+        verify(tmMock, times(1)).iccOpenLogicalChannel(AID1_STRING, TEST_OPEN_P2)
+        verify(tmMock, times(1)).iccOpenLogicalChannel(AID2_STRING, TEST_OPEN_P2)
+        verify(tmMock, times(3)).iccCloseLogicalChannel(TEST_CHANNEL_ID)
     }
 
     @Test
@@ -185,230 +172,6 @@ class TelephonyInterfaceUnitTest {
 
         verify(tmMock, times(3)).iccOpenLogicalChannel(AID1_STRING, TEST_OPEN_P2)
         verify(tmMock, never()).iccCloseLogicalChannel(ArgumentMatchers.anyInt())
-    }
-
-    @Test
-    fun openClose_bothChannels() {
-        assertThat(tif.openChannel(NO_AID_ARRAY)).isEqualTo(Interface.OpenChannelResult.SUCCESS)
-        assertThat(tif.openChannel(AID1)).isEqualTo(Interface.OpenChannelResult.SUCCESS)
-        assertThat(tif.openChannel(NO_AID_ARRAY)).isEqualTo(Interface.OpenChannelResult.SUCCESS)
-        assertThat(tif.openChannel(AID1)).isEqualTo(Interface.OpenChannelResult.SUCCESS)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(2)).iccOpenLogicalChannel(AID1_STRING, TEST_OPEN_P2)
-        verify(tmMock, times(2)).iccCloseLogicalChannel(TEST_CHANNEL_ID)
-    }
-
-    @Test
-    fun transmit_basicChannel_tooShortResponse() {
-        val le = 0x100
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2,
-                p3s(le), TEST_DATA_NONE))
-                .thenReturn(byteArrayToHexString(ByteArray(Response.SW_SIZE - 1)))
-
-        tif.openChannel(NO_AID_ARRAY)
-        val result = tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, le))
-        assertThat(result.sw1).isEqualTo(Iso7816.SW1_INTERNAL_EXCEPTION)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, p3s(le), TEST_DATA_NONE)
-    }
-
-    @Test
-    fun transmit_basicChannel_tooLongResponse() {
-        val le = Iso7816.MAX_LE
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2, le,
-                TEST_DATA_NONE))
-                .thenReturn(byteArrayToHexString(ByteArray(le + Response.SW_SIZE + 1)))
-
-        tif.openChannel(NO_AID_ARRAY)
-        val result = tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, le))
-        assertThat(result.sw1).isEqualTo(Iso7816.SW1_INTERNAL_EXCEPTION)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, le, TEST_DATA_NONE)
-    }
-
-    @Test
-    fun transmit_basicChannel_case1() {
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2,
-                TelephonyInterface.CASE1_P3, TEST_DATA_NONE)).thenReturn(SW_SUCCESS_STRING)
-
-        tif.openChannel(NO_AID_ARRAY)
-        assertThat(tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2)).sw)
-                .isEqualTo(Response(SW_SUCCESS).sw)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, TelephonyInterface.CASE1_P3, TEST_DATA_NONE)
-    }
-
-    @Test
-    fun transmit_basicChannel_case2s() {
-        val le = 0x100
-        val data = ByteArray(le) { i -> i.toByte() }
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2,
-                p3s(le), TEST_DATA_NONE))
-                .thenReturn(byteArrayToHexString(data) + SW_SUCCESS_STRING)
-
-        tif.openChannel(NO_AID_ARRAY)
-        val result = tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, le))
-        assertThat(result.sw).isEqualTo(SW_SUCCESS_STRING.toInt(16))
-        assertThat(result.data).isEqualTo(data)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, p3s(le), TEST_DATA_NONE)
-    }
-
-    @Test
-    fun transmit_basicChannel_case2e() {
-        val le = 0x101
-        val data = ByteArray(le) { i -> i.toByte() }
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2, le,
-                TEST_DATA_NONE)).thenReturn(byteArrayToHexString(data) + SW_SUCCESS_STRING)
-
-        tif.openChannel(NO_AID_ARRAY)
-        val result = tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, le))
-        assertThat(result.sw).isEqualTo(SW_SUCCESS_STRING.toInt(16))
-        assertThat(result.data).isEqualTo(data)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, le, TEST_DATA_NONE)
-    }
-
-    @Test
-    fun transmit_basicChannel_case3s() {
-        val lc = 0xFF
-        val data = ByteArray(lc) { i -> i.toByte() }
-        val dataString = byteArrayToHexString(data)
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2, lc,
-                dataString)).thenReturn(SW_SUCCESS_STRING)
-
-        tif.openChannel(NO_AID_ARRAY)
-        assertThat(tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, data)).sw)
-                .isEqualTo(Response(SW_SUCCESS).sw)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, lc, dataString)
-    }
-
-    @Test
-    fun transmit_basicChannel_case3e() {
-        val lc = 0x100
-        val data = ByteArray(lc) { i -> i.toByte() }
-        val dataString = byteArrayToHexString(data)
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2, lc,
-                dataString)).thenReturn(SW_SUCCESS_STRING)
-
-        tif.openChannel(NO_AID_ARRAY)
-        assertThat(tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, data)).sw)
-                .isEqualTo(Response(SW_SUCCESS).sw)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, lc, dataString)
-    }
-
-    @Test
-    fun transmit_basicChannel_case4s() {
-        val lcAndLe = 0xFF
-        val data = ByteArray(lcAndLe) { i -> i.toByte() }
-        val dataString = byteArrayToHexString(data)
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2,
-                lcAndLe, dataString + byteToHexString(lcAndLe)))
-                .thenReturn(dataString + SW_SUCCESS_STRING)
-
-        tif.openChannel(NO_AID_ARRAY)
-        val result = tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, data, lcAndLe))
-        assertThat(result.sw).isEqualTo(SW_SUCCESS_STRING.toInt(16))
-        assertThat(result.data).isEqualTo(data)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, lcAndLe, dataString + byteToHexString(lcAndLe))
-    }
-
-    @Test
-    fun transmit_basicChannel_case4e() {
-        val lcAndLe = 0x100
-        val data = ByteArray(lcAndLe) { i -> i.toByte() }
-        val dataString = byteArrayToHexString(data)
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2,
-                lcAndLe, dataString + extendedBytesToHexString(lcAndLe)))
-                .thenReturn(dataString + SW_SUCCESS_STRING)
-
-        tif.openChannel(NO_AID_ARRAY)
-        val result = tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, data, lcAndLe))
-        assertThat(result.sw).isEqualTo(SW_SUCCESS_STRING.toInt(16))
-        assertThat(result.data).isEqualTo(data)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, lcAndLe, dataString + extendedBytesToHexString(lcAndLe))
-    }
-
-    @Test
-    fun transmit_basicChannel_wrongLe() {
-        val wrongLe = 0x100
-        val correctLe = 0x10
-        val dataByteArray = ByteArray(correctLe) { i -> i.toByte() }
-
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2,
-                p3s(wrongLe), TEST_DATA_NONE)).thenReturn(byteArrayToHexString(byteArrayOf(
-                b(Iso7816.SW1_WRONG_LE), b(correctLe))))
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2,
-                correctLe, TEST_DATA_NONE))
-                .thenReturn(byteArrayToHexString(dataByteArray) + SW_SUCCESS_STRING)
-
-        tif.openChannel(NO_AID_ARRAY)
-        val result = tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, wrongLe))
-        assertThat(result.sw).isEqualTo(SW_SUCCESS_STRING.toInt(16))
-        assertThat(result.data).isEqualTo(dataByteArray)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, p3s(wrongLe), TEST_DATA_NONE)
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, correctLe, TEST_DATA_NONE)
-    }
-
-    @Test
-    fun transmit_basicChannel_dataAvailable() {
-        val availableLe1 = 0x100
-        val swDataAvailable1 = byteArrayToHexString(byteArrayOf(b(Iso7816.SW1_DATA_AVAILABLE),
-                b(availableLe1)))
-        val dataByteArray1 = ByteArray(availableLe1) { i -> i.toByte() }
-        val availableLe2 = 0x01
-        val swDataAvailable2 = byteArrayToHexString(byteArrayOf(b(Iso7816.SW1_DATA_AVAILABLE),
-                b(availableLe2)))
-        val dataByteArray2 = ByteArray(availableLe2) { i -> i.toByte() }
-
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1, TEST_P2,
-                Iso7816.MAX_LE, TEST_DATA_NONE)).thenReturn(swDataAvailable1)
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, Iso7816.INS_GET_RESPONSE,
-                0x00, 0x00, p3s(availableLe1), TEST_DATA_NONE))
-                .thenReturn(byteArrayToHexString(dataByteArray1) + swDataAvailable2)
-        `when`(tmMock.iccTransmitApduBasicChannel(TEST_CLA_BASIC, Iso7816.INS_GET_RESPONSE,
-                0x00, 0x00, availableLe2, TEST_DATA_NONE))
-                .thenReturn(byteArrayToHexString(dataByteArray2) + SW_SUCCESS_STRING)
-
-        tif.openChannel(NO_AID_ARRAY)
-        val result = tif.transmit(Command(TEST_INS, TEST_P1, TEST_P2, Iso7816.MAX_LE))
-        assertThat(result.sw).isEqualTo(SW_SUCCESS_STRING.toInt(16))
-        assertThat(result.data).isEqualTo(dataByteArray1 + dataByteArray2)
-        tif.closeRemainingChannel()
-
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC, TEST_INS, TEST_P1,
-                TEST_P2, Iso7816.MAX_LE, TEST_DATA_NONE)
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC,
-                Iso7816.INS_GET_RESPONSE, 0x00, 0x00, p3s(availableLe1), TEST_DATA_NONE)
-        verify(tmMock, times(1)).iccTransmitApduBasicChannel(TEST_CLA_BASIC,
-                Iso7816.INS_GET_RESPONSE, 0x00, 0x00, availableLe2, TEST_DATA_NONE)
     }
 
     @Test
