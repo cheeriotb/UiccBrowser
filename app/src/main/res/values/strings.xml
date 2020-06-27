@@ -1,3 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
+
+     This program is free software; you can redistribute it and/or modify it
+     under the terms of the MIT license.
+     See the license information described in LICENSE file.
+-->
 <resources>
     <string name="app_name">UiccBrowser</string>
+
+    <string name="unknown_label">Unknown</string>
+
+    <string name="fcp_template_label">FCP template</string>
+    <string name="file_size_label">File size</string>
+    <string name="total_file_size_label">Total file size</string>
+    <string name="file_descriptor_label">File descriptor</string>
+    <string name="file_descriptor_byte_label">File descriptor byte</string>
+    <string name="data_coding_byte_label">Data coding byte</string>
+    <string name="record_length_label">Record length</string>
+    <string name="number_of_records_label">Number of records</string>
+    <string name="file_identifier_label">File identifier</string>
+    <string name="df_name_label">DF name (AID)</string>
+    <string name="short_file_identifier_label">Short file identifier</string>
+    <string name="life_cycle_status_indicator_label">Life cycle status integer</string>
+    <string name="security_attr_ref_label">Security attributes (Ref)</string>
+    <string name="ef_arr_file_id_label">EF ARR file ID</string>
+    <string name="seid_label">SE ID</string>
+    <string name="ef_arr_record_number_label">EF ARR record number</string>
+    <string name="security_attr_compact_label">Security attributes (Compact)</string>
+    <string name="am_byte_label">AM (Access Mode) byte</string>
+    <string name="sc_bytes_label">SC (Security Condition) bytes</string>
+    <string name="proprietary_information_label">Proprietary information</string>
+    <string name="uicc_characteristics_label">UICC characteristics</string>
+    <string name="app_power_consumption_label">Application power consumption</string>
+    <string name="supply_voltage_class_label">Supply voltage class at which the power consumption is measured</string>
+    <string name="reference_frequency_label">Power consumption reference frequency</string>
+    <string name="min_app_clock_freq_label">Minimum application clock frequency</string>
+    <string name="available_memory_label">Amount of available memory</string>
+    <string name="file_details_label">File details</string>
+    <string name="reserved_file_size_label">Reserved file size</string>
+    <string name="maximum_file_size_label">Maximum file size</string>
+    <string name="supported_sys_commands_label">Supported system commands</string>
+    <string name="uicc_env_conditions_label">Specific UICC environmental conditions</string>
+    <string name="cat_secured_apdu_label">Platform to Platform CAT Secured APDU</string>
+    <string name="security_attr_expand_label">Security attributes (Expand)</string>
+    <string name="am_do_label">AM (Access Mode) DO</string>
+    <string name="sc_do_label">SC (Security Condition) DO</string>
+    <string name="pin_status_template_label">PIN status template DO</string>
+    <string name="ps_do_label">PS (PIN Status) DO</string>
+    <string name="usage_qualifier_label">Usage qualifier DO</string>
+    <string name="key_reference_label">Key reference</string>
+
+    <string name="test0">Label 0</string>
+    <string name="test1">Label 1</string>
+    <string name="test2">Label 2</string>
+    <string name="test3">Label 3</string>
+    <string name="test4">Label 4</string>
+    <string name="test5">Label 5</string>
 </resources>

@@ -8,6 +8,8 @@
 
 package com.github.cheeriotb.uiccbrowser.element
 
+import android.content.res.Resources
+
 interface Element {
     // True if this element itself does not consist of sub-element(s), false if constructed.
     val primitive: Boolean
@@ -19,14 +21,10 @@ interface Element {
     val rootElement: Element
     // True if this element is editable independently.
     val editable: Boolean
-
-    companion object {
-        const val NO_ID_SPECIFIED = -1
-    }
-
-    val labelId: Int
-    val descriptionId: Int
-
-    fun setData(newData: ByteArray): Boolean
-    fun toByteArray(): ByteArray
+    // The label of this element.
+    val label: String
+    // Contains this element as an array of bytes
+    val byteArray: ByteArray
+    // Update the data and returns true if new data has no problem
+    fun setData(resources: Resources, newData: ByteArray): Boolean
 }

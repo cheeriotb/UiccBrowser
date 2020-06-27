@@ -8,55 +8,71 @@
 
 package com.github.cheeriotb.uiccbrowser.element
 
-import kotlin.text.StringBuilder
+import android.content.res.Resources
+import com.github.cheeriotb.uiccbrowser.R
+import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 
 class ConstructedElement private constructor(
+    resources: Resources,
     rawData: ByteArray,
     override val editable: Boolean,
-    override val labelId: Int,
-    override val descriptionId: Int,
+    labelId: Int,
     private val parent: Element?,
-    private val decoder: (ByteArray, Element?) -> List<Element>,
+    private val decoder: (Resources, ByteArray, Element?) -> List<Element>,
     private val validator: (ByteArray) -> Boolean,
-    private val interpreter: (ByteArray) -> String
+    private val interpreter: (Resources, ByteArray) -> String
 ) : Element {
-    private var elementList: List<Element> = decoder(rawData, this)
+
+    override val primitive: Boolean = false
+    override val label: String = resources.getString(labelId)
+
+    private var elementList: List<Element> = decoder(resources, rawData, this)
+    private var interpretation = interpreter(resources, rawData)
 
     companion object {
-        fun defaultDecoder(rawData: ByteArray, parent: Element?): List<Element> {
+        fun defaultDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
             val element = PrimitiveElement.Builder(rawData)
                     .parent(parent)
                     .validator { false }
-                    .build()
+                    .build(resources)
             return listOf(element)
         }
 
-        const val STRING_SEPARATOR = ", "
-        const val NO_INTERPRETER = ""
+        fun defaultInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            return byteArrayToHexString(rawData)
+        }
     }
 
     class Builder(
         private var rawData: ByteArray,
         private var editable: Boolean = false,
-        private var labelId: Int = Element.NO_ID_SPECIFIED,
-        private var descriptionId: Int = Element.NO_ID_SPECIFIED,
+        private var labelId: Int = R.string.unknown_label,
         private var parent: Element? = null,
-        private var decoder: (ByteArray, Element?) -> List<Element> = ::defaultDecoder,
+        private var decoder: (Resources, ByteArray, Element?) -> List<Element> = ::defaultDecoder,
         private var validator: (ByteArray) -> Boolean = { true },
-        private var interpreter: (ByteArray) -> String = { NO_INTERPRETER }
+        private var interpreter: (Resources, ByteArray) -> String = ::defaultInterpreter
     ) {
         fun editable(editable: Boolean) = also { it.editable = editable }
         fun labelId(labelId: Int) = also { it.labelId = labelId }
-        fun descriptionId(descriptionId: Int) = also { it.descriptionId = descriptionId }
         fun parent(parent: Element?) = also { it.parent = parent }
-        fun decoder(decoder: (ByteArray, Element?) -> List<Element>) = also { it.decoder = decoder }
-        fun validator(validator: (ByteArray) -> Boolean) = also { it.validator = validator }
-        fun interpreter(interpreter: (ByteArray) -> String) = also { it.interpreter = interpreter }
-        fun build() = ConstructedElement(rawData, editable, labelId, descriptionId, parent, decoder,
-                validator, interpreter)
-    }
 
-    override val primitive: Boolean = false
+        fun decoder(decoder: (Resources, ByteArray, Element?) -> List<Element>) =
+                also { it.decoder = decoder }
+        fun validator(validator: (ByteArray) -> Boolean) =
+                also { it.validator = validator }
+        fun interpreter(interpreter: (Resources, ByteArray) -> String) =
+                also { it.interpreter = interpreter }
+
+        fun build(resources: Resources) = ConstructedElement(
+                resources, rawData, editable, labelId, parent, decoder, validator, interpreter)
+    }
 
     override val data: ByteArray
         get() {
@@ -69,46 +85,34 @@ class ConstructedElement private constructor(
         get() = elementList
 
     override val rootElement: Element
+        get() = parent?.rootElement ?: this
+
+    override val byteArray: ByteArray
         get() {
-            return parent?.rootElement ?: this
+            val rawData = data
+            if (!validator(rawData)) return byteArrayOf()
+            return rawData
         }
 
-    override fun setData(newData: ByteArray): Boolean {
+    override fun setData(resources: Resources, newData: ByteArray): Boolean {
         if (!editable || !validator(newData)) return false
 
-        val newList = decoder(newData, this)
+        val newList = decoder(resources, newData, this)
         if (newList.isEmpty()) return false
 
         val oldList = elementList
         val oldSize = data.size
         elementList = newList
         if (data.size > oldSize) {
-            if (rootElement.toByteArray().isEmpty()) {
+            if (rootElement.byteArray.isEmpty()) {
                 elementList = oldList
                 return false
             }
         }
 
+        interpretation = interpreter(resources, newData)
         return true
     }
 
-    override fun toByteArray(): ByteArray {
-        if (!validator(data)) return byteArrayOf()
-        return data
-    }
-
-    override fun toString(): String {
-        val interpretation = interpreter(data)
-        if (interpretation.isNotEmpty()) return interpretation
-
-        val builder = StringBuilder()
-        val iterator = elementList.iterator()
-        while (iterator.hasNext()) {
-            builder.append(iterator.next().toString())
-            if (iterator.hasNext()) {
-                builder.append(STRING_SEPARATOR)
-            }
-        }
-        return builder.toString()
-    }
+    override fun toString() = interpretation
 }

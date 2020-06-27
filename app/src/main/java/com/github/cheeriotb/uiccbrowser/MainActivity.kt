@@ -8,11 +8,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.github.cheeriotb.uiccbrowser.element.fcp.FcpTemplate
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 import com.github.cheeriotb.uiccbrowser.repository.ReadAllRecordsParams
 import com.github.cheeriotb.uiccbrowser.repository.ReadBinaryParams
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
+import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
 import kotlinx.coroutines.runBlocking
 
 class MainActivity : AppCompatActivity() {
@@ -54,9 +56,18 @@ class MainActivity : AppCompatActivity() {
     private fun execute() {
         val repository = CardRepository.from(this, 0)
         runBlocking {
+
+            val fcpForMf = FcpTemplate.decode(resources, hexStringToByteArray("62308202782183023F00A50C80016187010183040008A5A08A01058B062F0601020000C60990014083010183010A8102FFFF"))
+            val subElements4ForMf = fcpForMf!!.subElements[4].subElements
+            val subElements5ForMf = fcpForMf!!.subElements[5].subElements
+            val fcpForDir = FcpTemplate.decode(resources, hexStringToByteArray("622682054221001D0283022F00A503C001408A01058B062F06010400008002003A8102004E8801F0"))
+            val subElements0ForDir = fcpForDir!!.subElements[0].subElements
+            val subElements4ForDir = fcpForDir!!.subElements[4].subElements
+
             repository!!.initialize()
             repository.cacheFileControlParameters(FileId(fileId = "3F00"))
             repository.cacheFileControlParameters(FileId(fileId = "2F05"))
+/*
             repository.cacheFileControlParameters(FileId(
                 "A0000000871002FFFFFFFF8907090000",
                 "7FFF",
@@ -97,6 +108,7 @@ class MainActivity : AppCompatActivity() {
                     + records[0].sw.toString(16))
             Log.d("UiccBrowser", "#2 : " + byteArrayToHexString(records[1].data) + " "
                     + records[1].sw.toString(16))
+*/
             repository.dispose()
         }
     }
