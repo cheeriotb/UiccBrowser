@@ -142,11 +142,11 @@ class FcpTemplate {
                     }
                     // ETSI TS 102 221 Clause 11.1.1.4.7.2
                     // Security Attribute - Expanded format
-                    TAG_SECURITY_ATTR_EXPAND -> {
+                    SecurityAttrExpanded.TAG -> {
                         list.add(BerTlvElement.Builder(tlv)
-                                .labelId(R.string.security_attr_expand_label)
+                                .labelId(SecurityAttrExpanded.LABEL)
                                 .parent(parent)
-                                .decoder(::securityAttrExpandDecoder)
+                                .decoder(SecurityAttrExpanded.decoder)
                                 .build(resources))
                     }
                     // ETSI TS 102 221 Clause 11.1.1.4.10
@@ -461,34 +461,6 @@ class FcpTemplate {
                     .labelId(R.string.reference_frequency_label)
                     .parent(parent)
                     .build(resources))
-
-            return list
-        }
-
-        // ETSI TS 102 221 Clause 11.1.1.4.7.2
-        // Security Attribute - Expanded format
-        private fun securityAttrExpandDecoder(
-            resources: Resources,
-            tlvs: List<Tlv>,
-            parent: Element?
-        ): List<Element> {
-            val list: MutableList<Element> = mutableListOf()
-
-            tlvs.forEach { tlv ->
-                list.add(
-                    if (list.size % 2 == 0) {
-                        BerTlvElement.Builder(tlv)
-                                .labelId(R.string.am_do_label)
-                                .parent(parent)
-                                .build(resources)
-                    } else {
-                        BerTlvElement.Builder(tlv)
-                                .labelId(R.string.sc_do_label)
-                                .parent(parent)
-                                .build(resources)
-                    }
-                )
-            }
 
             return list
         }
