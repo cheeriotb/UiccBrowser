@@ -151,15 +151,15 @@ class BerTlvElementUnitTest {
     fun label() {
         val element = builder.build(resources)
 
-        assertThat(element.label).isEqualTo(
+        assertThat(element.label).startsWith(
                 resources.getString(LABEL_ID_1))
-        assertThat(element.subElements[0].label).isEqualTo(
+        assertThat(element.subElements[0].label).startsWith(
                 resources.getString(LABEL_ID_2))
-        assertThat(element.subElements[0].subElements[0].label).isEqualTo(
+        assertThat(element.subElements[0].subElements[0].label).startsWith(
                 resources.getString(LABEL_ID_3))
-        assertThat(element.subElements[0].subElements[1].label).isEqualTo(
+        assertThat(element.subElements[0].subElements[1].label).startsWith(
                 resources.getString(LABEL_ID_4))
-        assertThat(element.subElements[1].label).isEqualTo(
+        assertThat(element.subElements[1].label).startsWith(
                 resources.getString(LABEL_ID_5))
     }
 
@@ -283,12 +283,12 @@ class BerTlvElementUnitTest {
         assertThat(element.subElements[0].setData(
                 resources, hexStringToByteArray(berTlvString2Alt))).isTrue()
 
-        assertThat(element.subElements[0].subElements[0].label).isEqualTo(
+        assertThat(element.subElements[0].subElements[0].label).startsWith(
                 resources.getString(LABEL_ID_3))
         assertThat(element.subElements[0].subElements[0].data).isEqualTo(
                 byteArrayOf(0x99.toByte()))
 
-        assertThat(element.subElements[0].subElements[1].label).isEqualTo(
+        assertThat(element.subElements[0].subElements[1].label).startsWith(
                 resources.getString(LABEL_ID_4))
         assertThat(element.subElements[0].subElements[1].data).isEqualTo(
                 byteArrayOf(0x01.toByte(), 0x01.toByte(), 0x01.toByte()))

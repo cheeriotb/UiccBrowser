@@ -75,7 +75,7 @@ class BerTlv private constructor(
         }
 
         // Up to 3 bytes are supported as a tag field in this implementation.
-        private fun numberOfTagBytes(tag: Int): Int {
+        fun numberOfTagBytes(tag: Int): Int {
             return when {
                 (tag < 0x100) -> 1
                 (tag < 0x10000) -> 2

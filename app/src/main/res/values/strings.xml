@@ -11,6 +11,10 @@
 
     <string name="unknown_label">Unknown</string>
 
+    <string name="one_byte_tag_label">%1$s (%2$02X)</string>
+    <string name="two_bytes_tag_label">%1$s (%2$04X)</string>
+    <string name="three_bytes_tag_label">%1$s (%2$06X)</string>
+
     <string name="fcp_template_label">FCP template</string>
     <string name="file_size_label">File size</string>
     <string name="total_file_size_label">Total file size</string>

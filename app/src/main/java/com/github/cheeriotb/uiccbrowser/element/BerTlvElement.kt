@@ -25,10 +25,15 @@ class BerTlvElement private constructor(
     private val validator: (ByteArray) -> Boolean,
     private val interpreter: (Resources, ByteArray) -> String
 ) : Element {
-    override val primitive: Boolean = !tlv.isConstructed
-    override val label: String = resources.getString(labelId)
-
     val tag: Int = tlv.tag
+
+    override val primitive: Boolean = !tlv.isConstructed
+    override val label: String = when (BerTlv.numberOfTagBytes(tag)) {
+        1 -> resources.getString(R.string.one_byte_tag_label, resources.getString(labelId), tag)
+        2 -> resources.getString(R.string.two_bytes_tag_label, resources.getString(labelId), tag)
+        3 -> resources.getString(R.string.three_bytes_tag_label, resources.getString(labelId), tag)
+        else -> resources.getString(labelId)
+    }
 
     private var primitiveData =
             if (!tlv.isConstructed) tlv.value else byteArrayOf()
