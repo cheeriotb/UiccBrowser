@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
+ *  Copyright (C) 2020-2026 Cheerio <cheerio.the.bear@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under the terms of the MIT license.
@@ -11,7 +11,6 @@ package com.github.cheeriotb.uiccbrowser.element
 import android.content.Context
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.util.BerTlv
 import com.github.cheeriotb.uiccbrowser.util.Tlv
@@ -21,11 +20,11 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
 class BerTlvElementUnitTest {
-    private val resources = ApplicationProvider.getApplicationContext<Context>().resources
-
+    private lateinit var resources: Resources
     private lateinit var builder: BerTlvElement.Builder
 
     companion object {
@@ -47,23 +46,23 @@ class BerTlvElementUnitTest {
 
         private const val BER_TLV_STRING_1 = "210A22050101012100020101"
         private const val BER_TLV_DATA_STRING_1 = "22050101012100020101"
-        private const val LABEL_ID_1 = R.string.test1
+        private val LABEL_ID_1 = R.string.test1
 
         private const val BER_TLV_STRING_2 = "22050101012100"
         private const val BER_TLV_DATA_STRING_2 = "0101012100"
-        private const val LABEL_ID_2 = R.string.test2
+        private val LABEL_ID_2 = R.string.test2
 
         private const val BER_TLV_STRING_3 = "010101"
         private const val BER_TLV_DATA_STRING_3 = "01"
-        private const val LABEL_ID_3 = R.string.test3
+        private val LABEL_ID_3 = R.string.test3
 
         private const val BER_TLV_STRING_4 = "2100"
         private const val BER_TLV_DATA_STRING_4 = ""
-        private const val LABEL_ID_4 = R.string.test4
+        private val LABEL_ID_4 = R.string.test4
 
         private const val BER_TLV_STRING_5 = "020101"
         private const val BER_TLV_DATA_STRING_5 = "01"
-        private const val LABEL_ID_5 = R.string.test5
+        private val LABEL_ID_5 = R.string.test5
 
         private fun specificDecoder1(
             resources: Resources,
@@ -138,6 +137,8 @@ class BerTlvElementUnitTest {
 
     @Before
     fun setUp() {
+        resources = ApplicationProvider.getApplicationContext<Context>().resources
+
         val data = hexStringToByteArray(BER_TLV_STRING_1)
         val tlvs = BerTlv.listFrom(data)
 

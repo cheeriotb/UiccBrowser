@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
+ *  Copyright (C) 2020-2026 Cheerio <cheerio.the.bear@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under the terms of the MIT license.
@@ -11,7 +11,6 @@ package com.github.cheeriotb.uiccbrowser.element
 import android.content.Context
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
@@ -19,11 +18,11 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
 class ConstructedElementUnitTest {
-    private val resources = ApplicationProvider.getApplicationContext<Context>().resources
-
+    private lateinit var resources: Resources
     private lateinit var builder: ConstructedElement.Builder
 
     companion object {
@@ -34,27 +33,27 @@ class ConstructedElementUnitTest {
          */
         private const val DATA_1_STRING = "81"
         private const val DATA_1_SIZE = (DATA_1_STRING.length / 2)
-        private const val LABEL_ID_1 = R.string.test1
+        private val LABEL_ID_1 = R.string.test1
 
         private const val DATA_3_STRING = "5465737400000000"
         private const val DATA_3_SIZE = (DATA_3_STRING.length / 2)
-        private const val LABEL_ID_3 = R.string.test3
+        private val LABEL_ID_3 = R.string.test3
 
         private const val DATA_4_STRING = "0000000000000000"
         private const val DATA_4_SIZE = (DATA_4_STRING.length / 2)
-        private const val LABEL_ID_4 = R.string.test4
+        private val LABEL_ID_4 = R.string.test4
 
         private const val DATA_2_STRING = DATA_3_STRING + DATA_4_STRING
         private const val DATA_2_SIZE = (DATA_2_STRING.length / 2)
-        private const val LABEL_ID_2 = R.string.test2
+        private val LABEL_ID_2 = R.string.test2
 
         private const val DATA_5_STRING = "010203"
         private const val DATA_5_SIZE = (DATA_5_STRING.length / 2)
-        private const val LABEL_ID_5 = R.string.test5
+        private val LABEL_ID_5 = R.string.test5
 
         private const val ALL_DATA_STRING = DATA_1_STRING + DATA_2_STRING + DATA_5_STRING
         private const val ALL_DATA_SIZE = (ALL_DATA_STRING.length / 2)
-        private const val LABEL_ID_0 = R.string.test0
+        private val LABEL_ID_0 = R.string.test0
 
         private fun specificDecoder1(
             resources: Resources,
@@ -128,6 +127,8 @@ class ConstructedElementUnitTest {
 
     @Before
     fun setUp() {
+        resources = ApplicationProvider.getApplicationContext<Context>().resources
+
         builder = ConstructedElement.Builder(hexStringToByteArray(ALL_DATA_STRING))
                 .editable(true)
                 .labelId(LABEL_ID_0)

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
+ *  Copyright (C) 2020-2026 Cheerio <cheerio.the.bear@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under the terms of the MIT license.
@@ -19,17 +19,13 @@ import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import com.github.cheeriotb.uiccbrowser.util.byteToHexString
 import com.github.cheeriotb.uiccbrowser.util.extendedBytesToHexString
 import com.google.common.truth.Truth.assertThat
-import com.nhaarman.mockito_kotlin.never
-import com.nhaarman.mockito_kotlin.times
-import com.nhaarman.mockito_kotlin.verify
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.ArgumentMatchers
 import org.mockito.Mock
-import org.mockito.Mockito.`when`
+import org.mockito.Mockito.*
 import org.mockito.MockitoAnnotations
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
@@ -39,6 +35,8 @@ class TelephonyInterfaceUnitTest {
     @Rule @JvmField
     val grantPermissionRule: GrantPermissionRule =
             GrantPermissionRule.grant(android.Manifest.permission.READ_PHONE_STATE)
+
+    private lateinit var mocks: AutoCloseable
 
     private val context = ApplicationProvider.getApplicationContext() as Context
     private val smShadow = shadowOf(context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE)
@@ -85,7 +83,7 @@ class TelephonyInterfaceUnitTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.initMocks(this)
+        mocks = MockitoAnnotations.openMocks(this)
 
         // Associate the subscription info #TEST_SUBS_ID with the slot #TEST_SLOT_ID.
         `when`(subInfoMock.simSlotIndex).thenReturn(TEST_SLOT_ID)
@@ -107,6 +105,7 @@ class TelephonyInterfaceUnitTest {
     @After
     fun tearDown() {
         tif.dispose()
+        mocks.close()
     }
 
     @Test
@@ -124,12 +123,11 @@ class TelephonyInterfaceUnitTest {
                 .isEqualTo(Response(Interface.SW_INTERNAL_EXCEPTION).sw)
         tif.closeRemainingChannel()
 
-        verify(tmMock, never()).iccOpenLogicalChannel(ArgumentMatchers.anyString(),
-                ArgumentMatchers.anyInt())
-        verify(tmMock, never()).iccTransmitApduLogicalChannel(ArgumentMatchers.anyInt(),
-                ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(),
-                ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyString())
-        verify(tmMock, never()).iccCloseLogicalChannel(ArgumentMatchers.anyInt())
+        verify(tmMock, never()).iccOpenLogicalChannel(anyString(), anyInt())
+        verify(tmMock, never()).iccTransmitApduLogicalChannel(anyInt(), anyInt(), anyInt(),
+            anyInt(), anyInt(), anyInt(), anyString()
+        )
+        verify(tmMock, never()).iccCloseLogicalChannel(anyInt())
     }
 
     @Test
@@ -171,7 +169,7 @@ class TelephonyInterfaceUnitTest {
         tif.closeRemainingChannel()
 
         verify(tmMock, times(3)).iccOpenLogicalChannel(AID1_STRING, TEST_OPEN_P2)
-        verify(tmMock, never()).iccCloseLogicalChannel(ArgumentMatchers.anyInt())
+        verify(tmMock, never()).iccCloseLogicalChannel(anyInt())
     }
 
     @Test

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
+ *  Copyright (C) 2020-2026 Cheerio <cheerio.the.bear@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under the terms of the MIT license.
@@ -41,7 +41,7 @@ import org.robolectric.util.ReflectionHelpers
 class CardRepositoryUnitTest {
     @Rule @JvmField
     val grantPermissionRule: GrantPermissionRule =
-            GrantPermissionRule.grant(android.Manifest.permission.READ_PHONE_STATE)
+        GrantPermissionRule.grant(android.Manifest.permission.READ_PHONE_STATE)
 
     private val cardIoMock = mockk<Interface>()
     private val cacheIoMock = mockk<SelectResponseDataSource>()

@@ -1,13 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-     Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
-
-     This program is free software; you can redistribute it and/or modify it
-     under the terms of the MIT license.
-     See the license information described in LICENSE file.
--->
 <resources>
     <string name="app_name">UiccBrowser</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="menu_home">Home</string>
+    <string name="menu_gallery">Gallery</string>
+    <string name="menu_slideshow">Slideshow</string>
 
     <string name="unknown_label">Unknown</string>
 
@@ -55,10 +55,16 @@
     <string name="usage_qualifier_label">Usage qualifier DO</string>
     <string name="key_reference_label">Key reference</string>
 
+    <string name="permission_rationale_title">Accessing phone\'s status</string>
+    <string name="permission_rationale_message">Access to the phone\'s status is required to read the UICC information.</string>
+    <string name="permission_denied_title">Permission denied</string>
+    <string name="permission_denied_message">UICC information is unavailable because access to the phone\'s status was not permitted.</string>
+
     <string name="test0">Label 0</string>
     <string name="test1">Label 1</string>
     <string name="test2">Label 2</string>
     <string name="test3">Label 3</string>
     <string name="test4">Label 4</string>
     <string name="test5">Label 5</string>
+
 </resources>

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
+ *  Copyright (C) 2020-2026 Cheerio <cheerio.the.bear@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under the terms of the MIT license.
@@ -28,8 +28,8 @@ abstract class SelectResponseDatabase : RoomDatabase() {
             }
             return instance ?: synchronized(this) {
                 val database = Room.databaseBuilder(context.applicationContext,
-                        SelectResponseDatabase::class.java, "response")
-                        .fallbackToDestructiveMigration().build()
+                    SelectResponseDatabase::class.java, "response")
+                    .fallbackToDestructiveMigration(false).build()
                 instance = database
                 database
             }

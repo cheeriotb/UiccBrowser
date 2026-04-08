@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
+ *  Copyright (C) 2020-2026 Cheerio <cheerio.the.bear@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under the terms of the MIT license.
@@ -19,7 +19,7 @@ import com.github.cheeriotb.uiccbrowser.util.Tlv
 class SecurityAttrExpanded {
     companion object {
         const val TAG = 0xAB
-        const val LABEL = R.string.security_attr_expand_label
+        /* const */ val LABEL = R.string.security_attr_expand_label
         val decoder = ::decoderImpl
 
         private fun decoderImpl(
