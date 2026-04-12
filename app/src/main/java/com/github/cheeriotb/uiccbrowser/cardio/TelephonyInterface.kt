@@ -15,7 +15,6 @@ import android.telephony.IccOpenLogicalChannelResponse
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import android.util.Log
-import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import com.github.cheeriotb.uiccbrowser.util.byteToHexString
@@ -50,7 +49,7 @@ class TelephonyInterface private constructor (
         val subscriptionInfo = subscriptionManager?.getActiveSubscriptionInfoForSimSlotIndex(slotId)
         val telephony = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager?
 
-        isAvailable = (telephony != null && slotId < telephony.phoneCount)
+        isAvailable = (telephony != null && slotId < telephony.activeModemCount)
         if (telephony != null && subscriptionInfo != null) {
             this.telephony = telephony.createForSubscriptionId(subscriptionInfo.subscriptionId)
         } else {
@@ -70,14 +69,14 @@ class TelephonyInterface private constructor (
             closeRemainingChannel()
             val aidString = byteArrayToHexString(aid)
             val result = telephony.iccOpenLogicalChannel(
-                    if (aidString.isNotEmpty()) aidString else null,
+                aidString.ifEmpty { null },
                     Interface.OPEN_P2)
             when (result.status) {
                 IccOpenLogicalChannelResponse.STATUS_NO_ERROR -> {
                     this.aid = aid
                     channelId = result.channel
                     Log.i(tag, "Opened the logical channel #$channelId")
-                    Log.d(tag, "AID: " + if (aidString.isNotEmpty()) aidString else "Not specified")
+                    Log.d(tag, "AID: " + aidString.ifEmpty { "Not specified" })
                 }
                 IccOpenLogicalChannelResponse.STATUS_MISSING_RESOURCE -> {
                     Log.w(tag, "No logical channel is currently available")

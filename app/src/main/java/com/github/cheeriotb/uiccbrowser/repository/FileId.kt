@@ -16,7 +16,13 @@ data class FileId(
     companion object {
         const val AID_NONE = ""
         const val PATH_MF = ""
+        const val PATH_ADF = "7FFF"
         const val FID_ALMIGHTY = ""
+
+        const val MF = "3F00"
+
+        const val EF_DIR = "2F00"
+        const val EF_ICCID = "2FE2"
     }
 
     class Builder(

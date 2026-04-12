@@ -72,7 +72,6 @@ class CardRepository private constructor (
         }
 
         const val SIZE_MAX = 0x100
-        const val EF_ICCID = "2FE2"
 
         const val SW_INTERNAL_EXCEPTION = Iso7816.SW1_INTERNAL_EXCEPTION shl 8
         val DATA_NONE = ByteArray(0)
@@ -85,7 +84,7 @@ class CardRepository private constructor (
         isCached = false
 
         if (openChannel()) {
-            val selectResponse = select(FileId.PATH_MF, EF_ICCID, fcpRequest = true)
+            val selectResponse = select(FileId.PATH_MF, FileId.EF_ICCID, fcpRequest = true)
             if (selectResponse.isOk) {
                 val readResponse = readBinary()
                 startClosingTimer()
@@ -108,7 +107,7 @@ class CardRepository private constructor (
                         cacheIo.delete(iccId!!)
                         // Cache the FCP template for this ICCID
                         cacheIo.insert(SelectResponse(iccId!!, FileId.AID_NONE, FileId.PATH_MF,
-                                EF_ICCID, selectResponse.data, selectResponse.sw))
+                            FileId.EF_ICCID, selectResponse.data, selectResponse.sw))
                     }
 
                     Log.i(tag, "The card associated with the slot is accessible")
@@ -274,7 +273,7 @@ class CardRepository private constructor (
         return cardIo.transmit(command)
     }
 
-    private suspend fun startClosingTimer() {
+    private fun startClosingTimer() {
         synchronized(this) {
             closingJob = GlobalScope.launch {
                 delay(CLOSING_TIMER_MILLIS)
