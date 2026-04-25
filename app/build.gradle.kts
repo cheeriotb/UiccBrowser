@@ -14,8 +14,9 @@ android {
 
     defaultConfig {
         applicationId = "com.github.cheeriotb.uiccbrowser"
-        minSdk = 31
-        targetSdk = 36
+        minSdk = 35
+        compileSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -52,6 +53,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)

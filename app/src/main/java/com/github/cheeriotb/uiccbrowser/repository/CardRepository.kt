@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
+ *  Copyright (C) 2020-2026 Cheerio <cheerio.the.bear@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under the terms of the MIT license.
@@ -37,11 +37,13 @@ class CardRepository private constructor (
     private val subscriptionIo: CachedSubscriptionDataSource
 ) {
     private val tag = TelephonyInterface::class.java.simpleName + slotId
-    private var iccId: String? = null
+    private var _iccId: String? = null
     private var closingJob: Job? = null
 
+    val iccId: String? get() = _iccId
+
     val isAccessible: Boolean
-        get() = (iccId != null)
+        get() = (_iccId != null)
 
     var isCached: Boolean = false
 
@@ -62,7 +64,7 @@ class CardRepository private constructor (
                     do {
                         val cardIo: Interface = TelephonyInterface.from(context, testSlotId)
                         if (!cardIo.isAvailable) break
-                        instances!!.add(CardRepository(slotId, cardIo, cacheIo, subscriptionIo))
+                        instances!!.add(CardRepository(testSlotId, cardIo, cacheIo, subscriptionIo))
                         testSlotId++
                     } while (true)
                 }
@@ -80,7 +82,7 @@ class CardRepository private constructor (
     }
 
     suspend fun initialize(): Boolean {
-        iccId = null
+        _iccId = null
         isCached = false
 
         if (openChannel()) {
@@ -97,16 +99,16 @@ class CardRepository private constructor (
                             builder.append(hexString[1]).append(hexString[0])
                         }
                     }
-                    iccId = builder.toString()
-                    Log.d(tag, "ICCID: $iccId")
+                    _iccId = builder.toString()
+                    Log.d(tag, "ICCID: $_iccId")
 
-                    val subscription = subscriptionIo.get(iccId!!)
+                    val subscription = subscriptionIo.get(_iccId!!)
                     isCached = (subscription != null)
                     if (!isCached) {
                         // Delete all incomplete cache for this ICCID, if exists
-                        cacheIo.delete(iccId!!)
+                        cacheIo.delete(_iccId!!)
                         // Cache the FCP template for this ICCID
-                        cacheIo.insert(SelectResponse(iccId!!, FileId.AID_NONE, FileId.PATH_MF,
+                        cacheIo.insert(SelectResponse(_iccId!!, FileId.AID_NONE, FileId.PATH_MF,
                             FileId.EF_ICCID, selectResponse.data, selectResponse.sw))
                     }
 
@@ -127,14 +129,14 @@ class CardRepository private constructor (
                 || !openChannel(fileId.aid)) {
             return false // means that the caching process cannot be continued.
         }
-        if (cacheIo.get(iccId!!, fileId.aid, fileId.path, fileId.fileId) != null) {
+        if (cacheIo.get(_iccId!!, fileId.aid, fileId.path, fileId.fileId) != null) {
             return true // No need to cache it again
         }
 
         val response = select(fileId.path, fileId.fileId, fcpRequest = true)
         startClosingTimer()
 
-        cacheIo.insert(SelectResponse(iccId!!, fileId.aid, fileId.path, fileId.fileId,
+        cacheIo.insert(SelectResponse(_iccId!!, fileId.aid, fileId.path, fileId.fileId,
                 response.data, response.sw))
 
         return true // means that the caching process can be continued.
@@ -142,9 +144,9 @@ class CardRepository private constructor (
 
     suspend fun finalizeCache(name: String) {
         if (isAccessible && !isCached) {
-            subscriptionIo.insert(CachedSubscription(iccId!!, name))
+            subscriptionIo.insert(CachedSubscription(_iccId!!, name))
             isCached = true
-            Log.i(tag, "The cache for $iccId was finalized")
+            Log.i(tag, "The cache for $_iccId was finalized")
         }
     }
 
@@ -153,9 +155,9 @@ class CardRepository private constructor (
     ): List<Result> {
         if (!isAccessible || !isCached) return emptyList()
         return if (fileId.fileId == FileId.FID_ALMIGHTY) {
-            Result.listFrom(cacheIo.getAll(iccId!!, fileId.aid, fileId.path))
+            Result.listFrom(cacheIo.getAll(_iccId!!, fileId.aid, fileId.path))
         } else {
-            Result.from(cacheIo.get(iccId!!, fileId.aid, fileId.path, fileId.fileId))
+            Result.from(cacheIo.get(_iccId!!, fileId.aid, fileId.path, fileId.fileId))
         }
     }
 
@@ -299,7 +301,7 @@ class CardRepository private constructor (
 
     suspend fun dispose() {
         cancelClosingTimer()
-        iccId = null
+        _iccId = null
         isCached = false
         cardIo.dispose()
         Log.d(tag, "Disposed")
