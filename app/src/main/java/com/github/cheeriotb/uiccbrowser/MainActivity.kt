@@ -11,6 +11,7 @@ package com.github.cheeriotb.uiccbrowser
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -92,6 +93,15 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         ""
                     }
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.isCachingMf.collect { isCaching ->
+                    binding.appBarMain.progressIndicator.visibility =
+                        if (isCaching) View.VISIBLE else View.GONE
                 }
             }
         }

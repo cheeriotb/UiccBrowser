@@ -1,0 +1,51 @@
+{
+    "name": "ADF (USIM)",
+    "description": "Application Dedicated File (USIM)",
+    "id": "7FFF",
+
+    "files": [
+        {
+            "name": "LI",
+            "description": "Language Indication",
+            "id": "6F05"
+        },
+        {
+            "name": "IMSI",
+            "description": "International Mobile Subscriber Identity",
+            "id": "6F07"
+        },
+        {
+            "name": "GID1",
+            "description": "Group Identifier Level 1",
+            "id": "6F3E"
+        },
+        {
+            "name": "GID2",
+            "description": "Group Identifier Level 2",
+            "id": "6F3F"
+        },
+        {
+            "name": "AD",
+            "description": "Administrative Data",
+            "id": "6FAD"
+        },
+        {
+            "name": "5GS",
+            "description": "5G System",
+            "id": "5FC0",
+
+            "files": [
+                {
+                    "name": "SUCI_Calc_Info",
+                    "description": "Subscription Concealed Identifier Calculation Information",
+                    "id": "4F07"
+                },
+                {
+                    "name": "OPL5G",
+                    "description": "5GS Operator PLMN List",
+                    "id": "4F08"
+                }
+            ]
+        }
+    ]
+}

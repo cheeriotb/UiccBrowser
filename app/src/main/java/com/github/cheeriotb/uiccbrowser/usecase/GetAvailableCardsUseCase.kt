@@ -11,19 +11,19 @@ package com.github.cheeriotb.uiccbrowser.usecase
 import android.content.Context
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 
-class GetAvailableSlotsUseCase(private val context: Context) {
+class GetAvailableCardsUseCase(private val context: Context) {
 
     /**
-     * Returns a list of SlotInfo for slots where a SIM card is accessible.
+     * Returns a list of CardInfo for slots where a SIM card is accessible.
      * Enumerates slots by incrementing slotId until CardRepository.from() returns null,
      * then calls initialize() on each to confirm a SIM card is present and readable.
      */
-    suspend fun execute(): List<SlotInfo> {
-        val available = mutableListOf<SlotInfo>()
+    suspend fun execute(): List<CardInfo> {
+        val available = mutableListOf<CardInfo>()
         var slotId = 0
         while (true) {
             val repo = CardRepository.from(context, slotId) ?: break
-            if (repo.initialize()) available.add(SlotInfo(slotId, repo.iccId!!))
+            if (repo.initialize()) available.add(CardInfo(slotId, repo.iccId!!))
             slotId++
         }
         return available

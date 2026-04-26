@@ -1,0 +1,28 @@
+{
+    "name": "MF",
+    "description": "Master File",
+    "id": "3F00",
+
+    "files": [
+        {
+            "name": "DIR",
+            "description": "Directory",
+            "id": "2F00"
+        },
+        {
+            "name": "PL",
+            "description": "Preferred Language",
+            "id": "2F05"
+        },
+        {
+            "name": "ARR",
+            "description": "Access Rule Reference",
+            "id": "2F06"
+        },
+        {
+            "name": "ICCID",
+            "description": "ICC Identification",
+            "id": "2FE2"
+        }
+    ]
+}

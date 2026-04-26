@@ -10,8 +10,6 @@ package com.github.cheeriotb.uiccbrowser.repository
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.rule.GrantPermissionRule
-import com.github.cheeriotb.uiccbrowser.cacheio.CachedSubscription
-import com.github.cheeriotb.uiccbrowser.cacheio.CachedSubscriptionDataSource
 import com.github.cheeriotb.uiccbrowser.cacheio.SelectResponse
 import com.github.cheeriotb.uiccbrowser.cacheio.SelectResponseDataSource
 import com.github.cheeriotb.uiccbrowser.cardio.Command
@@ -45,14 +43,11 @@ class CardRepositoryUnitTest {
 
     private val cardIoMock = mockk<Interface>()
     private val cacheIoMock = mockk<SelectResponseDataSource>()
-    private val subscriptionIoMock = mockk<CachedSubscriptionDataSource>()
 
     private lateinit var repository: CardRepository
 
     companion object {
-        private const val PROFILE_NAME = "USIM"
-
-        private const val FCP = "621E8202412183022FE2A506C00100CA01808A01058B032F06048002000A8800"
+        private const val FCP ="621E8202412183022FE2A506C00100CA01808A01058B032F06048002000A8800"
         private const val DATA1 = "30313233343536373839"
         private const val DATA2 = "30313233343536373839"
         private val RESPONSE_NOT_FOUND = "%04X".format(Result.SW_NOT_FOUND)
@@ -91,14 +86,11 @@ class CardRepositoryUnitTest {
         every { cardIoMock.closeRemainingChannel() } answers { nothing }
         every { cardIoMock.dispose() } answers { nothing }
 
-        coEvery { subscriptionIoMock.get(ICCID) } returns CachedSubscription(ICCID, "USIM")
-
         val target = CardRepository.from(ApplicationProvider.getApplicationContext(), 0)
         assertThat(target).isNotNull()
         repository = target!!
         ReflectionHelpers.setField(repository, "cardIo", cardIoMock)
         ReflectionHelpers.setField(repository, "cacheIo", cacheIoMock)
-        ReflectionHelpers.setField(repository, "subscriptionIo", subscriptionIoMock)
     }
 
     @After
@@ -121,7 +113,6 @@ class CardRepositoryUnitTest {
 
         assertThat(repository.initialize()).isFalse()
         assertThat(repository.isAccessible).isFalse()
-        assertThat(repository.isCached).isFalse()
 
         assertThat(repository.cacheFileControlParameters(FILE_ID_AD)).isFalse()
         assertThat(repository.queryFileControlParameters(LEVEL_ADF)).isEmpty()
@@ -137,12 +128,6 @@ class CardRepositoryUnitTest {
         val readAllRecordParams = ReadAllRecordsParams.Builder(FILE_ID_DIR).build()
         assertThat(repository.readAllRecords(readAllRecordParams)[0].sw)
                 .isEqualTo(CardRepository.SW_INTERNAL_EXCEPTION)
-
-        repository.finalizeCache(PROFILE_NAME)
-        assertThat(repository.isCached).isFalse()
-        coVerify(inverse = true) {
-            subscriptionIoMock.insert(CachedSubscription(ICCID, PROFILE_NAME))
-        }
     }
 
     @Test
@@ -154,7 +139,6 @@ class CardRepositoryUnitTest {
 
         assertThat(repository.initialize()).isFalse()
         assertThat(repository.isAccessible).isFalse()
-        assertThat(repository.isCached).isFalse()
     }
 
     @Test
@@ -164,24 +148,17 @@ class CardRepositoryUnitTest {
 
         assertThat(repository.initialize()).isFalse()
         assertThat(repository.isAccessible).isFalse()
-        assertThat(repository.isCached).isFalse()
     }
 
     @Test
     fun initialize_notCached() = runBlocking {
-        coEvery { subscriptionIoMock.get(ICCID) } returns null
-        coEvery { cacheIoMock.delete(any()) } answers { nothing }
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
         coEvery { cacheIoMock.insert(any()) } answers { nothing }
 
         assertThat(repository.initialize()).isTrue()
         assertThat(repository.isAccessible).isTrue()
-        assertThat(repository.isCached).isFalse()
 
-        // Query is not yet available before finishing the caching operation.
-        assertThat(repository.queryFileControlParameters(LEVEL_ADF)).isEmpty()
-
-        coVerifyOrder {
-            cacheIoMock.delete(ICCID)
+        coVerify {
             cacheIoMock.insert(SelectResponse(ICCID, FileId.AID_NONE,
                     FileId.PATH_MF, FileId.EF_ICCID,
                     hexStringToByteArray(FCP), Result.SW_NORMAL))
@@ -189,31 +166,24 @@ class CardRepositoryUnitTest {
     }
 
     @Test
-    fun initialize_cached() = runBlocking {
+    fun initialize_alreadyCached() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns
+                SelectResponse(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID,
+                        hexStringToByteArray(FCP), Result.SW_NORMAL)
+
         assertThat(repository.initialize()).isTrue()
         assertThat(repository.isAccessible).isTrue()
-        assertThat(repository.isCached).isTrue()
-
-        // No need to cache the FCP templates again.
-        assertThat(repository.cacheFileControlParameters(FILE_ID_AD)).isFalse()
-        // Nothing shall happen as the cache has already been finalized.
-        repository.finalizeCache(PROFILE_NAME)
 
         // The used logical channel must be closed in a certain amount of time.
         delay(1000)
 
-        coVerify(inverse = true) { cacheIoMock.delete(any()) }
         coVerify(inverse = true) { cacheIoMock.insert(any()) }
-        coVerify(inverse = true) {
-            subscriptionIoMock.insert(CachedSubscription(ICCID, PROFILE_NAME))
-        }
         verify { cardIoMock.closeRemainingChannel() }
     }
 
     @Test
     fun cacheFileControlParameters_alreadyCached() = runBlocking {
-        coEvery { subscriptionIoMock.get(ICCID) } returns null
-        coEvery { cacheIoMock.delete(any()) } answers { nothing }
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
         coEvery { cacheIoMock.insert(any()) } answers { nothing }
 
         repository.initialize()
@@ -228,6 +198,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun cacheFileControlParameters_openChannelError() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
@@ -238,8 +210,7 @@ class CardRepositoryUnitTest {
 
     @Test
     fun cacheFileControlParameters_success() = runBlocking {
-        coEvery { subscriptionIoMock.get(ICCID) } returns null
-        coEvery { cacheIoMock.delete(any()) } answers { nothing }
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
         coEvery { cacheIoMock.insert(any()) } answers { nothing }
 
         repository.initialize()
@@ -269,6 +240,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun queryFileControlParameters_success() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         val response1 = SelectResponse(ICCID, AID, PATH_ADF, FID_AD,
@@ -287,21 +260,9 @@ class CardRepositoryUnitTest {
     }
 
     @Test
-    fun finalizeCache_success() = runBlocking {
-        coEvery { subscriptionIoMock.get(ICCID) } returns null
-        coEvery { subscriptionIoMock.insert(any()) } answers { nothing }
-        coEvery { cacheIoMock.delete(any()) } answers { nothing }
-        coEvery { cacheIoMock.insert(any()) } answers { nothing }
-
-        repository.initialize()
-        repository.finalizeCache(PROFILE_NAME)
-        assertThat(repository.isCached).isTrue()
-
-        coVerify { subscriptionIoMock.insert(CachedSubscription(ICCID, PROFILE_NAME)) }
-    }
-
-    @Test
     fun readBinary_openChannelError() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
@@ -320,6 +281,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun readBinary_selectError() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
@@ -341,6 +304,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun readBinary_success() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
@@ -370,6 +335,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun readRecord_openChannelError() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
@@ -390,6 +357,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun readRecord_selectError() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
@@ -413,6 +382,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun readRecord_success() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
@@ -444,6 +415,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun readAllRecords_openChannelError() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
@@ -466,6 +439,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun readAllRecords_selectError() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
@@ -491,6 +466,8 @@ class CardRepositoryUnitTest {
 
     @Test
     fun readAllRecords_success() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,

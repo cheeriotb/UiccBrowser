@@ -1,0 +1,23 @@
+{
+    "name": "ADF (ISIM)",
+    "description": "Application Dedicated File (ISIM)",
+    "id": "7FFF",
+
+    "files": [
+        {
+            "name": "IMPI",
+            "description": "IMS private user identity",
+            "id": "6F02"
+        },
+        {
+            "name": "DOMAIN",
+            "description": "Home Network Domain Name",
+            "id": "6F03"
+        },
+        {
+            "name": "IMPU",
+            "description": "IMS public user identity",
+            "id": "6F04"
+        }
+    ]
+}

@@ -8,4 +8,4 @@
 
 package com.github.cheeriotb.uiccbrowser.usecase
 
-data class SlotInfo(val slotId: Int, val iccId: String)
+data class CardInfo(val slotId: Int, val iccId: String)
