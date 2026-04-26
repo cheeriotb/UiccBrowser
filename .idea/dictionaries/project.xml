@@ -2,7 +2,9 @@
   <dictionary name="project">
     <words>
       <w>etsi</w>
+      <w>fplmn</w>
       <w>iccid</w>
+      <w>usim</w>
     </words>
   </dictionary>
 </component>

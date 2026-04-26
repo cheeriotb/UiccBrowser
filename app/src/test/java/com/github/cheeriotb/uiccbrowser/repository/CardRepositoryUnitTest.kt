@@ -84,7 +84,7 @@ class CardRepositoryUnitTest {
                 Interface.OpenChannelResult.SUCCESS
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
                 0x08 /* Select by path from MF */, 0x04 /* Return FCP template */,
-                hexStringToByteArray(CardRepository.EF_ICCID))) } returns
+                hexStringToByteArray(FileId.EF_ICCID))) } returns
                 Response(hexStringToByteArray(RESPONSE_FCP))
         every { cardIoMock.transmit(Command(Iso7816.INS_READ_BINARY, 0x00, 0x00, 0x100)) } returns
                 Response(hexStringToByteArray(RESPONSE_ICCID))
@@ -149,7 +149,7 @@ class CardRepositoryUnitTest {
     fun initialize_failure_selectIccId() = runBlocking {
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
                 0x08 /* Select by path from MF */, 0x04 /* Return FCP template */,
-                hexStringToByteArray(CardRepository.EF_ICCID))) } returns
+                hexStringToByteArray(FileId.EF_ICCID))) } returns
                 Response(hexStringToByteArray("6F00"))
 
         assertThat(repository.initialize()).isFalse()
@@ -183,7 +183,7 @@ class CardRepositoryUnitTest {
         coVerifyOrder {
             cacheIoMock.delete(ICCID)
             cacheIoMock.insert(SelectResponse(ICCID, FileId.AID_NONE,
-                    FileId.PATH_MF, CardRepository.EF_ICCID,
+                    FileId.PATH_MF, FileId.EF_ICCID,
                     hexStringToByteArray(FCP), Result.SW_NORMAL))
         }
     }
@@ -207,7 +207,7 @@ class CardRepositoryUnitTest {
         coVerify(inverse = true) {
             subscriptionIoMock.insert(CachedSubscription(ICCID, PROFILE_NAME))
         }
-        verify() { cardIoMock.closeRemainingChannel() }
+        verify { cardIoMock.closeRemainingChannel() }
     }
 
     @Test
