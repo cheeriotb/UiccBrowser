@@ -29,6 +29,13 @@ class BerTlv private constructor(
             var index = 0
             try {
                 while (index < bytes.size) {
+                    // Per ISO/IEC 7816-4 §7.3.1, 0xFF is a reserved padding byte.
+                    // If all bytes from this position to the end are 0xFF, treat as trailing
+                    // padding and stop — this is common in linear-fixed EF records.
+                    if ((bytes[index].toInt() and 0xFF) == 0xFF
+                            && (index until bytes.size).all { (bytes[it].toInt() and 0xFF) == 0xFF }) {
+                        break
+                    }
                     var tag = (bytes[index++].toInt() and 0xFF)
                     // If all the bits for the tag number (5 bits from LSB) are set,
                     // the tag field is coded in multi byte format.

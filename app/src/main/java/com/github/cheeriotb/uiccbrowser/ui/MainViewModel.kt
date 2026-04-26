@@ -15,6 +15,7 @@ import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.usecase.CacheFileControlParametersUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.GetAvailableCardsUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.CardInfo
+import com.github.cheeriotb.uiccbrowser.usecase.ReadApplicationsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +25,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val getAvailableSlots = GetAvailableCardsUseCase(application.applicationContext)
     private val cacheFiles = CacheFileControlParametersUseCase(application.applicationContext)
+    private val readApplications = ReadApplicationsUseCase(application.applicationContext)
 
     private val _availableSlots = MutableStateFlow<List<CardInfo>>(emptyList())
     val availableSlots: StateFlow<List<CardInfo>> = _availableSlots.asStateFlow()
@@ -33,6 +35,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isCachingMf = MutableStateFlow(false)
     val isCachingMf: StateFlow<Boolean> = _isCachingMf.asStateFlow()
+
+    private val _availableApplications = MutableStateFlow<List<String>>(emptyList())
+    val availableApplications: StateFlow<List<String>> = _availableApplications.asStateFlow()
 
     fun loadAvailableSlots() {
         if (_availableSlots.value.isNotEmpty()) return
@@ -57,6 +62,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isCachingMf.value = true
             cacheFiles.execute(R.raw.level_mf, cardInfo.slotId)
+            _availableApplications.value = readApplications.execute(cardInfo.slotId)
             _isCachingMf.value = false
         }
     }

@@ -55,6 +55,15 @@
     <string name="usage_qualifier_label">Usage qualifier DO</string>
     <string name="key_reference_label">Key reference</string>
 
+    <string name="app_template_label">Application template</string>
+    <string name="app_id_label">Application identifier</string>
+    <string name="app_label_label">Application label</string>
+    <string name="app_path_label">Path</string>
+    <string name="command_apdu_label">Command APDU</string>
+    <string name="discretionary_data_label">Discretionary data</string>
+    <string name="discretionary_template_label">Discretionary template</string>
+    <string name="url_label">URL</string>
+
     <string name="nav_header_no_sim">No SIM available</string>
     <string name="nav_header_no_slot">No logical slot selected</string>
     <string name="slot_label">Logical slot %1$d</string>

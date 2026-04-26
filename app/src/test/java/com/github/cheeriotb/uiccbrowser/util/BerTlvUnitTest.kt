@@ -115,6 +115,41 @@ class BerTlvUnitTest {
     }
 
     @Test
+    fun listFrom_trailingFfPadding_stopsBeforePadding() {
+        // Two valid TLVs followed by 0xFF padding bytes — mirrors the structure seen in
+        // linear-fixed EF records (e.g. EF DIR Application template children).
+        val input = hexStringToByteArray("4F02AABB5001CCFFFFFF")
+        val tlvs = BerTlv.listFrom(input)
+
+        assertThat(tlvs.size).isEqualTo(2)
+        assertThat(tlvs[0].tag).isEqualTo(0x4F)
+        assertThat(tlvs[0].value).isEqualTo(hexStringToByteArray("AABB"))
+        assertThat(tlvs[1].tag).isEqualTo(0x50)
+        assertThat(tlvs[1].value).isEqualTo(hexStringToByteArray("CC"))
+    }
+
+    @Test
+    fun listFrom_allFfBytes_returnsEmpty() {
+        // Completely unused record — all bytes are 0xFF padding.
+        val input = ByteArray(8) { 0xFF.toByte() }
+        val tlvs = BerTlv.listFrom(input)
+
+        assertThat(tlvs).isEmpty()
+    }
+
+    @Test
+    fun listFrom_ffInsideValue_notTreatedAsPadding() {
+        // 0xFF bytes that appear inside a value field must not be mistaken for padding.
+        // AID tag 0x4F, 3-byte value containing 0xFF in the middle.
+        val input = hexStringToByteArray("4F03A0FF01")
+        val tlvs = BerTlv.listFrom(input)
+
+        assertThat(tlvs.size).isEqualTo(1)
+        assertThat(tlvs[0].tag).isEqualTo(0x4F)
+        assertThat(tlvs[0].value).isEqualTo(hexStringToByteArray("A0FF01"))
+    }
+
+    @Test
     fun constructed() {
         /*
            |  T | 21 | (1) A constructed BER-TLV contains a constructed one and a primitive one
