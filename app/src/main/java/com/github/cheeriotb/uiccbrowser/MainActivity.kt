@@ -11,6 +11,7 @@ package com.github.cheeriotb.uiccbrowser
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.Menu
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -26,7 +27,6 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
-import androidx.navigation.ui.setupWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.github.cheeriotb.uiccbrowser.databinding.ActivityMainBinding
@@ -63,15 +63,17 @@ class MainActivity : AppCompatActivity() {
         val drawerLayout: DrawerLayout = binding.drawerLayout
         val navView: NavigationView = binding.navView
         val navController = findNavController(R.id.nav_host_fragment_content_main)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
         appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow
-            ), drawerLayout
+            setOf(R.id.nav_file_browser), drawerLayout
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
-        navView.setupWithNavController(navController)
+
+        navView.setNavigationItemSelectedListener { menuItem ->
+            navController.navigate(R.id.nav_file_browser)
+            drawerLayout.closeDrawers()
+            menuItem.isChecked = true
+            true
+        }
 
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
 
@@ -102,6 +104,25 @@ class MainActivity : AppCompatActivity() {
                 viewModel.isCachingMf.collect { isCaching ->
                     binding.appBarMain.progressIndicator.visibility =
                         if (isCaching) View.VISIBLE else View.GONE
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.navItems.collect { navItems ->
+                    val menu = navView.menu
+                    menu.clear()
+                    navItems.forEachIndexed { index, item ->
+                        menu.add(R.id.nav_group_main, index, Menu.NONE, item.label)
+                            .setIcon(item.iconResId)
+                    }
+                    menu.setGroupCheckable(R.id.nav_group_main, true, true)
+                    if (navItems.isNotEmpty()) {
+                        menu.getItem(0).isChecked = true
+                        navController.navigate(R.id.nav_file_browser)
+                        drawerLayout.closeDrawers()
+                    }
                 }
             }
         }

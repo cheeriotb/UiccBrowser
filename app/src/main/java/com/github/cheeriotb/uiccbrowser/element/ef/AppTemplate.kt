@@ -28,6 +28,11 @@ class AppTemplate {
         const val TAG_DISCRETIONARY_TEMPLATE = 0x73
         const val TAG_URL = 0x5F50
 
+        // Refer to Annex E of ETSI TS 101 220 for 3GPP RID and app codes.
+        const val RID = "A000000087"
+        const val APP_USIM = "1002"
+        const val APP_ISIM = "1004"
+
         /**
          * Parses one EF DIR record byte array and returns the Application template as a
          * BerTlvElement tree. Returns null if the bytes do not start with an Application template

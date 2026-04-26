@@ -5,9 +5,11 @@
     <string name="nav_header_title">Android Studio</string>
     <string name="nav_header_subtitle">android.studio@android.com</string>
     <string name="nav_header_desc">Navigation header</string>
-    <string name="menu_home">Home</string>
-    <string name="menu_gallery">Gallery</string>
-    <string name="menu_slideshow">Slideshow</string>
+    <string name="nav_item_mf">MF</string>
+    <string name="nav_item_usim">USIM</string>
+    <string name="nav_item_usim_numbered">USIM %1$d</string>
+    <string name="nav_item_isim">ISIM</string>
+    <string name="nav_item_isim_numbered">ISIM %1$d</string>
 
     <string name="unknown_label">Unknown</string>
 

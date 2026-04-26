@@ -9,9 +9,11 @@
 package com.github.cheeriotb.uiccbrowser.ui
 
 import android.app.Application
+import android.content.res.Resources
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.cheeriotb.uiccbrowser.R
+import com.github.cheeriotb.uiccbrowser.element.ef.AppTemplate
 import com.github.cheeriotb.uiccbrowser.usecase.CacheFileControlParametersUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.GetAvailableCardsUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.CardInfo
@@ -36,8 +38,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isCachingMf = MutableStateFlow(false)
     val isCachingMf: StateFlow<Boolean> = _isCachingMf.asStateFlow()
 
-    private val _availableApplications = MutableStateFlow<List<String>>(emptyList())
-    val availableApplications: StateFlow<List<String>> = _availableApplications.asStateFlow()
+    private val _navItems = MutableStateFlow<List<NavItem>>(emptyList())
+    val navItems: StateFlow<List<NavItem>> = _navItems.asStateFlow()
 
     fun loadAvailableSlots() {
         if (_availableSlots.value.isNotEmpty()) return
@@ -61,9 +63,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun startMfCaching(cardInfo: CardInfo) {
         viewModelScope.launch {
             _isCachingMf.value = true
+            _navItems.value = emptyList()
             cacheFiles.execute(R.raw.level_mf, cardInfo.slotId)
-            _availableApplications.value = readApplications.execute(cardInfo.slotId)
+            val aids = readApplications.execute(cardInfo.slotId)
+            _navItems.value = buildNavItems(getApplication<Application>().resources, aids)
             _isCachingMf.value = false
+        }
+    }
+
+    companion object {
+        /**
+         * Converts a list of AID strings from EF DIR into navigation items.
+         *
+         * Always prepends an MF item. AIDs starting with 3GPP RID + USIM/ISIM app code are
+         * categorised accordingly; other AIDs are ignored. When more than one item of the same
+         * type is present each is given a numeric suffix ("USIM 1", "USIM 2", …).
+         */
+        internal fun buildNavItems(resources: Resources, aids: List<String>): List<NavItem> {
+            val items = mutableListOf<NavItem>()
+
+            items.add(NavItem(
+                label = resources.getString(R.string.nav_item_mf),
+                iconResId = R.drawable.folder,
+                level = NavLevel.MF,
+            ))
+
+            val usimPrefix = (AppTemplate.RID + AppTemplate.APP_USIM).uppercase()
+            val isimPrefix = (AppTemplate.RID + AppTemplate.APP_ISIM).uppercase()
+
+            val usimAids = aids.filter { it.uppercase().startsWith(usimPrefix) }
+            val isimAids = aids.filter { it.uppercase().startsWith(isimPrefix) }
+
+            usimAids.forEachIndexed { index, aid ->
+                val label = if (usimAids.size == 1) resources.getString(R.string.nav_item_usim)
+                            else resources.getString(R.string.nav_item_usim_numbered, index + 1)
+                items.add(NavItem(
+                    label = label,
+                    iconResId = R.drawable.folder_usim,
+                    level = NavLevel.USIM,
+                    aid = aid,
+                ))
+            }
+
+            isimAids.forEachIndexed { index, aid ->
+                val label = if (isimAids.size == 1) resources.getString(R.string.nav_item_isim)
+                            else resources.getString(R.string.nav_item_isim_numbered, index + 1)
+                items.add(NavItem(
+                    label = label,
+                    iconResId = R.drawable.folder_isim,
+                    level = NavLevel.ISIM,
+                    aid = aid,
+                ))
+            }
+
+            return items
         }
     }
 }
