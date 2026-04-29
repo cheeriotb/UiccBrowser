@@ -12,13 +12,101 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import com.github.cheeriotb.uiccbrowser.R
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.GridLayoutManager
+import com.github.cheeriotb.uiccbrowser.databinding.FragmentBinaryBinding
+import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
+import kotlinx.coroutines.launch
 
 class BinaryFragment : Fragment() {
+
+    private var _binding: FragmentBinaryBinding? = null
+    private val binding get() = _binding!!
+
+    private val mainViewModel: MainViewModel by activityViewModels()
+    private lateinit var viewModel: BinaryViewModel
+    private lateinit var gridAdapter: BinaryGridAdapter
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? = inflater.inflate(R.layout.fragment_binary, container, false)
+    ): View {
+        _binding = FragmentBinaryBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val efDetailViewModel =
+            ViewModelProvider(requireParentFragment())[EfDetailViewModel::class.java]
+        val fileId = efDetailViewModel.fileId
+        val slotId = mainViewModel.selectedSlot.value?.slotId ?: 0
+
+        viewModel = ViewModelProvider(
+            this,
+            BinaryViewModel.Factory(requireActivity().application, fileId, slotId)
+        )[BinaryViewModel::class.java]
+
+        setupHeaderRecyclerView()
+        setupDataRecyclerView()
+        observeViewModel()
+    }
+
+    private fun setupHeaderRecyclerView() {
+        val spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+            override fun getSpanSize(position: Int) = if (position % 9 == 0) 2 else 1
+        }
+        binding.headerRecyclerView.apply {
+            layoutManager = GridLayoutManager(requireContext(), 10).apply {
+                this.spanSizeLookup = spanSizeLookup
+            }
+            adapter = BinaryHeaderAdapter()
+            isNestedScrollingEnabled = false
+        }
+    }
+
+    private fun setupDataRecyclerView() {
+        val spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+            override fun getSpanSize(position: Int) = if (position % 9 == 0) 2 else 1
+        }
+        gridAdapter = BinaryGridAdapter()
+        binding.dataRecyclerView.apply {
+            layoutManager = GridLayoutManager(requireContext(), 10).apply {
+                this.spanSizeLookup = spanSizeLookup
+            }
+            adapter = gridAdapter
+        }
+    }
+
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.isLoading.collect { loading ->
+                        binding.progressIndicator.isVisible = loading
+                        binding.headerRecyclerView.isVisible = !loading
+                        binding.dataRecyclerView.isVisible = !loading
+                    }
+                }
+                launch {
+                    viewModel.data.collect { data ->
+                        if (data != null) gridAdapter.updateData(data)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 }
