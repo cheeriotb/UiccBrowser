@@ -13,6 +13,9 @@
         <action
             android:id="@+id/action_file_browser_to_sublevel"
             app:destination="@id/nav_file_sublevel" />
+        <action
+            android:id="@+id/action_file_browser_to_ef_detail"
+            app:destination="@id/nav_ef_detail" />
     </fragment>
 
     <fragment
@@ -38,6 +41,28 @@
         <action
             android:id="@+id/action_file_browser_to_sublevel"
             app:destination="@id/nav_file_sublevel" />
+        <action
+            android:id="@+id/action_file_browser_to_ef_detail"
+            app:destination="@id/nav_ef_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_ef_detail"
+        android:name="com.github.cheeriotb.uiccbrowser.ui.efdetail.EfDetailFragment"
+        android:label=""
+        tools:layout="@layout/fragment_ef_detail">
+        <argument
+            android:name="efName"
+            app:argType="string" />
+        <argument
+            android:name="efFileId"
+            app:argType="string" />
+        <argument
+            android:name="aid"
+            app:argType="string" />
+        <argument
+            android:name="parentPath"
+            app:argType="string" />
     </fragment>
 
 </navigation>

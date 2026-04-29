@@ -114,22 +114,35 @@ class FileBrowserFragment : Fragment() {
     }
 
     private fun setupUi(displayPath: String) {
-        val adapter = FileEntryAdapter { entry ->
-            val childPath = viewModel.parentPath + entry.id
-            val childDisplayPath = FileBrowserViewModel.formatDisplayPath(childPath)
-            val childTitle = FileBrowserViewModel.buildSubTitle(entry.name, entry.id, displayPath)
+        val adapter = FileEntryAdapter(
+            onDirectoryClick = { entry ->
+                val childPath = viewModel.parentPath + entry.id
+                val childDisplayPath = FileBrowserViewModel.formatDisplayPath(childPath)
+                val childTitle = FileBrowserViewModel.buildSubTitle(entry.name, entry.id, displayPath)
 
-            findNavController().navigate(
-                R.id.action_file_browser_to_sublevel,
-                bundleOf(
-                    ARG_RAW_RES_ID to viewModel.rawResId,
-                    ARG_AID to viewModel.aid,
-                    ARG_PARENT_PATH to childPath,
-                    ARG_TITLE to childTitle,
-                    ARG_DISPLAY_PATH to childDisplayPath
+                findNavController().navigate(
+                    R.id.action_file_browser_to_sublevel,
+                    bundleOf(
+                        ARG_RAW_RES_ID to viewModel.rawResId,
+                        ARG_AID to viewModel.aid,
+                        ARG_PARENT_PATH to childPath,
+                        ARG_TITLE to childTitle,
+                        ARG_DISPLAY_PATH to childDisplayPath
+                    )
                 )
-            )
-        }
+            },
+            onFileClick = { entry ->
+                findNavController().navigate(
+                    R.id.action_file_browser_to_ef_detail,
+                    bundleOf(
+                        "efName" to entry.name,
+                        "efFileId" to entry.id,
+                        "aid" to viewModel.aid,
+                        "parentPath" to viewModel.parentPath
+                    )
+                )
+            }
+        )
 
         binding.recyclerView.apply {
             this.adapter = adapter

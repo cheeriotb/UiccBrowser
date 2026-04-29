@@ -33,6 +33,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.github.cheeriotb.uiccbrowser.databinding.ActivityMainBinding
 import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
 import com.github.cheeriotb.uiccbrowser.ui.NavLevel
+import com.github.cheeriotb.uiccbrowser.ui.efdetail.EfDetailFragment
 import com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserFragment
 import com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserViewModel
 import com.github.cheeriotb.uiccbrowser.usecase.GetFileListUseCase
@@ -109,6 +110,11 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_file_sublevel -> {
                     supportActionBar?.title =
                         arguments?.getString(FileBrowserFragment.ARG_TITLE)
+                }
+                R.id.nav_ef_detail -> {
+                    val efName = arguments?.getString(EfDetailFragment.ARG_EF_NAME) ?: ""
+                    val efFileId = arguments?.getString(EfDetailFragment.ARG_EF_FILE_ID) ?: ""
+                    supportActionBar?.title = "$efName ($efFileId)"
                 }
             }
         }

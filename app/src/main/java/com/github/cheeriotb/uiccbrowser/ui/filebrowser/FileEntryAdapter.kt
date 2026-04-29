@@ -18,7 +18,8 @@ import com.github.cheeriotb.uiccbrowser.databinding.ItemFileEntryBinding
 import com.github.cheeriotb.uiccbrowser.usecase.FileEntry
 
 class FileEntryAdapter(
-    private val onDirectoryClick: (FileEntry) -> Unit
+    private val onDirectoryClick: (FileEntry) -> Unit,
+    private val onFileClick: (FileEntry) -> Unit
 ) : ListAdapter<FileEntry, FileEntryAdapter.ViewHolder>(DiffCallback()) {
 
     inner class ViewHolder(val binding: ItemFileEntryBinding) :
@@ -39,10 +40,10 @@ class FileEntryAdapter(
             mainText.text = "${entry.name} (${entry.id})"
             subText.text = entry.description
             root.setOnClickListener {
-                if (entry.isDirectory) onDirectoryClick(entry)
+                if (entry.isDirectory) onDirectoryClick(entry) else onFileClick(entry)
             }
-            root.isClickable = entry.isDirectory
-            root.isFocusable = entry.isDirectory
+            root.isClickable = true
+            root.isFocusable = true
         }
     }
 
