@@ -23,6 +23,7 @@ ksp = "2.3.6"
 uiautomator = "2.4.0-beta02"
 mockito = "5.23.0"
 mockito-kotlin = "6.3.0"
+viewpager2 = "1.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

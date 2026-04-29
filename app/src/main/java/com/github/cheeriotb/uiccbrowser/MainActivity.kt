@@ -23,6 +23,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.navigation.NavigationView
+import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
@@ -31,6 +32,11 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.github.cheeriotb.uiccbrowser.databinding.ActivityMainBinding
 import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
+import com.github.cheeriotb.uiccbrowser.ui.NavLevel
+import com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserFragment
+import com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserViewModel
+import com.github.cheeriotb.uiccbrowser.usecase.GetFileListUseCase
+import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -53,6 +59,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        DynamicColors.applyToActivityIfAvailable(this)
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -69,13 +76,42 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
 
         navView.setNavigationItemSelectedListener { menuItem ->
-            navController.navigate(R.id.nav_file_browser)
+            val navItem = viewModel.navItems.value.getOrNull(menuItem.itemId)
+            if (navItem != null) viewModel.selectNavItem(navItem)
+            navController.navigate(
+                R.id.nav_file_browser, null,
+                NavOptions.Builder().setPopUpTo(R.id.nav_file_browser, true).build()
+            )
             drawerLayout.closeDrawers()
             menuItem.isChecked = true
             true
         }
 
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
+
+        navController.addOnDestinationChangedListener { _, destination, arguments ->
+            when (destination.id) {
+                R.id.nav_file_browser -> {
+                    val navItem = viewModel.selectedNavItem.value
+                        ?: return@addOnDestinationChangedListener
+                    val rawResId = when (navItem.level) {
+                        NavLevel.MF   -> R.raw.level_mf
+                        NavLevel.USIM -> R.raw.level_adf_usim
+                        NavLevel.ISIM -> R.raw.level_adf_isim
+                    }
+                    val (name, id) = try {
+                        GetFileListUseCase(this).parseRootMeta(rawResId)
+                    } catch (_: Exception) {
+                        navItem.label to ""
+                    }
+                    supportActionBar?.title = FileBrowserViewModel.buildRootTitle(name, id)
+                }
+                R.id.nav_file_sublevel -> {
+                    supportActionBar?.title =
+                        arguments?.getString(FileBrowserFragment.ARG_TITLE)
+                }
+            }
+        }
 
         requestReadPhoneStatePermissionIfNeeded()
 
@@ -109,18 +145,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.navItems.collect { navItems ->
-                    val menu = navView.menu
-                    menu.clear()
-                    navItems.forEachIndexed { index, item ->
-                        menu.add(R.id.nav_group_main, index, Menu.NONE, item.label)
-                            .setIcon(item.iconResId)
-                    }
-                    menu.setGroupCheckable(R.id.nav_group_main, true, true)
-                    if (navItems.isNotEmpty()) {
+            viewModel.navItems.collect { navItems ->
+                val menu = navView.menu
+                menu.clear()
+                navItems.forEachIndexed { index, item ->
+                    menu.add(R.id.nav_group_main, index, Menu.NONE, item.label)
+                        .setIcon(item.iconResId)
+                }
+                menu.setGroupCheckable(R.id.nav_group_main, true, true)
+                if (navItems.isNotEmpty()) {
+                    val selectedIndex = viewModel.selectedNavItem.value
+                        ?.let { navItems.indexOf(it) } ?: -1
+                    if (selectedIndex >= 0) {
+                        menu.getItem(selectedIndex).isChecked = true
+                    } else {
                         menu.getItem(0).isChecked = true
-                        navController.navigate(R.id.nav_file_browser)
+                        viewModel.selectNavItem(navItems.first())
+                        navController.navigate(
+                            R.id.nav_file_browser, null,
+                            NavOptions.Builder().setPopUpTo(R.id.nav_file_browser, true).build()
+                        )
                         drawerLayout.closeDrawers()
                     }
                 }

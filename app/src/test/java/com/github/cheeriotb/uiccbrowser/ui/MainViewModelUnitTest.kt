@@ -8,6 +8,7 @@
 
 package com.github.cheeriotb.uiccbrowser.ui
 
+import android.app.Application
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
 import com.github.cheeriotb.uiccbrowser.R
@@ -130,5 +131,20 @@ class MainViewModelUnitTest {
         assertThat(itemsUsimFirst[2].level).isEqualTo(NavLevel.ISIM)
         assertThat(itemsIsimFirst[1].level).isEqualTo(NavLevel.USIM)
         assertThat(itemsIsimFirst[2].level).isEqualTo(NavLevel.ISIM)
+    }
+
+    @Test
+    fun selectNavItem_updatesSelectedNavItem() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val viewModel = MainViewModel(app)
+        val item = NavItem(
+            label = resources.getString(R.string.nav_item_mf),
+            iconResId = R.drawable.folder,
+            level = NavLevel.MF
+        )
+
+        viewModel.selectNavItem(item)
+
+        assertThat(viewModel.selectedNavItem.value).isEqualTo(item)
     }
 }

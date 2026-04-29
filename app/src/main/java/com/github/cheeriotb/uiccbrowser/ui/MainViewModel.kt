@@ -41,6 +41,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _navItems = MutableStateFlow<List<NavItem>>(emptyList())
     val navItems: StateFlow<List<NavItem>> = _navItems.asStateFlow()
 
+    private val _selectedNavItem = MutableStateFlow<NavItem?>(null)
+    val selectedNavItem: StateFlow<NavItem?> = _selectedNavItem.asStateFlow()
+
+    fun selectNavItem(item: NavItem) {
+        _selectedNavItem.value = item
+    }
+
     fun loadAvailableSlots() {
         if (_availableSlots.value.isNotEmpty()) return
         viewModelScope.launch {
@@ -67,6 +74,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             cacheFiles.execute(R.raw.level_mf, cardInfo.slotId)
             val aids = readApplications.execute(cardInfo.slotId)
             _navItems.value = buildNavItems(getApplication<Application>().resources, aids)
+            _selectedNavItem.value = _navItems.value.firstOrNull()
             _isCachingMf.value = false
         }
     }

@@ -1,5 +1,5 @@
 {
-    "name": "ADF (USIM)",
+    "name": "ADF USIM",
     "description": "Application Dedicated File (USIM)",
     "id": "7FFF",
 
@@ -15,6 +15,36 @@
             "id": "6F07"
         },
         {
+            "name": "KeysPS",
+            "description": "Ciphering and Integrity Keys",
+            "id": "6F08"
+        },
+        {
+            "name": "Keys",
+            "description": "Ciphering and Integrity Keys for Packet Switched domain",
+            "id": "6F08"
+        },
+        {
+            "name": "HPPLMN",
+            "description": "Higher Priority PLMN search period",
+            "id": "6F31"
+        },
+        {
+            "name": "ACMmax",
+            "description": "ACM maximum value",
+            "id": "6F37"
+        },
+        {
+            "name": "UST",
+            "description": "USIM Service Table",
+            "id": "6F38"
+        },
+        {
+            "name": "ACM",
+            "description": "Accumulated Call Meter",
+            "id": "6F39"
+        },
+        {
             "name": "GID1",
             "description": "Group Identifier Level 1",
             "id": "6F3E"
@@ -23,6 +53,16 @@
             "name": "GID2",
             "description": "Group Identifier Level 2",
             "id": "6F3F"
+        },
+        {
+            "name": "SPN",
+            "description": "Service Provider Name",
+            "id": "6F46"
+        },
+        {
+            "name": "PLMNwAcT",
+            "description": "User controlled PLMN selector with Access Technology",
+            "id": "6F60"
         },
         {
             "name": "AD",

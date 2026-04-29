@@ -8,6 +8,36 @@
     <fragment
         android:id="@+id/nav_file_browser"
         android:name="com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserFragment"
-        android:label="@string/app_name"
-        tools:layout="@layout/fragment_file_browser" />
+        android:label=""
+        tools:layout="@layout/fragment_file_browser">
+        <action
+            android:id="@+id/action_file_browser_to_sublevel"
+            app:destination="@id/nav_file_sublevel" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_file_sublevel"
+        android:name="com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserFragment"
+        android:label=""
+        tools:layout="@layout/fragment_file_browser">
+        <argument
+            android:name="rawResId"
+            app:argType="integer" />
+        <argument
+            android:name="aid"
+            app:argType="string" />
+        <argument
+            android:name="parentPath"
+            app:argType="string" />
+        <argument
+            android:name="title"
+            app:argType="string" />
+        <argument
+            android:name="displayPath"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_file_browser_to_sublevel"
+            app:destination="@id/nav_file_sublevel" />
+    </fragment>
+
 </navigation>

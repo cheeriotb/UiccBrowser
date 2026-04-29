@@ -1,7 +1,6 @@
 {
     "name": "MF",
     "description": "Master File",
-    "id": "3F00",
 
     "files": [
         {
@@ -18,6 +17,11 @@
             "name": "ARR",
             "description": "Access Rule Reference",
             "id": "2F06"
+        },
+        {
+            "name": "UMPC",
+            "description": "(UICC Maximum Power Consumption",
+            "id": "2F08"
         },
         {
             "name": "ICCID",
