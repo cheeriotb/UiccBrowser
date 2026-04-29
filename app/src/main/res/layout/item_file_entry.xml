@@ -15,7 +15,7 @@
         android:layout_height="40dp"
         android:layout_marginEnd="16dp"
         android:contentDescription="@null"
-        tools:src="@drawable/folder" />
+        tools:src="@drawable/file" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -27,16 +27,14 @@
             android:id="@+id/mainText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            tools:text="IMSI (6F07)" />
+            android:textAppearance="?attr/textAppearanceBodyLarge" />
 
         <TextView
             android:id="@+id/subText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="International Mobile Subscriber Identity" />
+            android:textColor="?attr/colorOnSurfaceVariant" />
 
     </LinearLayout>
 

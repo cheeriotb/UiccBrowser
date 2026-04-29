@@ -34,7 +34,8 @@ class FileEntryAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val entry = getItem(position)
         with(holder.binding) {
-            icon.setImageResource(if (entry.isDirectory) R.drawable.folder else R.drawable.file)
+            icon.setImageResource(
+                if (entry.isDirectory) R.drawable.folder_dedicated else R.drawable.file)
             mainText.text = "${entry.name} (${entry.id})"
             subText.text = entry.description
             root.setOnClickListener {

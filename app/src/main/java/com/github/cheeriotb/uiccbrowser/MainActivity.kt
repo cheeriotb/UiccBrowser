@@ -125,11 +125,15 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.selectedSlot.collect { slotInfo ->
-                    titleTextView.text = slotInfo?.iccId ?: getString(R.string.nav_header_no_sim)
+                    titleTextView.text = if (slotInfo != null) {
+                        getString(R.string.iccid_label, slotInfo.iccId)
+                    } else {
+                        getString(R.string.nav_header_no_sim)
+                    }
                     subtitleTextView.text = if (slotInfo != null) {
                         getString(R.string.slot_label, slotInfo.slotId)
                     } else {
-                        ""
+                        getString(R.string.nav_header_no_slot)
                     }
                 }
             }
