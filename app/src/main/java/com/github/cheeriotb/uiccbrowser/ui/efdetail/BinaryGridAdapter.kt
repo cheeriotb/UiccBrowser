@@ -9,9 +9,12 @@
 package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
 import android.content.Context
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.databinding.ItemBinaryCellBinding
 
 class BinaryGridAdapter : RecyclerView.Adapter<BinaryGridAdapter.ViewHolder>() {
@@ -57,6 +60,10 @@ class BinaryGridAdapter : RecyclerView.Adapter<BinaryGridAdapter.ViewHolder>() {
             val byteIndex = row * 8 + col - 1
             if (byteIndex < data.size) formatByte(data[byteIndex]) else ""
         }
+        holder.binding.root.setBackgroundColor(
+            if (col == 0 || holder.binding.text.text.isEmpty()) Color.TRANSPARENT
+            else ContextCompat.getColor(holder.binding.root.context, R.color.binary_cell_background)
+        )
     }
 
     fun updateData(newData: ByteArray) {

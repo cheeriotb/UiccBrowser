@@ -15,6 +15,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 import com.github.cheeriotb.uiccbrowser.usecase.ReadBinaryUseCase
+import com.github.cheeriotb.uiccbrowser.usecase.ReadRecordUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,10 +33,36 @@ class BinaryViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _recordCount = MutableStateFlow(0)
+    val recordCount: StateFlow<Int> = _recordCount.asStateFlow()
+
+    private var recordLength = 0
+
     init {
         viewModelScope.launch {
             _isLoading.value = true
-            _data.value = ReadBinaryUseCase(getApplication()).execute(slotId, fileId)
+            val binaryData = ReadBinaryUseCase(getApplication()).execute(slotId, fileId)
+            if (binaryData != null) {
+                _data.value = binaryData
+                _isLoading.value = false
+                return@launch
+            }
+            val info = ReadRecordUseCase(getApplication()).getInfo(slotId, fileId)
+            if (info != null) {
+                recordLength = info.recordLength
+                _recordCount.value = info.numberOfRecords
+                _data.value = ReadRecordUseCase(getApplication())
+                    .execute(slotId, fileId, 1, recordLength)
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun loadRecord(recordNo: Int) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _data.value = ReadRecordUseCase(getApplication())
+                .execute(slotId, fileId, recordNo, recordLength)
             _isLoading.value = false
         }
     }

@@ -11,7 +11,24 @@
         android:layout_gravity="center"
         android:visibility="gone" />
 
-    <!-- Pane A: fixed column offset header -->
+    <!-- Pane A: record selector (Linear Fixed only) + fixed column offset header -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/recordSelectorLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="Record"
+        android:visibility="gone">
+
+        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            android:id="@+id/recordDropdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="120dp"
+            android:inputType="none" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/headerRecyclerView"
         android:layout_width="match_parent"
