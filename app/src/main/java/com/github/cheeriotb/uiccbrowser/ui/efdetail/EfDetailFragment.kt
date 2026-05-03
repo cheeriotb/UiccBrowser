@@ -68,6 +68,13 @@ class EfDetailFragment : Fragment() {
                 }
             }
         }.attach()
+
+        if (!viewModel.hasDecoder) {
+            (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(1)?.let {
+                it.isEnabled = false
+                it.alpha = 0.38f
+            }
+        }
     }
 
     override fun onResume() {

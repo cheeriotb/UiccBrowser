@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.github.cheeriotb.uiccbrowser"
-        minSdk = 35
+        minSdk = 33
         compileSdk = 36
         targetSdk = 35
         versionCode = 1

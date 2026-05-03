@@ -52,7 +52,7 @@ class BinaryFragment : Fragment() {
         val slotId = mainViewModel.selectedSlot.value?.slotId ?: 0
 
         viewModel = ViewModelProvider(
-            this,
+            requireParentFragment(),
             BinaryViewModel.Factory(requireActivity().application, fileId, slotId)
         )[BinaryViewModel::class.java]
 

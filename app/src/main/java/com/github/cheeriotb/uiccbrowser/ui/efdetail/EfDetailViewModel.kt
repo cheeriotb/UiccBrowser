@@ -10,6 +10,7 @@ package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.github.cheeriotb.uiccbrowser.element.EfDecoderRegistry
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 
 class EfDetailViewModel(
@@ -19,6 +20,7 @@ class EfDetailViewModel(
 ) : ViewModel() {
 
     val title: String = "$efName ($efFileId)"
+    val hasDecoder: Boolean = EfDecoderRegistry.has(fileId.aid, fileId.path + fileId.fileId)
 
     class Factory(
         private val efName: String,
