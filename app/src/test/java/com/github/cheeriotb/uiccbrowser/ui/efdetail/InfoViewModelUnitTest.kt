@@ -25,6 +25,8 @@ class InfoViewModelUnitTest {
     // EF DIR record: 61 12 4F 10 <16-byte USIM AID>
     private val efDirRecord =
         hexStringToByteArray("61124F10A0000000871002FFFFFFFFFFFFFFFFFF")
+    private val efArrRecord =
+        hexStringToByteArray("8001019000")
 
     @Test
     fun decode_efDir_setsElement() {
@@ -39,6 +41,13 @@ class InfoViewModelUnitTest {
         val vm = InfoViewModel(application, iccidFileId)
         vm.decode(byteArrayOf(0x01, 0x02, 0x03))
         assertThat(vm.element.value).isNull()
+    }
+
+    @Test
+    fun decode_efArr_setsElement() {
+        val vm = InfoViewModel(application, FileId(FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ARR))
+        vm.decode(efArrRecord)
+        assertThat(vm.element.value).isNotNull()
     }
 
     @Test

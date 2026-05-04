@@ -48,10 +48,15 @@
     <string name="uicc_env_conditions_label">Specific UICC environmental conditions</string>
     <string name="cat_secured_apdu_label">Platform to Platform CAT Secured APDU</string>
     <string name="security_attr_expand_label">Security attributes (Expand)</string>
-    <string name="am_do_label">AM (Access Mode) DO</string>
-    <string name="sc_do_label">SC (Security Condition) DO</string>
+    <string name="am_do_label">Access Mode DO</string>
+    <string name="sc_do_always_label">Security Condition DO (Always)</string>
+    <string name="sc_do_never_label">Security Condition DO (Never)</string>
+    <string name="control_do_label">Control DO</string>
+    <string name="or_do_label">OR DO</string>
+    <string name="and_do_label">AND DO</string>
+    <string name="not_do_label">NOT DO</string>
     <string name="pin_status_template_label">PIN status template DO</string>
-    <string name="ps_do_label">PS (PIN Status) DO</string>
+    <string name="ps_do_label">PIN Status DO</string>
     <string name="usage_qualifier_label">Usage qualifier DO</string>
     <string name="key_reference_label">Key reference</string>
 
@@ -63,6 +68,7 @@
     <string name="discretionary_data_label">Discretionary data</string>
     <string name="discretionary_template_label">Discretionary template</string>
     <string name="url_label">URL</string>
+    <string name="ef_arr_record_label">EF ARR record</string>
 
     <string name="nav_header_no_sim">No SIM available</string>
     <string name="nav_header_no_slot">No logical slot selected</string>

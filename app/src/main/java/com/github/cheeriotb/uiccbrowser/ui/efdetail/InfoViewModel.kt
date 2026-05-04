@@ -12,8 +12,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.github.cheeriotb.uiccbrowser.element.BerTlvElement
 import com.github.cheeriotb.uiccbrowser.element.EfDecoderRegistry
+import com.github.cheeriotb.uiccbrowser.element.Element
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,8 +24,8 @@ class InfoViewModel(
     private val fileId: FileId
 ) : AndroidViewModel(application) {
 
-    private val _element = MutableStateFlow<BerTlvElement?>(null)
-    val element: StateFlow<BerTlvElement?> = _element.asStateFlow()
+    private val _element = MutableStateFlow<Element?>(null)
+    val element: StateFlow<Element?> = _element.asStateFlow()
 
     fun decode(data: ByteArray) {
         val decoder = EfDecoderRegistry.find(fileId.aid, fileId.path + fileId.fileId) ?: return

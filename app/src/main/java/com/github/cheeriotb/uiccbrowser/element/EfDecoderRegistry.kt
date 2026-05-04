@@ -10,9 +10,10 @@ package com.github.cheeriotb.uiccbrowser.element
 
 import android.content.res.Resources
 import com.github.cheeriotb.uiccbrowser.element.ef.AppTemplate
+import com.github.cheeriotb.uiccbrowser.element.ef.EfArrRecord
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 
-typealias EfDecoder = (Resources, ByteArray) -> BerTlvElement?
+typealias EfDecoder = (Resources, ByteArray) -> Element?
 
 object EfDecoderRegistry {
 
@@ -21,7 +22,10 @@ object EfDecoderRegistry {
     // Keys are concatenated paths from the ADF/MF root (parentPath + fileId, uppercase).
     // e.g. EF DIR under MF -> "2F00", EF SPN under USIM ADF -> "7FFF6F46"
     private val maps: Map<EfContext, Map<String, EfDecoder>> = mapOf(
-        EfContext.MF   to mapOf(FileId.EF_DIR to AppTemplate::decode),
+        EfContext.MF   to mapOf(
+            FileId.EF_DIR to AppTemplate::decode,
+            FileId.EF_ARR to EfArrRecord::decode
+        ),
         EfContext.USIM to emptyMap(),
         EfContext.ISIM to emptyMap()
     )

@@ -12,7 +12,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.github.cheeriotb.uiccbrowser.databinding.ItemTlvNodeBinding
-import com.github.cheeriotb.uiccbrowser.element.BerTlvElement
 import com.github.cheeriotb.uiccbrowser.element.Element
 
 class TlvTreeAdapter : RecyclerView.Adapter<TlvTreeAdapter.ViewHolder>() {
@@ -21,7 +20,7 @@ class TlvTreeAdapter : RecyclerView.Adapter<TlvTreeAdapter.ViewHolder>() {
 
     private var nodes: List<Node> = emptyList()
 
-    fun updateTree(root: BerTlvElement) {
+    fun updateTree(root: Element) {
         nodes = flatten(root)
         notifyDataSetChanged()
     }
