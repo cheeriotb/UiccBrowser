@@ -12,20 +12,30 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.viewpager2.widget.ViewPager2
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.databinding.FragmentEfDetailBinding
 import com.github.cheeriotb.uiccbrowser.repository.FileId
+import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
 import com.google.android.material.tabs.TabLayoutMediator
+import kotlinx.coroutines.launch
 
 class EfDetailFragment : Fragment() {
 
     private var _binding: FragmentEfDetailBinding? = null
     private val binding get() = _binding!!
 
+    private val mainViewModel: MainViewModel by activityViewModels()
     private lateinit var viewModel: EfDetailViewModel
+    private lateinit var binaryViewModel: BinaryViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,15 +60,21 @@ class EfDetailFragment : Fragment() {
             EfDetailViewModel.Factory(efName, efFileId, aid, parentPath)
         )[EfDetailViewModel::class.java]
 
-        binding.viewPager.adapter = EfDetailPagerAdapter(this)
+        val slotId = mainViewModel.selectedSlot.value?.slotId ?: 0
+        binaryViewModel = ViewModelProvider(
+            this,
+            BinaryViewModel.Factory(requireActivity().application, viewModel.fileId, slotId)
+        )[BinaryViewModel::class.java]
+
+        binding.viewPager.adapter = EfDetailPagerAdapter(this, viewModel.hasDecoder)
 
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            when (position) {
-                0 -> {
+            when {
+                position == 0 -> {
                     tab.text = "Binary"
                     tab.icon = AppCompatResources.getDrawable(requireContext(), R.drawable.ic_binary)
                 }
-                1 -> {
+                viewModel.hasDecoder && position == 1 -> {
                     tab.text = "Info"
                     tab.icon = AppCompatResources.getDrawable(requireContext(), R.drawable.ic_info)
                 }
@@ -69,10 +85,42 @@ class EfDetailFragment : Fragment() {
             }
         }.attach()
 
-        if (!viewModel.hasDecoder) {
-            (binding.tabLayout.getChildAt(0) as? ViewGroup)?.getChildAt(1)?.let {
-                it.isEnabled = false
-                it.alpha = 0.38f
+        setupRecordSelector()
+        observeBinaryViewModel()
+    }
+
+    private fun setupRecordSelector() {
+        binding.recordDropdown.setOnItemClickListener { _, _, position, _ ->
+            binaryViewModel.loadRecord(position + 1)
+        }
+        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                binding.recordSelectorLayout.isEnabled =
+                    buildRecordSelectorState(binaryViewModel.recordCount.value, position, viewModel.hasDecoder).enabled
+            }
+        })
+    }
+
+    private fun observeBinaryViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                binaryViewModel.recordCount.collect { count ->
+                    val state = buildRecordSelectorState(count, binding.viewPager.currentItem, viewModel.hasDecoder)
+                    binding.recordSelectorLayout.visibility =
+                        if (state.visible) View.VISIBLE else View.GONE
+                    if (count > 0) {
+                        val items = (1..count).map { "#$it" }
+                        binding.recordDropdown.setAdapter(
+                            ArrayAdapter(
+                                requireContext(),
+                                android.R.layout.simple_list_item_1,
+                                items
+                            )
+                        )
+                        binding.recordDropdown.setText(items[0], false)
+                    }
+                    binding.recordSelectorLayout.isEnabled = state.enabled
+                }
             }
         }
     }
@@ -90,6 +138,14 @@ class EfDetailFragment : Fragment() {
     }
 
     companion object {
+        data class RecordSelectorState(val visible: Boolean, val enabled: Boolean)
+
+        internal fun buildRecordSelectorState(recordCount: Int, tabPosition: Int, hasDecoder: Boolean) =
+            RecordSelectorState(
+                visible = recordCount > 0,
+                enabled = tabPosition != if (hasDecoder) 2 else 1
+            )
+
         const val ARG_EF_NAME = "efName"
         const val ARG_EF_FILE_ID = "efFileId"
         const val ARG_AID = "aid"

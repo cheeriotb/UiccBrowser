@@ -11,13 +11,16 @@ package com.github.cheeriotb.uiccbrowser.ui.efdetail
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 
-class EfDetailPagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
+class EfDetailPagerAdapter(
+    fragment: Fragment,
+    private val hasDecoder: Boolean
+) : FragmentStateAdapter(fragment) {
 
-    override fun getItemCount(): Int = 3
+    override fun getItemCount(): Int = if (hasDecoder) 3 else 2
 
-    override fun createFragment(position: Int): Fragment = when (position) {
-        0 -> BinaryFragment()
-        1 -> InfoFragment()
+    override fun createFragment(position: Int): Fragment = when {
+        position == 0 -> BinaryFragment()
+        hasDecoder && position == 1 -> InfoFragment()
         else -> FcpFragment()
     }
 }

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2020 Cheerio <cheerio.the.bear@gmail.com>
+ *  Copyright (C) 2020-2026 Cheerio <cheerio.the.bear@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under the terms of the MIT license.
@@ -109,7 +109,7 @@ class FcpTemplate {
                     // Life cycle status integer
                     TAG_LIFE_CYCLE_STATUS -> {
                         list.add(BerTlvElement.Builder(tlv)
-                                .labelId(R.string.total_file_size_label)
+                                .labelId(R.string.life_cycle_status_indicator_label)
                                 .parent(parent)
                                 .build(resources))
                     }

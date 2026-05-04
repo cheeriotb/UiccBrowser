@@ -12,6 +12,7 @@ import android.content.res.Resources
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.element.BerTlvElement
 import com.github.cheeriotb.uiccbrowser.element.Element
+import com.github.cheeriotb.uiccbrowser.element.PrimitiveElement
 import com.github.cheeriotb.uiccbrowser.util.BerTlv
 import com.github.cheeriotb.uiccbrowser.util.Tlv
 
@@ -73,6 +74,7 @@ class AppTemplate {
                     TAG_APPLICATION_LABEL -> {
                         list.add(BerTlvElement.Builder(tlv)
                                 .labelId(R.string.app_label_label)
+                                .interpreter(PrimitiveElement::defaultStringInterpreter)
                                 .parent(parent)
                                 .build(resources))
                     }

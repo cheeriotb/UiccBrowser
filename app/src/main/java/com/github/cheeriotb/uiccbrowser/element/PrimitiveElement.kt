@@ -10,6 +10,7 @@ package com.github.cheeriotb.uiccbrowser.element
 
 import android.content.res.Resources
 import com.github.cheeriotb.uiccbrowser.R
+import com.github.cheeriotb.uiccbrowser.util.StringUtils
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 
 class PrimitiveElement private constructor(
@@ -34,6 +35,13 @@ class PrimitiveElement private constructor(
             rawData: ByteArray
         ): String {
             return byteArrayToHexString(rawData)
+        }
+
+        fun defaultStringInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            return byteArrayToHexString(rawData) + " (" + StringUtils.decode(rawData) + ")"
         }
     }
 

@@ -12,7 +12,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -56,16 +55,9 @@ class BinaryFragment : Fragment() {
             BinaryViewModel.Factory(requireActivity().application, fileId, slotId)
         )[BinaryViewModel::class.java]
 
-        setupRecordSpinner()
         setupHeaderRecyclerView()
         setupDataRecyclerView()
         observeViewModel()
-    }
-
-    private fun setupRecordSpinner() {
-        binding.recordDropdown.setOnItemClickListener { _, _, position, _ ->
-            viewModel.loadRecord(position + 1)
-        }
     }
 
     private fun setupHeaderRecyclerView() {
@@ -100,28 +92,13 @@ class BinaryFragment : Fragment() {
                 launch {
                     viewModel.isLoading.collect { loading ->
                         binding.progressIndicator.isVisible = loading
-                        binding.headerRecyclerView.isVisible = !loading
+                        binding.headerRecyclerView.isVisible = !loading && viewModel.data.value?.isNotEmpty() == true
                         binding.dataRecyclerView.isVisible = !loading
                     }
                 }
                 launch {
                     viewModel.data.collect { data ->
                         if (data != null) gridAdapter.updateData(data)
-                    }
-                }
-                launch {
-                    viewModel.recordCount.collect { count ->
-                        if (count > 0) {
-                            val items = (1..count).map { "#$it" }
-                            val adapter = ArrayAdapter(
-                                requireContext(),
-                                android.R.layout.simple_list_item_1,
-                                items
-                            )
-                            binding.recordDropdown.setAdapter(adapter)
-                            binding.recordDropdown.setText(items[0], false)
-                            binding.recordSelectorLayout.visibility = View.VISIBLE
-                        }
                     }
                 }
             }

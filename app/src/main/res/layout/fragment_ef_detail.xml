@@ -16,4 +16,25 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/recordSelectorLayout"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="8dp"
+        android:paddingStart="8dp"
+        android:hint="@string/record"
+        android:visibility="gone"
+        tools:ignore="RtlSymmetry"
+        xmlns:tools="http://schemas.android.com/tools">
+
+        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            android:id="@+id/recordDropdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="120dp"
+            android:inputType="none" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
 </LinearLayout>

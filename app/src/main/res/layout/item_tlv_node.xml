@@ -10,6 +10,8 @@
         android:id="@+id/labelText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:textStyle="bold"
         android:textAppearance="?attr/textAppearanceBodyLarge" />
 
     <TextView
