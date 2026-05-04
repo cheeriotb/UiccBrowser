@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+data class SlotIconState(val visible: Boolean, val selected: Boolean)
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val getAvailableSlots = GetAvailableCardsUseCase(application.applicationContext)
@@ -92,7 +94,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             items.add(NavItem(
                 label = resources.getString(R.string.nav_item_mf),
-                iconResId = R.drawable.folder,
+                iconResId = R.drawable.ic_folder,
                 level = NavLevel.MF,
             ))
 
@@ -107,7 +109,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             else resources.getString(R.string.nav_item_usim_numbered, index + 1)
                 items.add(NavItem(
                     label = label,
-                    iconResId = R.drawable.folder_usim,
+                    iconResId = R.drawable.ic_folder_usim,
                     level = NavLevel.USIM,
                     aid = aid,
                 ))
@@ -118,13 +120,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             else resources.getString(R.string.nav_item_isim_numbered, index + 1)
                 items.add(NavItem(
                     label = label,
-                    iconResId = R.drawable.folder_isim,
+                    iconResId = R.drawable.ic_folder_isim,
                     level = NavLevel.ISIM,
                     aid = aid,
                 ))
             }
 
             return items
+        }
+
+        /**
+         * Returns visibility and selection state for each slot icon (indices 0..maxSlots-1).
+         *
+         * An icon is visible when a CardInfo with a matching slotId exists in availableSlots.
+         * An icon is selected when its index equals selectedSlotId.
+         */
+        internal fun buildSlotIconStates(
+            availableSlots: List<CardInfo>,
+            selectedSlotId: Int?,
+            maxSlots: Int = 3
+        ): List<SlotIconState> = (0 until maxSlots).map { i ->
+            SlotIconState(
+                visible  = availableSlots.any { it.slotId == i },
+                selected = selectedSlotId == i
+            )
         }
     }
 }

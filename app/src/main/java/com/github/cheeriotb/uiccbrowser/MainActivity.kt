@@ -38,6 +38,7 @@ import com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserFragment
 import com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserViewModel
 import com.github.cheeriotb.uiccbrowser.usecase.GetFileListUseCase
 import com.google.android.material.color.DynamicColors
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -122,11 +123,36 @@ class MainActivity : AppCompatActivity() {
         requestReadPhoneStatePermissionIfNeeded()
 
         val headerView = navView.getHeaderView(0)
-        val imageView = headerView.findViewById<ImageView>(R.id.imageView)
+        val slotIconViews = listOf(
+            headerView.findViewById<ImageView>(R.id.imageView0),
+            headerView.findViewById<ImageView>(R.id.imageView1),
+            headerView.findViewById<ImageView>(R.id.imageView2)
+        )
         val titleTextView = headerView.findViewById<TextView>(R.id.navHeaderTitle)
         val subtitleTextView = headerView.findViewById<TextView>(R.id.navHeaderSubtitle)
 
-        imageView.setOnClickListener { showSlotSelectionDialog() }
+        slotIconViews.forEachIndexed { index, iv ->
+            iv.setOnClickListener { viewModel.selectSlot(index) }
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    viewModel.availableSlots,
+                    viewModel.selectedSlot
+                ) { slots, selected ->
+                    MainViewModel.buildSlotIconStates(slots, selected?.slotId)
+                }.collect { states ->
+                    states.forEachIndexed { i, state ->
+                        slotIconViews[i].visibility =
+                            if (state.visible) View.VISIBLE else View.INVISIBLE
+                        slotIconViews[i].setImageResource(
+                            if (state.selected) R.mipmap.ic_selected_card_round
+                            else R.mipmap.ic_card_round)
+                    }
+                }
+            }
+        }
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -185,24 +211,6 @@ class MainActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
-    }
-
-    private fun showSlotSelectionDialog() {
-        val slots = viewModel.availableSlots.value
-        if (slots.isEmpty()) {
-            MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.slot_dialog_title)
-                .setMessage(R.string.nav_header_no_sim)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
-            return
-        }
-        val labels = slots.map { it.iccId }.toTypedArray()
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.slot_dialog_title)
-            .setItems(labels) { _, which -> viewModel.selectSlot(slots[which].slotId) }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
     }
 
     private fun requestReadPhoneStatePermissionIfNeeded() {

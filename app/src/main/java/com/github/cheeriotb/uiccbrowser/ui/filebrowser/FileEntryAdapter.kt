@@ -36,7 +36,7 @@ class FileEntryAdapter(
         val entry = getItem(position)
         with(holder.binding) {
             icon.setImageResource(
-                if (entry.isDirectory) R.drawable.folder_dedicated else R.drawable.file)
+                if (entry.isDirectory) R.drawable.ic_folder_dedicated else R.drawable.ic_file)
             mainText.text = "${entry.name} (${entry.id})"
             subText.text = entry.description
             root.setOnClickListener {

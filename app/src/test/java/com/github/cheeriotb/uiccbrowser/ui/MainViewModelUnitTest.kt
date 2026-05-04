@@ -12,7 +12,7 @@ import android.app.Application
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
 import com.github.cheeriotb.uiccbrowser.R
-import com.github.cheeriotb.uiccbrowser.element.ef.AppTemplate
+import com.github.cheeriotb.uiccbrowser.usecase.CardInfo
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test
@@ -49,7 +49,7 @@ class MainViewModelUnitTest {
         assertThat(items).hasSize(1)
         assertThat(items[0].level).isEqualTo(NavLevel.MF)
         assertThat(items[0].label).isEqualTo(resources.getString(R.string.nav_item_mf))
-        assertThat(items[0].iconResId).isEqualTo(R.drawable.folder)
+        assertThat(items[0].iconResId).isEqualTo(R.drawable.ic_folder)
         assertThat(items[0].aid).isNull()
     }
 
@@ -60,7 +60,7 @@ class MainViewModelUnitTest {
         assertThat(items).hasSize(2)
         assertThat(items[1].level).isEqualTo(NavLevel.USIM)
         assertThat(items[1].label).isEqualTo(resources.getString(R.string.nav_item_usim))
-        assertThat(items[1].iconResId).isEqualTo(R.drawable.folder_usim)
+        assertThat(items[1].iconResId).isEqualTo(R.drawable.ic_folder_usim)
         assertThat(items[1].aid).isEqualTo(USIM_AID_1)
     }
 
@@ -82,7 +82,7 @@ class MainViewModelUnitTest {
         assertThat(items).hasSize(2)
         assertThat(items[1].level).isEqualTo(NavLevel.ISIM)
         assertThat(items[1].label).isEqualTo(resources.getString(R.string.nav_item_isim))
-        assertThat(items[1].iconResId).isEqualTo(R.drawable.folder_isim)
+        assertThat(items[1].iconResId).isEqualTo(R.drawable.ic_folder_isim)
         assertThat(items[1].aid).isEqualTo(ISIM_AID_1)
     }
 
@@ -134,12 +134,68 @@ class MainViewModelUnitTest {
     }
 
     @Test
+    fun buildSlotIconStates_noAvailableSlots_allInvisible() {
+        val states = MainViewModel.buildSlotIconStates(emptyList(), null)
+
+        assertThat(states).hasSize(3)
+        states.forEach { assertThat(it.visible).isFalse() }
+        states.forEach { assertThat(it.selected).isFalse() }
+    }
+
+    @Test
+    fun buildSlotIconStates_slot0Only_onlyIndex0Visible() {
+        val states = MainViewModel.buildSlotIconStates(listOf(CardInfo(0, "iccid0")), null)
+
+        assertThat(states[0].visible).isTrue()
+        assertThat(states[1].visible).isFalse()
+        assertThat(states[2].visible).isFalse()
+    }
+
+    @Test
+    fun buildSlotIconStates_slot0And1_firstTwoVisible() {
+        val slots = listOf(CardInfo(0, "iccid0"), CardInfo(1, "iccid1"))
+        val states = MainViewModel.buildSlotIconStates(slots, null)
+
+        assertThat(states[0].visible).isTrue()
+        assertThat(states[1].visible).isTrue()
+        assertThat(states[2].visible).isFalse()
+    }
+
+    @Test
+    fun buildSlotIconStates_selectedSlot_onlyMatchingIconIsSelected() {
+        val slots = listOf(CardInfo(0, "iccid0"), CardInfo(1, "iccid1"))
+        val states = MainViewModel.buildSlotIconStates(slots, selectedSlotId = 1)
+
+        assertThat(states[0].selected).isFalse()
+        assertThat(states[1].selected).isTrue()
+        assertThat(states[2].selected).isFalse()
+    }
+
+    @Test
+    fun buildSlotIconStates_noSelection_noneSelected() {
+        val slots = listOf(CardInfo(0, "iccid0"), CardInfo(1, "iccid1"))
+        val states = MainViewModel.buildSlotIconStates(slots, selectedSlotId = null)
+
+        states.forEach { assertThat(it.selected).isFalse() }
+    }
+
+    @Test
+    fun buildSlotIconStates_slot1Only_slot0And2Invisible() {
+        val states = MainViewModel.buildSlotIconStates(listOf(CardInfo(1, "iccid1")), selectedSlotId = 1)
+
+        assertThat(states[0].visible).isFalse()
+        assertThat(states[1].visible).isTrue()
+        assertThat(states[1].selected).isTrue()
+        assertThat(states[2].visible).isFalse()
+    }
+
+    @Test
     fun selectNavItem_updatesSelectedNavItem() {
         val app = ApplicationProvider.getApplicationContext<Application>()
         val viewModel = MainViewModel(app)
         val item = NavItem(
             label = resources.getString(R.string.nav_item_mf),
-            iconResId = R.drawable.folder,
+            iconResId = R.drawable.ic_folder,
             level = NavLevel.MF
         )
 

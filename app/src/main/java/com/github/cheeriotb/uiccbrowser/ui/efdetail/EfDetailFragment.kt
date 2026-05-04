@@ -56,15 +56,15 @@ class EfDetailFragment : Fragment() {
             when (position) {
                 0 -> {
                     tab.text = "Binary"
-                    tab.icon = AppCompatResources.getDrawable(requireContext(), R.drawable.binary)
+                    tab.icon = AppCompatResources.getDrawable(requireContext(), R.drawable.ic_binary)
                 }
                 1 -> {
                     tab.text = "Info"
-                    tab.icon = AppCompatResources.getDrawable(requireContext(), R.drawable.info)
+                    tab.icon = AppCompatResources.getDrawable(requireContext(), R.drawable.ic_info)
                 }
                 else -> {
                     tab.text = "FCP"
-                    tab.icon = AppCompatResources.getDrawable(requireContext(), R.drawable.fcp)
+                    tab.icon = AppCompatResources.getDrawable(requireContext(), R.drawable.ic_fcp)
                 }
             }
         }.attach()
