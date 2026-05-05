@@ -42,6 +42,22 @@ class SecurityAttrExpandedUnitTest {
     }
 
     @Test
+    fun decoder_amDo_interpretsAccessModeBits() {
+        val tlvs = BerTlv.listFrom(hexStringToByteArray("80011A"))
+        val element = SecurityAttrExpanded.decoder(resources, tlvs, null)[0]
+
+        assertThat(element.toString()).isEqualTo("1A (CREATE, DEACTIVATE, UPDATE)")
+    }
+
+    @Test
+    fun decoder_amDo_interpretsReservedBit() {
+        val tlvs = BerTlv.listFrom(hexStringToByteArray("800180"))
+        val element = SecurityAttrExpanded.decoder(resources, tlvs, null)[0]
+
+        assertThat(element.toString()).isEqualTo("80 (RESERVED)")
+    }
+
+    @Test
     fun decoder_alwaysAndNeverScDo_useSpecificLabels() {
         val tlvs = BerTlv.listFrom(hexStringToByteArray("90009700"))
         val elements = SecurityAttrExpanded.decoder(resources, tlvs, null)
@@ -65,6 +81,28 @@ class SecurityAttrExpandedUnitTest {
         ).inOrder()
         assertThat(children[0].label).contains(resources.getString(R.string.key_reference_label))
         assertThat(children[1].label).contains(resources.getString(R.string.usage_qualifier_label))
+    }
+
+    @Test
+    fun decoder_keyReference_interpretsGlobalPinAndAdmKeys() {
+        val tlvs = BerTlv.listFrom(hexStringToByteArray("A40683010183010A"))
+        val element = SecurityAttrExpanded.decoder(resources, tlvs, null)[0]
+        val children = element.subElements.filterIsInstance<BerTlvElement>()
+
+        assertThat(children.map { it.toString() })
+                .containsExactly("01 (Global PIN1)", "0A (ADM1)")
+                .inOrder()
+    }
+
+    @Test
+    fun decoder_keyReference_interpretsLocalPinAndAdmKeys() {
+        val tlvs = BerTlv.listFrom(hexStringToByteArray("A40683018183018D"))
+        val element = SecurityAttrExpanded.decoder(resources, tlvs, null)[0]
+        val children = element.subElements.filterIsInstance<BerTlvElement>()
+
+        assertThat(children.map { it.toString() })
+                .containsExactly("81 (Local PIN1)", "8D (ADM4)")
+                .inOrder()
     }
 
     @Test

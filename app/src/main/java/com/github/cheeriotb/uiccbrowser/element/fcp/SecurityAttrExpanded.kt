@@ -13,6 +13,7 @@ import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.element.BerTlvElement
 import com.github.cheeriotb.uiccbrowser.element.Element
 import com.github.cheeriotb.uiccbrowser.util.Tlv
+import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 
 // ETSI TS 102 221 Clause 11.1.1.4.7.2
 // Security Attribute - Expanded format
@@ -53,6 +54,7 @@ class SecurityAttrExpanded {
                     .labelId(labelIdFor(tlv.tag, topLevel))
                     .parent(parent)
                     .decoder(::scDecoderImpl)
+                    .interpreter(interpreterFor(tlv.tag, topLevel))
                     .build(resources)
         }
 
@@ -68,5 +70,59 @@ class SecurityAttrExpanded {
             tag == TAG_NOT_DO -> R.string.not_do_label
             else -> R.string.unknown_label
         }
+
+        private fun interpreterFor(
+            tag: Int,
+            topLevel: Boolean
+        ): (Resources, ByteArray) -> String = when {
+            topLevel && tag in 0x80..0x8F -> ::accessModeInterpreter
+            tag == TAG_KEY_REFERENCE -> ::keyReferenceInterpreter
+            else -> BerTlvElement::defaultInterpreter
+        }
+
+        internal fun accessModeInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val hex = byteArrayToHexString(rawData)
+            if (rawData.size != 1) return hex
+
+            val accessMode = rawData[0].toInt() and 0xFF
+            val modes = ACCESS_MODE_BITS
+                    .filter { (mask, _) -> accessMode and mask != 0 }
+                    .joinToString(", ") { (_, name) -> name }
+
+            return if (modes.isEmpty()) hex else "$hex ($modes)"
+        }
+
+        internal fun keyReferenceInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val hex = byteArrayToHexString(rawData)
+            if (rawData.size != 1) return hex
+
+            val reference = rawData[0].toInt() and 0xFF
+            val key = when (reference) {
+                in 0x01..0x08 -> "Global PIN$reference"
+                in 0x0A..0x0E -> "ADM${reference - 0x09}"
+                in 0x81..0x88 -> "Local PIN${reference - 0x80}"
+                in 0x8A..0x8E -> "ADM${reference - 0x89}"
+                else -> null
+            }
+
+            return if (key == null) hex else "$hex ($key)"
+        }
+
+        private val ACCESS_MODE_BITS = listOf(
+                0x80 to "RESERVED",
+                0x40 to "ADMIN",
+                0x20 to "DELETE",
+                0x10 to "CREATE",
+                0x08 to "DEACTIVATE",
+                0x04 to "ACTIVATE",
+                0x02 to "UPDATE",
+                0x01 to "READ"
+        )
     }
 }

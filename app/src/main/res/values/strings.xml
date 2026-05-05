@@ -78,6 +78,7 @@
     <string name="pro_mode_label">Pro Mode</string>
     <string name="pro_mode_dialog_title">Enable Pro Mode?</string>
     <string name="pro_mode_dialog_message">You are about to enable Pro Mode for the currently selected SIM. This mode lets you choose operations that may damage the SIM card. Do you want to continue?</string>
+    <string name="action_refresh">Refresh</string>
 
     <string name="sw6982_insufficient_security">Security status not satisfied</string>
     <string name="sw6a82_file_not_found">File not found</string>
