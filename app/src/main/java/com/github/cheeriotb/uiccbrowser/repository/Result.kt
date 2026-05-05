@@ -76,6 +76,8 @@ data class Result(
         const val SW_NORMAL = 0x9000
         /** SW6982: Security status not satisfied */
         const val SW_INSUFFICIENT_SECURITY = 0x6982
+        /** SW6983: Authentication method blocked */
+        const val SW_AUTH_METHOD_BLOCKED = 0x6983
         /** SW6A82: File not found */
         const val SW_NOT_FOUND = 0x6A82
 

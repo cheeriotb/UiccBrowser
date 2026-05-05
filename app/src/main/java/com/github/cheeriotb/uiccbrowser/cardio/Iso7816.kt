@@ -10,8 +10,7 @@ package com.github.cheeriotb.uiccbrowser.cardio
 
 class Iso7816 {
     companion object {
-        const val INS_VERIFY = 0x20
-        const val INS_UNBLOCK_PIN = 0x2C
+        const val INS_VERIFY_PIN = 0x20
         const val INS_SELECT_FILE = 0xA4
         const val INS_READ_BINARY = 0xB0
         const val INS_READ_RECORD = 0xB2

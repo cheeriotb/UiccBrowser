@@ -107,7 +107,7 @@ class SecurityAttrExpanded {
                 in 0x01..0x08 -> "Global PIN$reference"
                 in 0x0A..0x0E -> "ADM${reference - 0x09}"
                 in 0x81..0x88 -> "Local PIN${reference - 0x80}"
-                in 0x8A..0x8E -> "ADM${reference - 0x89}"
+                in 0x8A..0x8E -> "ADM${reference - 0x84}"
                 else -> null
             }
 

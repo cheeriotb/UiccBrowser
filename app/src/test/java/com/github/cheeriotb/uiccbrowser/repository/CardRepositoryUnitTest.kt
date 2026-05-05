@@ -28,6 +28,7 @@ import io.mockk.verifyOrder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -64,6 +65,8 @@ class CardRepositoryUnitTest {
         private const val FID_FPLMN = "6F7B"
 
         private const val FID_DIR = "2F00"
+        private const val PIN_4_BYTES = "31323334"
+        private const val PIN_8_BYTES = "3132333435363738"
 
         private val FILE_ID_DIR = FileId(AID, FileId.PATH_MF, FID_DIR)
         private val FILE_ID_AD = FileId(AID, PATH_ADF, FID_AD)
@@ -117,6 +120,18 @@ class CardRepositoryUnitTest {
     }
 
     @Test
+    fun verifyPinQualifier_values() {
+        assertThat(VerifyPinQualifier.GLOBAL_PIN1.value).isEqualTo(0x01)
+        assertThat(VerifyPinQualifier.GLOBAL_PIN8.value).isEqualTo(0x08)
+        assertThat(VerifyPinQualifier.ADM1.value).isEqualTo(0x0A)
+        assertThat(VerifyPinQualifier.ADM5.value).isEqualTo(0x0E)
+        assertThat(VerifyPinQualifier.LOCAL_PIN1.value).isEqualTo(0x81)
+        assertThat(VerifyPinQualifier.LOCAL_PIN8.value).isEqualTo(0x88)
+        assertThat(VerifyPinQualifier.ADM6.value).isEqualTo(0x8A)
+        assertThat(VerifyPinQualifier.ADM10.value).isEqualTo(0x8E)
+    }
+
+    @Test
     fun initialize_failure_openChannel() = runBlocking {
         every { cardIoMock.openChannel(Interface.NO_AID_SPECIFIED) } returns
                 Interface.OpenChannelResult.GENERIC_FAILURE
@@ -137,6 +152,11 @@ class CardRepositoryUnitTest {
 
         val readAllRecordParams = ReadAllRecordsParams.Builder(FILE_ID_DIR).build()
         assertThat(repository.readAllRecords(readAllRecordParams)[0].sw)
+                .isEqualTo(CardRepository.SW_INTERNAL_EXCEPTION)
+
+        assertThat(repository.queryVerifyPinRetries(VerifyPinQualifier.ADM1).sw)
+                .isEqualTo(CardRepository.SW_INTERNAL_EXCEPTION)
+        assertThat(repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES).sw)
                 .isEqualTo(CardRepository.SW_INTERNAL_EXCEPTION)
     }
 
@@ -515,5 +535,92 @@ class CardRepositoryUnitTest {
             cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x02, 0x04, 0x100))
             cardIoMock.closeRemainingChannel()
         }
+    }
+
+    @Test
+    fun queryVerifyPinRetries_success() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value)) } returns Response(hexStringToByteArray("63C3"))
+
+        val response = repository.queryVerifyPinRetries(VerifyPinQualifier.ADM1)
+
+        assertThat(response.sw).isEqualTo(0x63C3)
+        verify { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value)) }
+    }
+
+    @Test
+    fun verifyPin_success_padsShortCode() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        val response = repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+
+        assertThat(response.sw).isEqualTo(Result.SW_NORMAL)
+        verify { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value, paddedPin)) }
+    }
+
+    @Test
+    fun verifyPin_success_keepsEightByteCode() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val pin = hexStringToByteArray(PIN_8_BYTES)
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM10.value, pin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        val response = repository.verifyPin(VerifyPinQualifier.ADM10, PIN_8_BYTES)
+
+        assertThat(response.sw).isEqualTo(Result.SW_NORMAL)
+        verify { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM10.value, pin)) }
+    }
+
+    @Test
+    fun verifyPin_openChannelError() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
+                Interface.OpenChannelResult.GENERIC_FAILURE
+
+        val response = repository.verifyPin(VerifyPinQualifier.LOCAL_PIN1, PIN_4_BYTES, AID)
+
+        assertThat(response.sw).isEqualTo(CardRepository.SW_INTERNAL_EXCEPTION)
+        verify(inverse = true) { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.LOCAL_PIN1.value, hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF"))) }
+    }
+
+    @Test
+    fun verifyPin_invalidCode_throws() {
+        assertThat(assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { repository.verifyPin(VerifyPinQualifier.ADM1, "") }
+        }).hasMessageThat().isEqualTo("PIN/ADM code must be between 1 and 8 bytes")
+
+        assertThat(assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { repository.verifyPin(VerifyPinQualifier.ADM1, "123") }
+        }).hasMessageThat().isEqualTo("PIN/ADM code must contain an even number of hex digits")
+
+        assertThat(assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { repository.verifyPin(VerifyPinQualifier.ADM1, "3132333X") }
+        }).hasMessageThat().isEqualTo("PIN/ADM code must be a hex string")
+
+        assertThat(assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { repository.verifyPin(VerifyPinQualifier.ADM1, "313233343536373839") }
+        }).hasMessageThat().isEqualTo("PIN/ADM code must be between 1 and 8 bytes")
     }
 }

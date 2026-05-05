@@ -73,6 +73,7 @@ class CardRepository private constructor (
         val DATA_NONE = ByteArray(0)
 
         private const val CLOSING_TIMER_MILLIS = 500L
+        private const val VERIFY_PIN_CODE_SIZE = 8
     }
 
     suspend fun initialize(): Boolean {
@@ -222,6 +223,38 @@ class CardRepository private constructor (
         return records
     }
 
+    suspend fun queryVerifyPinRetries(
+        qualifier: VerifyPinQualifier,
+        aid: String = FileId.AID_NONE
+    ): Response {
+        if (!isAccessible || !openChannel(aid)) {
+            startClosingTimer()
+            return internalExceptionResponse()
+        }
+
+        val response = verifyPin(qualifier)
+        startClosingTimer()
+
+        return response
+    }
+
+    suspend fun verifyPin(
+        qualifier: VerifyPinQualifier,
+        code: String,
+        aid: String = FileId.AID_NONE
+    ): Response {
+        val paddedCode = padVerifyPinCode(code)
+        if (!isAccessible || !openChannel(aid)) {
+            startClosingTimer()
+            return internalExceptionResponse()
+        }
+
+        val response = verifyPin(qualifier, paddedCode)
+        startClosingTimer()
+
+        return response
+    }
+
     private suspend fun openChannel(
         aid: String = FileId.AID_NONE
     ): Boolean {
@@ -253,6 +286,37 @@ class CardRepository private constructor (
                 .build()
         return cardIo.transmit(command)
     }
+
+    private fun verifyPin(
+        qualifier: VerifyPinQualifier,
+        data: ByteArray = DATA_NONE
+    ): Response {
+        val command = Command.Builder(Iso7816.INS_VERIFY_PIN)
+                .p1(0x00)
+                .p2(qualifier.value)
+                .data(data)
+                .build()
+        return cardIo.transmit(command)
+    }
+
+    private fun padVerifyPinCode(code: String): ByteArray {
+        require(code.length % 2 == 0) { "PIN/ADM code must contain an even number of hex digits" }
+        require(code.matches(Regex("[0-9A-Fa-f]*"))) { "PIN/ADM code must be a hex string" }
+
+        val codeLength = code.length / 2
+        require(codeLength in 1..VERIFY_PIN_CODE_SIZE) {
+            "PIN/ADM code must be between 1 and 8 bytes"
+        }
+
+        val paddedCode = ByteArray(VERIFY_PIN_CODE_SIZE) { 0xFF.toByte() }
+        hexStringToByteArray(code).copyInto(paddedCode)
+        return paddedCode
+    }
+
+    private fun internalExceptionResponse() =
+            Response(byteArrayOf(
+                    SW_INTERNAL_EXCEPTION.shr(8).toByte(),
+                    SW_INTERNAL_EXCEPTION.toByte()))
 
     private fun startClosingTimer() {
         synchronized(this) {
