@@ -13,11 +13,14 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.Menu
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -66,6 +69,8 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        applyDrawerInsets()
 
         setSupportActionBar(binding.appBarMain.toolbar)
 
@@ -291,5 +296,18 @@ class MainActivity : AppCompatActivity() {
                 requestPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
             }
         }
+    }
+
+    private fun applyDrawerInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.navDrawerContainer) { view, insets ->
+            val topInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            val layoutParams = view.layoutParams as ViewGroup.MarginLayoutParams
+            if (layoutParams.topMargin != topInset) {
+                layoutParams.topMargin = topInset
+                view.layoutParams = layoutParams
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.navDrawerContainer)
     }
 }
