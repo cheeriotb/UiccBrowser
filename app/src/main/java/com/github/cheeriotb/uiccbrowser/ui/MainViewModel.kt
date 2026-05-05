@@ -14,6 +14,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.element.ef.AppTemplate
+import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.usecase.CacheFileControlParametersUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.GetAvailableCardsUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.CardInfo
@@ -37,6 +38,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedSlot = MutableStateFlow<CardInfo?>(null)
     val selectedSlot: StateFlow<CardInfo?> = _selectedSlot.asStateFlow()
 
+    private val _isProModeEnabled = MutableStateFlow(false)
+    val isProModeEnabled: StateFlow<Boolean> = _isProModeEnabled.asStateFlow()
+
     private val _isCachingMf = MutableStateFlow(false)
     val isCachingMf: StateFlow<Boolean> = _isCachingMf.asStateFlow()
 
@@ -57,6 +61,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _availableSlots.value = slots
             if (slots.isNotEmpty() && _selectedSlot.value == null) {
                 val first = slots.first()
+                _isProModeEnabled.value = proModeEnabledFor(first.slotId)
                 _selectedSlot.value = first
                 startMfCaching(first)
             }
@@ -65,9 +70,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectSlot(slotId: Int) {
         val slotInfo = _availableSlots.value.find { it.slotId == slotId } ?: return
+        _isProModeEnabled.value = proModeEnabledFor(slotId)
         _selectedSlot.value = slotInfo
         startMfCaching(slotInfo)
     }
+
+    fun setProModeEnabled(enabled: Boolean) {
+        val slotId = _selectedSlot.value?.slotId ?: return
+        setProModeEnabled(slotId, enabled)
+    }
+
+    fun setProModeEnabled(slotId: Int, enabled: Boolean) {
+        CardRepository.from(getApplication<Application>().applicationContext, slotId)
+            ?.isProModeEnabled = enabled
+        if (_selectedSlot.value?.slotId == slotId) {
+            _isProModeEnabled.value = proModeEnabledFor(slotId)
+        }
+    }
+
+    private fun proModeEnabledFor(slotId: Int): Boolean =
+        CardRepository.from(getApplication<Application>().applicationContext, slotId)
+            ?.isProModeEnabled ?: false
 
     private fun startMfCaching(cardInfo: CardInfo) {
         viewModelScope.launch {

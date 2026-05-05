@@ -37,6 +37,7 @@ class CardRepository private constructor (
     private var closingJob: Job? = null
 
     val iccId: String? get() = _iccId
+    var isProModeEnabled: Boolean = false
 
     val isAccessible: Boolean
         get() = (_iccId != null)

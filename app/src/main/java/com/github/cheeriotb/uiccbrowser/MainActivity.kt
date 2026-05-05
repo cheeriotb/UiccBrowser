@@ -130,6 +130,49 @@ class MainActivity : AppCompatActivity() {
         )
         val titleTextView = headerView.findViewById<TextView>(R.id.navHeaderTitle)
         val subtitleTextView = headerView.findViewById<TextView>(R.id.navHeaderSubtitle)
+        var isUpdatingProModeSwitch = false
+
+        fun setProModeSwitchChecked(isChecked: Boolean) {
+            isUpdatingProModeSwitch = true
+            binding.proModeSwitch.isChecked = isChecked
+            isUpdatingProModeSwitch = false
+        }
+
+        binding.proModeSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (isUpdatingProModeSwitch) return@setOnCheckedChangeListener
+
+            if (!isChecked) {
+                viewModel.setProModeEnabled(false)
+                return@setOnCheckedChangeListener
+            }
+
+            if (viewModel.selectedSlot.value == null) {
+                setProModeSwitchChecked(false)
+                return@setOnCheckedChangeListener
+            }
+            val requestedSlotId = viewModel.selectedSlot.value!!.slotId
+
+            fun resetRequestedSlotSwitchIfCurrent() {
+                viewModel.setProModeEnabled(requestedSlotId, false)
+                if (viewModel.selectedSlot.value?.slotId == requestedSlotId) {
+                    setProModeSwitchChecked(false)
+                }
+            }
+
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.pro_mode_dialog_title)
+                .setMessage(R.string.pro_mode_dialog_message)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    viewModel.setProModeEnabled(requestedSlotId, true)
+                }
+                .setNegativeButton(android.R.string.cancel) { _, _ ->
+                    resetRequestedSlotSwitchIfCurrent()
+                }
+                .setOnCancelListener {
+                    resetRequestedSlotSwitchIfCurrent()
+                }
+                .show()
+        }
 
         slotIconViews.forEachIndexed { index, iv ->
             iv.setOnClickListener { viewModel.selectSlot(index) }
@@ -167,6 +210,20 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         getString(R.string.nav_header_no_slot)
                     }
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    viewModel.selectedSlot,
+                    viewModel.isProModeEnabled
+                ) { slotInfo, isProModeEnabled ->
+                    slotInfo to isProModeEnabled
+                }.collect { (slotInfo, isProModeEnabled) ->
+                    binding.proModeSwitch.isEnabled = slotInfo != null
+                    setProModeSwitchChecked(slotInfo != null && isProModeEnabled)
                 }
             }
         }

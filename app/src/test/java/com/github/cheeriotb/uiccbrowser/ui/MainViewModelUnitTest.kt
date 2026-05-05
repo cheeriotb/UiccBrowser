@@ -12,12 +12,15 @@ import android.app.Application
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
 import com.github.cheeriotb.uiccbrowser.R
+import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.usecase.CardInfo
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.util.ReflectionHelpers
 
 @RunWith(RobolectricTestRunner::class)
 class MainViewModelUnitTest {
@@ -202,5 +205,34 @@ class MainViewModelUnitTest {
         viewModel.selectNavItem(item)
 
         assertThat(viewModel.selectedNavItem.value).isEqualTo(item)
+    }
+
+    @Test
+    fun setProModeEnabled_withoutSelectedSlot_keepsDisabled() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val viewModel = MainViewModel(app)
+
+        viewModel.setProModeEnabled(true)
+
+        assertThat(viewModel.isProModeEnabled.value).isFalse()
+    }
+
+    @Test
+    fun proModeState_isReadFromSelectedSlotRepository() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val repository = CardRepository.from(app, 0)
+        repository?.isProModeEnabled = true
+        val viewModel = MainViewModel(app)
+        val slot = CardInfo(0, "iccid0")
+        val availableSlots =
+            ReflectionHelpers.getField<MutableStateFlow<List<CardInfo>>>(
+                viewModel,
+                "_availableSlots"
+            )
+        availableSlots.value = listOf(slot)
+
+        viewModel.selectSlot(0)
+
+        assertThat(viewModel.isProModeEnabled.value).isTrue()
     }
 }

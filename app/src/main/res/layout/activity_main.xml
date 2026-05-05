@@ -14,12 +14,45 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/nav_view"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="@dimen/nav_drawer_width"
         android:layout_height="match_parent"
         android:layout_gravity="start"
+        android:background="?attr/colorSurface"
         android:fitsSystemWindows="true"
-        app:headerLayout="@layout/nav_header_main"
-        app:menu="@menu/activity_main_drawer" />
+        android:orientation="vertical">
+
+        <com.google.android.material.navigation.NavigationView
+            android:id="@+id/nav_view"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fitsSystemWindows="true"
+            app:headerLayout="@layout/nav_header_main"
+            app:menu="@menu/activity_main_drawer" />
+
+        <LinearLayout
+            android:id="@+id/pro_mode_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:minHeight="56dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/activity_horizontal_margin"
+            android:paddingVertical="8dp">
+
+            <TextView
+                android:id="@+id/pro_mode_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/pro_mode_label"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/pro_mode_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+    </LinearLayout>
 </androidx.drawerlayout.widget.DrawerLayout>

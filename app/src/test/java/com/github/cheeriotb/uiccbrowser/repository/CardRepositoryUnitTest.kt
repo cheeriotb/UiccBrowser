@@ -91,6 +91,7 @@ class CardRepositoryUnitTest {
         repository = target!!
         ReflectionHelpers.setField(repository, "cardIo", cardIoMock)
         ReflectionHelpers.setField(repository, "cacheIo", cacheIoMock)
+        repository.isProModeEnabled = false
     }
 
     @After
@@ -104,6 +105,15 @@ class CardRepositoryUnitTest {
     fun from() {
         assertThat(CardRepository.from(ApplicationProvider.getApplicationContext(), 0))
                 .isEqualTo(repository)
+    }
+
+    @Test
+    fun isProModeEnabled_defaultsToFalseAndCanBeUpdated() {
+        assertThat(repository.isProModeEnabled).isFalse()
+
+        repository.isProModeEnabled = true
+
+        assertThat(repository.isProModeEnabled).isTrue()
     }
 
     @Test
