@@ -9,6 +9,7 @@
 package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.github.cheeriotb.uiccbrowser.databinding.ItemTlvNodeBinding
@@ -54,8 +55,13 @@ class TlvTreeAdapter : RecyclerView.Adapter<TlvTreeAdapter.ViewHolder>() {
         holder.binding.root.layoutParams = params
 
         holder.binding.labelText.text = node.element.label
-        holder.binding.valueText.text =
-            if (node.element.primitive) node.element.toString() else ""
+
+        if (node.element.primitive && node.element.subElements.isEmpty()) {
+            holder.binding.valueText.text = node.element.toString()
+            holder.binding.valueText.visibility = View.VISIBLE
+        } else {
+            holder.binding.valueText.visibility = View.GONE
+        }
     }
 
     override fun getItemCount(): Int = nodes.size
