@@ -76,6 +76,10 @@
     <string name="slot_label">Logical slot %1$d</string>
     <string name="slot_dialog_title">Select SIM</string>
 
+    <string name="sw6982_insufficient_security">Security status not satisfied</string>
+    <string name="sw6a82_file_not_found">File not found</string>
+    <string name="sw_unknown_error">Unknown error</string>
+
     <string name="permission_rationale_title">Accessing phone\'s status</string>
     <string name="permission_rationale_message">Access to the phone\'s status is required to read the UICC information.</string>
     <string name="permission_denied_title">Permission denied</string>

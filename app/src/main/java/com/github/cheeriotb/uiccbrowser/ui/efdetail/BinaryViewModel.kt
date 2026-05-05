@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.github.cheeriotb.uiccbrowser.repository.FileId
+import com.github.cheeriotb.uiccbrowser.repository.Result
 import com.github.cheeriotb.uiccbrowser.usecase.ReadBinaryUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.ReadRecordUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,23 +37,42 @@ class BinaryViewModel(
     private val _recordCount = MutableStateFlow(0)
     val recordCount: StateFlow<Int> = _recordCount.asStateFlow()
 
+    private val _error = MutableStateFlow<Result?>(null)
+    val error: StateFlow<Result?> = _error.asStateFlow()
+
     private var recordLength = 0
 
     init {
         viewModelScope.launch {
             _isLoading.value = true
-            val binaryData = ReadBinaryUseCase(getApplication()).execute(slotId, fileId)
-            if (binaryData != null) {
-                _data.value = binaryData
+            val binaryResult = ReadBinaryUseCase(getApplication()).executeDetailed(slotId, fileId)
+            if (binaryResult.error != null) {
+                _error.value = binaryResult.error
                 _isLoading.value = false
                 return@launch
             }
-            val info = ReadRecordUseCase(getApplication()).getInfo(slotId, fileId)
+            if (binaryResult.data != null) {
+                _data.value = binaryResult.data
+                _isLoading.value = false
+                return@launch
+            }
+            val readRecordUseCase = ReadRecordUseCase(getApplication())
+            val infoResult = readRecordUseCase.getInfoDetailed(slotId, fileId)
+            if (infoResult.error != null) {
+                _error.value = infoResult.error
+                _isLoading.value = false
+                return@launch
+            }
+            val info = infoResult.info
             if (info != null) {
                 recordLength = info.recordLength
                 _recordCount.value = info.numberOfRecords
-                _data.value = ReadRecordUseCase(getApplication())
-                    .execute(slotId, fileId, 1, recordLength)
+                val recordResult = readRecordUseCase.executeDetailed(slotId, fileId, 1, recordLength)
+                if (recordResult.error != null) {
+                    _error.value = recordResult.error
+                } else {
+                    _data.value = recordResult.data
+                }
             }
             _isLoading.value = false
         }
@@ -61,10 +81,19 @@ class BinaryViewModel(
     fun loadRecord(recordNo: Int) {
         viewModelScope.launch {
             _isLoading.value = true
-            _data.value = ReadRecordUseCase(getApplication())
-                .execute(slotId, fileId, recordNo, recordLength)
+            val recordResult = ReadRecordUseCase(getApplication())
+                .executeDetailed(slotId, fileId, recordNo, recordLength)
+            if (recordResult.error != null) {
+                _error.value = recordResult.error
+            } else {
+                _data.value = recordResult.data
+            }
             _isLoading.value = false
         }
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 
     class Factory(

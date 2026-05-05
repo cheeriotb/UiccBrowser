@@ -8,6 +8,8 @@
 
 package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
+import com.github.cheeriotb.uiccbrowser.R
+import com.github.cheeriotb.uiccbrowser.repository.Result
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -75,5 +77,37 @@ class EfDetailFragmentUnitTest {
         val state = EfDetailFragment.buildRecordSelectorState(3, 1, false)
 
         assertThat(state.enabled).isFalse()
+    }
+
+    @Test
+    fun errorMessageResId_insufficientSecurity_returnsSw6982Message() {
+        val result = Result.Builder().sw(Result.SW_INSUFFICIENT_SECURITY).build()
+
+        assertThat(EfDetailFragment.errorMessageResId(result))
+            .isEqualTo(R.string.sw6982_insufficient_security)
+    }
+
+    @Test
+    fun errorMessageResId_notFound_returnsSw6a82Message() {
+        val result = Result.Builder().sw(Result.SW_NOT_FOUND).build()
+
+        assertThat(EfDetailFragment.errorMessageResId(result))
+            .isEqualTo(R.string.sw6a82_file_not_found)
+    }
+
+    @Test
+    fun errorMessageResId_unknownSw_returnsUnknownErrorMessage() {
+        val result = Result.Builder().sw(0x6F00).build()
+
+        assertThat(EfDetailFragment.errorMessageResId(result))
+            .isEqualTo(R.string.sw_unknown_error)
+    }
+
+    @Test
+    fun buildErrorMessage_formatsStatusWordAndMessage() {
+        val result = Result.Builder().sw(Result.SW_INSUFFICIENT_SECURITY).build()
+
+        assertThat(EfDetailFragment.buildErrorMessage(result, "Security status not satisfied"))
+            .isEqualTo("SW 6982: Security status not satisfied")
     }
 }

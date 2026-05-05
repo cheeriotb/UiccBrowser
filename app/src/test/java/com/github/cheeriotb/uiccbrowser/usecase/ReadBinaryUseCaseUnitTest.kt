@@ -63,6 +63,7 @@ class ReadBinaryUseCaseUnitTest {
 
         private val SW_OK = "%04X".format(Result.SW_NORMAL)
         private val SW_FAIL = "%04X".format(0x6A82)
+        private val SW_INSUFFICIENT_SECURITY = "%04X".format(Result.SW_INSUFFICIENT_SECURITY)
     }
 
     @Before
@@ -174,6 +175,21 @@ class ReadBinaryUseCaseUnitTest {
     }
 
     @Test
+    fun executeDetailed_fcpNotCached_returnsError() = runBlocking {
+        initializeRepo()
+
+        val fileId = FileId(FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns
+            SelectResponse(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID,
+                ByteArray(0), Result.SW_NOT_FOUND)
+
+        val result = useCase.executeDetailed(0, fileId)
+
+        assertThat(result.data).isNull()
+        assertThat(result.error!!.sw).isEqualTo(Result.SW_NOT_FOUND)
+    }
+
+    @Test
     fun execute_readBinaryFails_returnsNull() = runBlocking {
         initializeRepo()
 
@@ -191,5 +207,26 @@ class ReadBinaryUseCaseUnitTest {
         val result = useCase.execute(0, fileId)
 
         assertThat(result).isNull()
+    }
+
+    @Test
+    fun executeDetailed_readBinaryFails_returnsError() = runBlocking {
+        initializeRepo()
+
+        val fileId = FileId(FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns
+            SelectResponse(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID,
+                hexStringToByteArray(FCP_TRANSPARENT), Result.SW_NORMAL)
+
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
+            0x08, 0x0C, hexStringToByteArray(FileId.EF_ICCID))) } returns
+            Response(hexStringToByteArray(SW_OK))
+        every { cardIoMock.transmit(Command(Iso7816.INS_READ_BINARY, 0x00, 0x00, 0x0A)) } returns
+            Response(hexStringToByteArray(SW_INSUFFICIENT_SECURITY))
+
+        val result = useCase.executeDetailed(0, fileId)
+
+        assertThat(result.data).isNull()
+        assertThat(result.error!!.sw).isEqualTo(Result.SW_INSUFFICIENT_SECURITY)
     }
 }

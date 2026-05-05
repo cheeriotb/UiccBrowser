@@ -59,6 +59,7 @@ class ReadRecordUseCaseUnitTest {
 
         private val SW_OK = "%04X".format(Result.SW_NORMAL)
         private val SW_FAIL = "%04X".format(0x6A82)
+        private val SW_INSUFFICIENT_SECURITY = "%04X".format(Result.SW_INSUFFICIENT_SECURITY)
     }
 
     @Before
@@ -175,6 +176,21 @@ class ReadRecordUseCaseUnitTest {
     }
 
     @Test
+    fun getInfoDetailed_fcpNotCached_returnsError() = runBlocking {
+        initializeRepo()
+
+        val fileId = FileId(FileId.AID_NONE, FileId.PATH_MF, EF_LF)
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, EF_LF) } returns
+            SelectResponse(ICCID, FileId.AID_NONE, FileId.PATH_MF, EF_LF,
+                ByteArray(0), Result.SW_NOT_FOUND)
+
+        val result = useCase.getInfoDetailed(0, fileId)
+
+        assertThat(result.info).isNull()
+        assertThat(result.error!!.sw).isEqualTo(Result.SW_NOT_FOUND)
+    }
+
+    @Test
     fun execute_readRecordFails_returnsNull() = runBlocking {
         initializeRepo()
 
@@ -189,5 +205,23 @@ class ReadRecordUseCaseUnitTest {
         val result = useCase.execute(0, fileId, 1, 10)
 
         assertThat(result).isNull()
+    }
+
+    @Test
+    fun executeDetailed_readRecordFails_returnsError() = runBlocking {
+        initializeRepo()
+
+        val fileId = FileId(FileId.AID_NONE, FileId.PATH_MF, EF_LF)
+
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
+            0x08, 0x0C, hexStringToByteArray(EF_LF))) } returns
+            Response(hexStringToByteArray(SW_OK))
+        every { cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x01, 0x04, 0x0A)) } returns
+            Response(hexStringToByteArray(SW_INSUFFICIENT_SECURITY))
+
+        val result = useCase.executeDetailed(0, fileId, 1, 10)
+
+        assertThat(result.data).isNull()
+        assertThat(result.error!!.sw).isEqualTo(Result.SW_INSUFFICIENT_SECURITY)
     }
 }

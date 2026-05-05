@@ -24,7 +24,9 @@ import androidx.viewpager2.widget.ViewPager2
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.databinding.FragmentEfDetailBinding
 import com.github.cheeriotb.uiccbrowser.repository.FileId
+import com.github.cheeriotb.uiccbrowser.repository.Result
 import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.launch
 
@@ -104,22 +106,36 @@ class EfDetailFragment : Fragment() {
     private fun observeBinaryViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                binaryViewModel.recordCount.collect { count ->
-                    val state = buildRecordSelectorState(count, binding.viewPager.currentItem, viewModel.hasDecoder)
-                    binding.recordSelectorLayout.visibility =
-                        if (state.visible) View.VISIBLE else View.GONE
-                    if (count > 0) {
-                        val items = (1..count).map { "#$it" }
-                        binding.recordDropdown.setAdapter(
-                            ArrayAdapter(
-                                requireContext(),
-                                android.R.layout.simple_list_item_1,
-                                items
+                launch {
+                    binaryViewModel.recordCount.collect { count ->
+                        val state = buildRecordSelectorState(count, binding.viewPager.currentItem, viewModel.hasDecoder)
+                        binding.recordSelectorLayout.visibility =
+                            if (state.visible) View.VISIBLE else View.GONE
+                        if (count > 0) {
+                            val items = (1..count).map { "#$it" }
+                            binding.recordDropdown.setAdapter(
+                                ArrayAdapter(
+                                    requireContext(),
+                                    android.R.layout.simple_list_item_1,
+                                    items
+                                )
                             )
-                        )
-                        binding.recordDropdown.setText(items[0], false)
+                            binding.recordDropdown.setText(items[0], false)
+                        }
+                        binding.recordSelectorLayout.isEnabled = state.enabled
                     }
-                    binding.recordSelectorLayout.isEnabled = state.enabled
+                }
+                launch {
+                    binaryViewModel.error.collect { result ->
+                        if (result != null) {
+                            Snackbar.make(
+                                binding.root,
+                                buildErrorMessage(result, getString(errorMessageResId(result))),
+                                Snackbar.LENGTH_LONG
+                            ).show()
+                            binaryViewModel.clearError()
+                        }
+                    }
                 }
             }
         }
@@ -145,6 +161,15 @@ class EfDetailFragment : Fragment() {
                 visible = recordCount > 0,
                 enabled = tabPosition != if (hasDecoder) 2 else 1
             )
+
+        internal fun errorMessageResId(result: Result) = when (result.sw) {
+            Result.SW_INSUFFICIENT_SECURITY -> R.string.sw6982_insufficient_security
+            Result.SW_NOT_FOUND -> R.string.sw6a82_file_not_found
+            else -> R.string.sw_unknown_error
+        }
+
+        internal fun buildErrorMessage(result: Result, errorMessage: String): String =
+            "SW %04X: %s".format(result.sw, errorMessage)
 
         const val ARG_EF_NAME = "efName"
         const val ARG_EF_FILE_ID = "efFileId"
