@@ -79,6 +79,21 @@
     <string name="pro_mode_dialog_title">Enable Pro Mode?</string>
     <string name="pro_mode_dialog_message">You are about to enable Pro Mode for the currently selected SIM. This mode lets you choose operations that may damage the SIM card. Do you want to continue?</string>
     <string name="action_refresh">Refresh</string>
+    <string name="action_edit">Edit</string>
+    <string name="edit_mode_verify_title">Verify %1$s</string>
+    <string name="edit_mode_verify_option_title">Select verification method</string>
+    <string name="edit_mode_verify_message">Remaining attempts: %1$d</string>
+    <string name="edit_mode_verify_failed">Verification failed. Remaining attempts: %1$d</string>
+    <string name="edit_mode_enabled">Edit mode is enabled.</string>
+    <string name="edit_mode_card_unavailable">The selected SIM is unavailable.</string>
+    <string name="edit_mode_fcp_unavailable">File control parameters are unavailable.</string>
+    <string name="edit_mode_security_attributes_unavailable">Security attributes are unavailable.</string>
+    <string name="edit_mode_security_condition_unsupported">The required access condition is unsupported.</string>
+    <string name="edit_mode_arr_read_failed">EF ARR cannot be read. Edit mode cannot continue.</string>
+    <string name="edit_mode_arr_record_unavailable">The required EF ARR record is unavailable.</string>
+    <string name="edit_mode_last_attempt">Only one verification attempt remains for %1$s. Edit mode will not continue.</string>
+    <string name="edit_mode_blocked">%1$s is blocked. Edit mode will not continue.</string>
+    <string name="edit_mode_retries_unknown">Remaining attempts for %1$s are unknown. Edit mode will not continue.</string>
 
     <string name="sw6982_insufficient_security">Security status not satisfied</string>
     <string name="sw6a82_file_not_found">File not found</string>

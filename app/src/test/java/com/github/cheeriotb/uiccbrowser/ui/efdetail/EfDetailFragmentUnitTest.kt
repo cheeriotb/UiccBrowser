@@ -10,6 +10,8 @@ package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.repository.Result
+import com.github.cheeriotb.uiccbrowser.repository.VerifyPinQualifier
+import com.github.cheeriotb.uiccbrowser.usecase.EditAccessUseCase
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -109,5 +111,29 @@ class EfDetailFragmentUnitTest {
 
         assertThat(EfDetailFragment.buildErrorMessage(result, "Security status not satisfied"))
             .isEqualTo("SW 6982: Security status not satisfied")
+    }
+
+    @Test
+    fun messageResId_editAccessFailures_returnsMessageResources() {
+        assertThat(EfDetailFragment.messageResId(EditAccessUseCase.Failure.CARD_UNAVAILABLE))
+            .isEqualTo(R.string.edit_mode_card_unavailable)
+        assertThat(EfDetailFragment.messageResId(EditAccessUseCase.Failure.FCP_UNAVAILABLE))
+            .isEqualTo(R.string.edit_mode_fcp_unavailable)
+        assertThat(EfDetailFragment.messageResId(EditAccessUseCase.Failure.ARR_READ_FAILED))
+            .isEqualTo(R.string.edit_mode_arr_read_failed)
+    }
+
+    @Test
+    fun displayName_formatsVerifyPinQualifierNames() {
+        assertThat(EfDetailFragment.verifyPinQualifierDisplayName(
+            VerifyPinQualifier.GLOBAL_PIN1
+        ))
+            .isEqualTo("Global PIN1")
+        assertThat(EfDetailFragment.verifyPinQualifierDisplayName(
+            VerifyPinQualifier.LOCAL_PIN8
+        ))
+            .isEqualTo("Local PIN8")
+        assertThat(EfDetailFragment.verifyPinQualifierDisplayName(VerifyPinQualifier.ADM10))
+            .isEqualTo("ADM10")
     }
 }

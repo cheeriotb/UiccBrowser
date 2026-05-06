@@ -1,0 +1,181 @@
+/*
+ *  Copyright (C) 2026 Cheerio <cheerio.the.bear@gmail.com>
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under the terms of the MIT license.
+ *  See the license information described in LICENSE file.
+ */
+
+package com.github.cheeriotb.uiccbrowser.usecase
+
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.rule.GrantPermissionRule
+import com.github.cheeriotb.uiccbrowser.cacheio.SelectResponse
+import com.github.cheeriotb.uiccbrowser.cacheio.SelectResponseDataSource
+import com.github.cheeriotb.uiccbrowser.cardio.Command
+import com.github.cheeriotb.uiccbrowser.cardio.Interface
+import com.github.cheeriotb.uiccbrowser.cardio.Iso7816
+import com.github.cheeriotb.uiccbrowser.cardio.Response
+import com.github.cheeriotb.uiccbrowser.repository.CardRepository
+import com.github.cheeriotb.uiccbrowser.repository.FileId
+import com.github.cheeriotb.uiccbrowser.repository.Result
+import com.github.cheeriotb.uiccbrowser.repository.VerifyPinQualifier
+import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
+import com.google.common.truth.Truth.assertThat
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.util.ReflectionHelpers
+
+@RunWith(RobolectricTestRunner::class)
+class EditAccessUseCaseUnitTest {
+    @Rule @JvmField
+    val grantPermissionRule: GrantPermissionRule =
+        GrantPermissionRule.grant(android.Manifest.permission.READ_PHONE_STATE)
+
+    private val cardIoMock = mockk<Interface>()
+    private val cacheIoMock = mockk<SelectResponseDataSource>()
+    private lateinit var repository: CardRepository
+    private lateinit var useCase: EditAccessUseCase
+
+    companion object {
+        private const val ICCID = "8988211000000282106F"
+        private const val AID = "A0000000871001FFFFFFFFFFFFFFFFFF"
+        private const val PATH_ADF = "7FFF"
+        private const val FID_AD = "6FAD"
+        private const val FID_ARR = "2F06"
+        private const val FCP_COMPACT_ADM1_UPDATE_READ_ALWAYS = "62058C03030A00"
+        private const val FCP_EXPANDED_ADM1_READ_UPDATE = "620AAB08800103A40383010A"
+        private const val FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS =
+                "6211AB0F800103A00AA403830101A40383010A"
+        private const val FCP_ARR_REF_RECORD4 = "62058B032F0604"
+        private const val ARR_RECORD_ADM1_READ_UPDATE = "800103A40383010A"
+
+        private val FILE_ID = FileId(AID, PATH_ADF, FID_AD)
+    }
+
+    @Before
+    fun setUp() {
+        ReflectionHelpers.setStaticField(CardRepository::class.java, "instances", null)
+        every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
+                Interface.OpenChannelResult.SUCCESS
+        every { cardIoMock.closeRemainingChannel() } answers { nothing }
+        every { cardIoMock.dispose() } answers { nothing }
+
+        repository = CardRepository.from(ApplicationProvider.getApplicationContext(), 0)!!
+        ReflectionHelpers.setField(repository, "cardIo", cardIoMock)
+        ReflectionHelpers.setField(repository, "cacheIo", cacheIoMock)
+        ReflectionHelpers.setField(repository, "_iccId", ICCID)
+
+        useCase = EditAccessUseCase(ApplicationProvider.getApplicationContext())
+    }
+
+    @After
+    fun tearDown() {
+        ReflectionHelpers.setStaticField(CardRepository::class.java, "instances", null)
+    }
+
+    @Test
+    fun execute_compactSecurityAttributes_returnsRequiredQualifier() {
+        runBlocking {
+            cacheFcp(FCP_COMPACT_ADM1_UPDATE_READ_ALWAYS)
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+        }
+    }
+
+    @Test
+    fun execute_expandedSecurityAttributes_returnsRequiredQualifier() {
+        runBlocking {
+            cacheFcp(FCP_EXPANDED_ADM1_READ_UPDATE)
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+        }
+    }
+
+    @Test
+    fun execute_expandedOrSecurityAttributes_returnsQualifierOptions() {
+        runBlocking {
+            cacheFcp(FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS)
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.qualifierOptions).containsExactly(
+                    listOf(VerifyPinQualifier.GLOBAL_PIN1),
+                    listOf(VerifyPinQualifier.ADM1)
+            ).inOrder()
+            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.GLOBAL_PIN1)
+        }
+    }
+
+    @Test
+    fun execute_arrReference_readsArrRecord() {
+        runBlocking {
+            cacheFcp(FCP_ARR_REF_RECORD4)
+            every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                    hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
+                    Response(hexStringToByteArray("9000"))
+            every { cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x04, 0x04, 0x100))
+                    } returns Response(hexStringToByteArray(ARR_RECORD_ADM1_READ_UPDATE + "9000"))
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+        }
+    }
+
+    @Test
+    fun execute_arrReferenceReadFailure_returnsArrReadFailed() {
+        runBlocking {
+            cacheFcp(FCP_ARR_REF_RECORD4)
+            every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                    hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
+                    Response(hexStringToByteArray("9000"))
+            every { cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x04, 0x04, 0x100))
+                    } returns Response(hexStringToByteArray("6982"))
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure).isEqualTo(EditAccessUseCase.Failure.ARR_READ_FAILED)
+        }
+    }
+
+    @Test
+    fun execute_noSecurityAttributes_returnsUnavailable() {
+        runBlocking {
+            cacheFcp("62028200")
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure)
+                    .isEqualTo(EditAccessUseCase.Failure.SECURITY_ATTRIBUTES_UNAVAILABLE)
+        }
+    }
+
+    private fun cacheFcp(fcp: String) {
+        coEvery { cacheIoMock.get(ICCID, AID, PATH_ADF, FID_AD) } returns
+                SelectResponse(
+                        ICCID,
+                        AID,
+                        PATH_ADF,
+                        FID_AD,
+                        hexStringToByteArray(fcp),
+                        Result.SW_NORMAL
+                )
+    }
+}
