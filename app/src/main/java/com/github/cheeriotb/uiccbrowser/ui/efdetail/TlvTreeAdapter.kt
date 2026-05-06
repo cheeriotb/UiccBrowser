@@ -26,6 +26,11 @@ class TlvTreeAdapter : RecyclerView.Adapter<TlvTreeAdapter.ViewHolder>() {
         notifyDataSetChanged()
     }
 
+    fun clear() {
+        nodes = emptyList()
+        notifyDataSetChanged()
+    }
+
     companion object {
         fun flatten(element: Element, depth: Int = 0): List<Node> {
             val result = mutableListOf(Node(element, depth))

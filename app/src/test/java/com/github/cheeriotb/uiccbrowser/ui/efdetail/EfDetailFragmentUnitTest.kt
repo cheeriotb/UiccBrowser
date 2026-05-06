@@ -102,7 +102,7 @@ class EfDetailFragmentUnitTest {
         val result = Result.Builder().sw(0x6F00).build()
 
         assertThat(EfDetailFragment.errorMessageResId(result))
-            .isEqualTo(R.string.sw_unknown_error)
+            .isEqualTo(R.string.sw_unhandled_error)
     }
 
     @Test

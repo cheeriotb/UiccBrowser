@@ -78,6 +78,8 @@ data class Result(
         const val SW_INSUFFICIENT_SECURITY = 0x6982
         /** SW6983: Authentication method blocked */
         const val SW_AUTH_METHOD_BLOCKED = 0x6983
+        /** SW6984: Referenced data invalidated */
+        const val SW_REF_DATA_INVALIDATED = 0x6984
         /** SW6A82: File not found */
         const val SW_NOT_FOUND = 0x6A82
 

@@ -524,8 +524,10 @@ class EfDetailFragment : Fragment() {
 
         internal fun errorMessageResId(result: Result) = when (result.sw) {
             Result.SW_INSUFFICIENT_SECURITY -> R.string.sw6982_insufficient_security
+            Result.SW_AUTH_METHOD_BLOCKED -> R.string.sw6983_auth_method_blocked
+            Result.SW_REF_DATA_INVALIDATED -> R.string.sw6984_ref_data_invalidated
             Result.SW_NOT_FOUND -> R.string.sw6a82_file_not_found
-            else -> R.string.sw_unknown_error
+            else -> R.string.sw_unhandled_error
         }
 
         internal fun buildErrorMessage(result: Result, errorMessage: String): String =

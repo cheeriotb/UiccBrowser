@@ -84,7 +84,11 @@ class InfoFragment : Fragment() {
                 }
                 launch {
                     infoViewModel.element.collect { element ->
-                        if (element != null) treeAdapter.updateTree(element)
+                        if (element != null) {
+                            treeAdapter.updateTree(element)
+                        } else {
+                            treeAdapter.clear()
+                        }
                     }
                 }
             }

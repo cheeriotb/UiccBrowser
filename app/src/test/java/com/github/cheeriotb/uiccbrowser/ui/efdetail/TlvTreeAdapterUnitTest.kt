@@ -12,7 +12,10 @@ import android.content.res.Resources
 import com.github.cheeriotb.uiccbrowser.element.Element
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class TlvTreeAdapterUnitTest {
 
     private fun element(
@@ -87,5 +90,15 @@ class TlvTreeAdapterUnitTest {
     @Test
     fun indentPx_depthTwo_xhdpi_returns64px() {
         assertThat(TlvTreeAdapter.indentPx(2, 320f)).isEqualTo(64)
+    }
+
+    @Test
+    fun clear_afterUpdateTree_removesAllNodes() {
+        val adapter = TlvTreeAdapter()
+        adapter.updateTree(element("root"))
+
+        adapter.clear()
+
+        assertThat(adapter.itemCount).isEqualTo(0)
     }
 }

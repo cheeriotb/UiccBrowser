@@ -20,13 +20,15 @@ object EfDecoderRegistry {
     private enum class EfContext { MF, USIM, ISIM }
 
     // Keys are concatenated paths from the ADF/MF root (parentPath + fileId, uppercase).
-    // e.g. EF DIR under MF -> "2F00", EF SPN under USIM ADF -> "7FFF6F46"
+    // e.g. EF DIR under MF -> "2F00", EF SPN under USIM ADF -> "6F46"
     private val maps: Map<EfContext, Map<String, EfDecoder>> = mapOf(
         EfContext.MF   to mapOf(
             FileId.EF_DIR to AppTemplate::decode,
             FileId.EF_ARR to EfArrRecord::decode
         ),
-        EfContext.USIM to emptyMap(),
+        EfContext.USIM to mapOf(
+            FileId.EF_USIM_ARR to EfArrRecord::decode
+        ),
         EfContext.ISIM to emptyMap()
     )
 
@@ -38,8 +40,10 @@ object EfDecoderRegistry {
     }
 
     fun find(aid: String, path: String): EfDecoder? =
-        contextFrom(aid)?.let { maps[it]?.get(path.uppercase()) }
+        contextFrom(aid)?.let { maps[it]?.get(
+            path.uppercase().removePrefix(FileId.PATH_ADF)) }
 
     fun has(aid: String, path: String): Boolean =
-        contextFrom(aid)?.let { maps[it]?.containsKey(path.uppercase()) } == true
+        contextFrom(aid)?.let { maps[it]?.containsKey(
+            path.uppercase().removePrefix(FileId.PATH_ADF)) } == true
 }

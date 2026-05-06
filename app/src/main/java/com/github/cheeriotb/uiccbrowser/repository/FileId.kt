@@ -24,6 +24,8 @@ data class FileId(
         const val EF_DIR = "2F00"
         const val EF_ARR = "2F06"
         const val EF_ICCID = "2FE2"
+
+        const val EF_USIM_ARR = "6F06"
     }
 
     class Builder(
