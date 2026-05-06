@@ -82,6 +82,7 @@
     <string name="action_edit">Edit</string>
     <string name="edit_mode_verify_title">Verify %1$s</string>
     <string name="edit_mode_verify_option_title">Select verification method</string>
+    <string name="edit_mode_arr_verify_option_title">Select EF ARR verification key</string>
     <string name="edit_mode_verify_message">Remaining attempts: %1$d</string>
     <string name="edit_mode_verify_failed">Verification failed. Remaining attempts: %1$d</string>
     <string name="edit_mode_enabled">Edit mode is enabled.</string>
@@ -90,7 +91,10 @@
     <string name="edit_mode_security_attributes_unavailable">Security attributes are unavailable.</string>
     <string name="edit_mode_security_condition_unsupported">The required access condition is unsupported.</string>
     <string name="edit_mode_arr_read_failed">EF ARR cannot be read. Edit mode cannot continue.</string>
+    <string name="edit_mode_arr_access_keys_unavailable">EF ARR access keys are unavailable. Edit mode cannot continue.</string>
     <string name="edit_mode_arr_record_unavailable">The required EF ARR record is unavailable.</string>
+    <string name="edit_mode_arr_no_verifiable_key">No PIN or ADM key is available for verification. Edit mode cannot continue.</string>
+    <string name="edit_mode_arr_no_safe_key">No PIN or ADM key can be verified safely. Edit mode cannot continue.</string>
     <string name="edit_mode_last_attempt">Only one verification attempt remains for %1$s. Edit mode will not continue.</string>
     <string name="edit_mode_blocked">%1$s is blocked. Edit mode will not continue.</string>
     <string name="edit_mode_retries_unknown">Remaining attempts for %1$s are unknown. Edit mode will not continue.</string>

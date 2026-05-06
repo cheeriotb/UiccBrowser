@@ -17,6 +17,7 @@ import com.github.cheeriotb.uiccbrowser.element.fcp.SecurityAttrExpanded
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 import com.github.cheeriotb.uiccbrowser.repository.ReadRecordParams
+import com.github.cheeriotb.uiccbrowser.repository.Result
 import com.github.cheeriotb.uiccbrowser.repository.VerifyPinQualifier
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 
@@ -24,6 +25,7 @@ class EditAccessUseCase(private val context: Context) {
 
     data class Outcome(
         val qualifierOptions: List<List<VerifyPinQualifier>> = emptyList(),
+        val exploreQualifierOptions: List<VerifyPinQualifier> = emptyList(),
         val failure: Failure? = null
     ) {
         val qualifiers: List<VerifyPinQualifier>
@@ -36,6 +38,7 @@ class EditAccessUseCase(private val context: Context) {
         SECURITY_ATTRIBUTES_UNAVAILABLE,
         SECURITY_CONDITION_UNSUPPORTED,
         ARR_READ_FAILED,
+        ARR_ACCESS_KEYS_UNAVAILABLE,
         ARR_RECORD_UNAVAILABLE
     }
 
@@ -78,6 +81,9 @@ class EditAccessUseCase(private val context: Context) {
         val arrFileId = FileId(fileId.aid, fileId.path, reference.fileId)
         val outcomes = reference.recordNumbers.map { recordNo ->
             val result = repo.readRecord(ReadRecordParams(arrFileId, recordNo))
+            if (result.sw == Result.SW_INSUFFICIENT_SECURITY) {
+                return arrAccessKeyOutcome(repo)
+            }
             if (!result.isOk || result.data.isEmpty()) {
                 return Outcome(failure = Failure.ARR_READ_FAILED)
             }
@@ -91,6 +97,26 @@ class EditAccessUseCase(private val context: Context) {
             .minByOrNull { it.qualifiers.size }
             ?: outcomes.firstOrNull { it.failure != null }
             ?: Outcome(failure = Failure.ARR_RECORD_UNAVAILABLE)
+    }
+
+    private suspend fun arrAccessKeyOutcome(repo: CardRepository): Outcome {
+        val mfFileId = FileId(FileId.AID_NONE, FileId.PATH_MF, FileId.MF)
+        if (!repo.cacheFileControlParameters(mfFileId)) {
+            return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
+        }
+
+        val fcpData = repo.queryFileControlParameters(mfFileId)
+            .firstOrNull { it.isOk }
+            ?.data
+            ?: return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
+        val fcpElement = FcpTemplate.decode(context.resources, fcpData)
+            ?: return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
+        val qualifiers = arrAccessKeyQualifiers(fcpElement)
+        if (qualifiers.isEmpty()) {
+            return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
+        }
+
+        return Outcome(exploreQualifierOptions = qualifiers)
     }
 
     private fun outcomeFromExpandedChildren(children: List<Element>): Outcome =
@@ -203,6 +229,28 @@ class EditAccessUseCase(private val context: Context) {
         }.filter { it > 0 }
         if (recordNumbers.isEmpty()) return null
         return ArrReference(arrFileId, recordNumbers)
+    }
+
+    private fun arrAccessKeyQualifiers(fcpElement: Element): List<VerifyPinQualifier> {
+        val pinStatusTemplate = fcpElement.subElements
+            .filterIsInstance<BerTlvElement>()
+            .find { it.tag == FcpTemplate.TAG_PIN_STATUS_TEMPLATE }
+            ?: return emptyList()
+        val children = pinStatusTemplate.subElements.filterIsInstance<BerTlvElement>()
+        val psData = children.find { it.tag == FcpTemplate.TAG_PS_DO }?.data
+        val keyReferences = children
+            .filter { it.tag == FcpTemplate.TAG_KEY_REFERENCE }
+            .mapNotNull { qualifierFor(it.data.firstOrNull()?.toInt()?.and(0xFF) ?: -1) }
+
+        return keyReferences
+            .filterIndexed { index, _ -> psData == null || psData.isPinEnabled(index) }
+            .distinct()
+    }
+
+    private fun ByteArray.isPinEnabled(index: Int): Boolean {
+        val byteIndex = index / 8
+        if (byteIndex !in indices) return false
+        return (this[byteIndex].toInt() and (0x80 ushr (index % 8))) != 0
     }
 
     private fun qualifierFor(value: Int): VerifyPinQualifier? =

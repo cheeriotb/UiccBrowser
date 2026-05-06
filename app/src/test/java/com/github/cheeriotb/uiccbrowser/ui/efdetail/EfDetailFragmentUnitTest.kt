@@ -121,6 +121,44 @@ class EfDetailFragmentUnitTest {
             .isEqualTo(R.string.edit_mode_fcp_unavailable)
         assertThat(EfDetailFragment.messageResId(EditAccessUseCase.Failure.ARR_READ_FAILED))
             .isEqualTo(R.string.edit_mode_arr_read_failed)
+        assertThat(EfDetailFragment.messageResId(
+            EditAccessUseCase.Failure.ARR_ACCESS_KEYS_UNAVAILABLE
+        ))
+            .isEqualTo(R.string.edit_mode_arr_access_keys_unavailable)
+    }
+
+    @Test
+    fun arrAccessKeyUnavailableMessageResId_allBlocked_returnsNoVerifiableKey() {
+        val statuses = listOf(
+            EfDetailFragment.VerifyStatus.Unavailable(
+                VerifyPinQualifier.ADM1,
+                EfDetailFragment.VerifyUnavailableReason.BLOCKED
+            ),
+            EfDetailFragment.VerifyStatus.Unavailable(
+                VerifyPinQualifier.ADM2,
+                EfDetailFragment.VerifyUnavailableReason.BLOCKED
+            )
+        )
+
+        assertThat(EfDetailFragment.arrAccessKeyUnavailableMessageResId(statuses))
+            .isEqualTo(R.string.edit_mode_arr_no_verifiable_key)
+    }
+
+    @Test
+    fun arrAccessKeyUnavailableMessageResId_blockedAndLastAttempt_returnsNoSafeKey() {
+        val statuses = listOf(
+            EfDetailFragment.VerifyStatus.Unavailable(
+                VerifyPinQualifier.ADM1,
+                EfDetailFragment.VerifyUnavailableReason.BLOCKED
+            ),
+            EfDetailFragment.VerifyStatus.Unavailable(
+                VerifyPinQualifier.ADM2,
+                EfDetailFragment.VerifyUnavailableReason.LAST_ATTEMPT
+            )
+        )
+
+        assertThat(EfDetailFragment.arrAccessKeyUnavailableMessageResId(statuses))
+            .isEqualTo(R.string.edit_mode_arr_no_safe_key)
     }
 
     @Test

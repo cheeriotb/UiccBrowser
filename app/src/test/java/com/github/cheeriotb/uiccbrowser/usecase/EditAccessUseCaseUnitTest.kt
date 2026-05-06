@@ -56,6 +56,9 @@ class EditAccessUseCaseUnitTest {
         private const val FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS =
                 "6211AB0F800103A00AA403830101A40383010A"
         private const val FCP_ARR_REF_RECORD4 = "62058B032F0604"
+        private const val FCP_MF_PIN_STATUS_ADM1_ADM2_LOCAL_PIN1 =
+                "6211C60F90017083010183010A83010B830181"
+        private const val FCP_MF_NO_PIN_STATUS = "62028200"
         private const val ARR_RECORD_ADM1_READ_UPDATE = "800103A40383010A"
 
         private val FILE_ID = FileId(AID, PATH_ADF, FID_AD)
@@ -65,6 +68,8 @@ class EditAccessUseCaseUnitTest {
     fun setUp() {
         ReflectionHelpers.setStaticField(CardRepository::class.java, "instances", null)
         every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
+                Interface.OpenChannelResult.SUCCESS
+        every { cardIoMock.openChannel(hexStringToByteArray(FileId.AID_NONE)) } returns
                 Interface.OpenChannelResult.SUCCESS
         every { cardIoMock.closeRemainingChannel() } answers { nothing }
         every { cardIoMock.dispose() } answers { nothing }
@@ -147,11 +152,51 @@ class EditAccessUseCaseUnitTest {
                     hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
                     Response(hexStringToByteArray("9000"))
             every { cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x04, 0x04, 0x100))
-                    } returns Response(hexStringToByteArray("6982"))
+                    } returns Response(hexStringToByteArray("6A82"))
 
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isEqualTo(EditAccessUseCase.Failure.ARR_READ_FAILED)
+        }
+    }
+
+    @Test
+    fun execute_arrReferenceInsufficientSecurity_returnsExploreQualifierOptions() {
+        runBlocking {
+            cacheFcp(FCP_ARR_REF_RECORD4)
+            cacheMfFcp(FCP_MF_PIN_STATUS_ADM1_ADM2_LOCAL_PIN1)
+            every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                    hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
+                    Response(hexStringToByteArray("9000"))
+            every { cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x04, 0x04, 0x100))
+                    } returns Response(hexStringToByteArray("6982"))
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.exploreQualifierOptions).containsExactly(
+                    VerifyPinQualifier.ADM1,
+                    VerifyPinQualifier.ADM2,
+                    VerifyPinQualifier.LOCAL_PIN1
+            ).inOrder()
+        }
+    }
+
+    @Test
+    fun execute_arrReferenceInsufficientSecurityWithoutC6_returnsAccessKeysUnavailable() {
+        runBlocking {
+            cacheFcp(FCP_ARR_REF_RECORD4)
+            cacheMfFcp(FCP_MF_NO_PIN_STATUS)
+            every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                    hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
+                    Response(hexStringToByteArray("9000"))
+            every { cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x04, 0x04, 0x100))
+                    } returns Response(hexStringToByteArray("6982"))
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure)
+                    .isEqualTo(EditAccessUseCase.Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
         }
     }
 
@@ -174,6 +219,18 @@ class EditAccessUseCaseUnitTest {
                         AID,
                         PATH_ADF,
                         FID_AD,
+                        hexStringToByteArray(fcp),
+                        Result.SW_NORMAL
+                )
+    }
+
+    private fun cacheMfFcp(fcp: String) {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.MF) } returns
+                SelectResponse(
+                        ICCID,
+                        FileId.AID_NONE,
+                        FileId.PATH_MF,
+                        FileId.MF,
                         hexStringToByteArray(fcp),
                         Result.SW_NORMAL
                 )

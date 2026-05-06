@@ -69,6 +69,7 @@ class CardRepositoryUnitTest {
         private const val PIN_8_BYTES = "3132333435363738"
 
         private val FILE_ID_DIR = FileId(AID, FileId.PATH_MF, FID_DIR)
+        private val FILE_ID_MF = FileId(FileId.AID_NONE, FileId.PATH_MF, FileId.MF)
         private val FILE_ID_AD = FileId(AID, PATH_ADF, FID_AD)
         private val FILE_ID_FPLMN = FileId(AID, PATH_ADF, FID_FPLMN)
         private val LEVEL_ADF = FileId(AID, PATH_ADF)
@@ -265,6 +266,34 @@ class CardRepositoryUnitTest {
         coVerify {
             cacheIoMock.insert(SelectResponse(ICCID, AID, PATH_ADF, FID_AD,
                     hexStringToByteArray(FCP), Result.SW_NORMAL))
+        }
+    }
+
+    @Test
+    fun cacheFileControlParameters_mfSelectsMfByFileId() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+                } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+
+        repository.initialize()
+
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.MF)
+                } returns null
+        every {
+            cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
+                    0x00 /* Select by file ID */, 0x04 /* Return FCP template */,
+                    hexStringToByteArray("3F00")))
+        } returns Response(hexStringToByteArray(RESPONSE_FCP))
+
+        assertThat(repository.cacheFileControlParameters(FILE_ID_MF)).isTrue()
+
+        verify {
+            cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
+                    0x00, 0x04, hexStringToByteArray("3F00")))
+        }
+        coVerify {
+            cacheIoMock.insert(SelectResponse(ICCID, FileId.AID_NONE,
+                    FileId.PATH_MF, FileId.MF, hexStringToByteArray(FCP), Result.SW_NORMAL))
         }
     }
 

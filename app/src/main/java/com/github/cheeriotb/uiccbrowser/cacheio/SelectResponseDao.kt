@@ -21,6 +21,7 @@ interface SelectResponseDao {
     suspend fun get(iccId: String, aid: String, path: String, fileId: String): SelectResponse?
     @Query("SELECT * FROM response "
             + "WHERE icc_id = :iccId AND aid = :aid AND path = :path AND LENGTH(data) > 0 "
+            + "AND file_id != '' "
             + "ORDER BY file_id ASC")
     suspend fun getAll(iccId: String, aid: String, path: String): List<SelectResponse>
     @Query("DELETE FROM response WHERE icc_id = :iccId")

@@ -74,6 +74,7 @@ class CardRepository private constructor (
 
         private const val CLOSING_TIMER_MILLIS = 500L
         private const val VERIFY_PIN_CODE_SIZE = 8
+        private const val FID_MF = "3F00"
     }
 
     suspend fun initialize(): Boolean {
@@ -267,10 +268,11 @@ class CardRepository private constructor (
         fileId: String,
         fcpRequest: Boolean = false
     ): Response {
+        val isMf = path == FileId.PATH_MF && fileId == FileId.MF
         val command = Command.Builder(Iso7816.INS_SELECT_FILE)
-                .p1(0x08 /* Select by path from MF */)
+                .p1(if (isMf) 0x00 /* Select by file ID */ else 0x08)
                 .p2(if (fcpRequest) 0x04 /* Return FCP template */ else 0x0C /* No data returned */)
-                .data(hexStringToByteArray(path + fileId))
+                .data(hexStringToByteArray(if (isMf) FID_MF else path + fileId))
                 .build()
         return cardIo.transmit(command)
     }

@@ -147,11 +147,31 @@ class EfDetailFragment : Fragment() {
         val slotId = mainViewModel.selectedSlot.value?.slotId ?: return
         val repo = CardRepository.from(requireContext(), slotId) ?: return
         viewLifecycleOwner.lifecycleScope.launch {
+            if (enableEditMode(slotId, repo)) {
+                editModeEnabled = true
+                requireActivity().invalidateOptionsMenu()
+                showMessage(getString(R.string.edit_mode_enabled))
+            }
+        }
+    }
+
+    private suspend fun enableEditMode(
+        slotId: Int,
+        repo: CardRepository
+    ): Boolean {
+        while (true) {
             val outcome = EditAccessUseCase(requireContext()).execute(slotId, viewModel.fileId)
             val failure = outcome.failure
             if (failure != null) {
                 showMessage(getString(messageResId(failure)))
-                return@launch
+                return false
+            }
+
+            if (outcome.exploreQualifierOptions.isNotEmpty()) {
+                if (!verifyArrAccessKeyOptions(repo, outcome.exploreQualifierOptions)) {
+                    return false
+                }
+                continue
             }
 
             val verified = verifyQualifierOptions(
@@ -159,11 +179,7 @@ class EfDetailFragment : Fragment() {
                 viewModel.fileId.aid,
                 outcome.qualifierOptions
             )
-            if (verified) {
-                editModeEnabled = true
-                requireActivity().invalidateOptionsMenu()
-                showMessage(getString(R.string.edit_mode_enabled))
-            }
+            return verified
         }
     }
 
@@ -216,6 +232,28 @@ class EfDetailFragment : Fragment() {
         return true
     }
 
+    private suspend fun verifyArrAccessKeyOptions(
+        repo: CardRepository,
+        qualifiers: List<VerifyPinQualifier>
+    ): Boolean {
+        val statuses = qualifiers.map { qualifier ->
+            verifyStatus(repo.queryVerifyPinRetries(qualifier).sw, qualifier)
+        }
+
+        val candidates = statuses.filterIsInstance<VerifyStatus.Available>()
+            .map { VerifyRequirement(it.qualifier, it.retries) }
+        if (candidates.isEmpty()) {
+            showArrAccessKeyUnavailableMessage(statuses)
+            return false
+        }
+
+        val selected = showVerifySingleOptionDialog(
+            R.string.edit_mode_arr_verify_option_title,
+            candidates
+        ) ?: return false
+        return verifyQualifier(repo, FileId.AID_NONE, selected)
+    }
+
     private suspend fun verifyQualifier(
         repo: CardRepository,
         aid: String,
@@ -248,7 +286,7 @@ class EfDetailFragment : Fragment() {
                 VerifyStatus.Unavailable(qualifier, VerifyUnavailableReason.BLOCKED)
             sw == 0x63C1 ->
                 VerifyStatus.Unavailable(qualifier, VerifyUnavailableReason.LAST_ATTEMPT)
-            sw in 0x63C2..0x63CF -> VerifyStatus.Available(sw and 0x0F)
+            sw in 0x63C2..0x63CF -> VerifyStatus.Available(sw and 0x0F, qualifier)
             else -> VerifyStatus.Unavailable(qualifier, VerifyUnavailableReason.UNKNOWN)
         }
     }
@@ -265,6 +303,22 @@ class EfDetailFragment : Fragment() {
         showMessage(message)
     }
 
+    private fun showArrAccessKeyUnavailableMessage(statuses: List<VerifyStatus>) {
+        val messageResId = arrAccessKeyUnavailableMessageResId(statuses)
+        if (messageResId != null) {
+            showMessage(getString(messageResId))
+            return
+        }
+        if (statuses.any { it is VerifyStatus.Verified }) {
+            showMessage(getString(R.string.edit_mode_arr_access_keys_unavailable))
+            return
+        }
+
+        statuses.filterIsInstance<VerifyStatus.Unavailable>()
+            .firstOrNull()
+            ?.let { showVerifyUnavailableMessage(it) }
+    }
+
     private suspend fun showVerifyOptionDialog(
         candidates: List<List<VerifyRequirement>>
     ): List<VerifyRequirement>? = suspendCancellableCoroutine { continuation ->
@@ -276,6 +330,30 @@ class EfDetailFragment : Fragment() {
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.edit_mode_verify_option_title)
+            .setItems(labels) { _, which ->
+                if (continuation.isActive) continuation.resume(candidates[which])
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ ->
+                if (continuation.isActive) continuation.resume(null)
+            }
+            .setOnCancelListener {
+                if (continuation.isActive) continuation.resume(null)
+            }
+            .show()
+
+        continuation.invokeOnCancellation { dialog.dismiss() }
+    }
+
+    private suspend fun showVerifySingleOptionDialog(
+        titleResId: Int,
+        candidates: List<VerifyRequirement>
+    ): VerifyRequirement? = suspendCancellableCoroutine { continuation ->
+        val labels = candidates.map {
+            verifyPinQualifierDisplayName(it.qualifier)
+        }.toTypedArray()
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(titleResId)
             .setItems(labels) { _, which ->
                 if (continuation.isActive) continuation.resume(candidates[which])
             }
@@ -461,9 +539,25 @@ class EfDetailFragment : Fragment() {
             EditAccessUseCase.Failure.SECURITY_CONDITION_UNSUPPORTED ->
                 R.string.edit_mode_security_condition_unsupported
             EditAccessUseCase.Failure.ARR_READ_FAILED -> R.string.edit_mode_arr_read_failed
+            EditAccessUseCase.Failure.ARR_ACCESS_KEYS_UNAVAILABLE ->
+                R.string.edit_mode_arr_access_keys_unavailable
             EditAccessUseCase.Failure.ARR_RECORD_UNAVAILABLE ->
                 R.string.edit_mode_arr_record_unavailable
         }
+
+        internal fun arrAccessKeyUnavailableMessageResId(statuses: List<VerifyStatus>) =
+            when {
+                statuses.isNotEmpty() && statuses.all {
+                    it is VerifyStatus.Unavailable
+                            && it.reason == VerifyUnavailableReason.BLOCKED
+                } -> R.string.edit_mode_arr_no_verifiable_key
+                statuses.isNotEmpty() && statuses.all {
+                    it is VerifyStatus.Unavailable
+                            && (it.reason == VerifyUnavailableReason.BLOCKED
+                            || it.reason == VerifyUnavailableReason.LAST_ATTEMPT)
+                } -> R.string.edit_mode_arr_no_safe_key
+                else -> null
+            }
 
         internal fun verifyPinQualifierDisplayName(qualifier: VerifyPinQualifier): String =
             when (qualifier) {
@@ -508,16 +602,19 @@ class EfDetailFragment : Fragment() {
         val retries: Int
     )
 
-    private sealed class VerifyStatus {
+    internal sealed class VerifyStatus {
         object Verified : VerifyStatus()
-        data class Available(val retries: Int) : VerifyStatus()
+        data class Available(
+            val retries: Int,
+            val qualifier: VerifyPinQualifier
+        ) : VerifyStatus()
         data class Unavailable(
             val qualifier: VerifyPinQualifier,
             val reason: VerifyUnavailableReason
         ) : VerifyStatus()
     }
 
-    private enum class VerifyUnavailableReason {
+    internal enum class VerifyUnavailableReason {
         BLOCKED,
         LAST_ATTEMPT,
         UNKNOWN
