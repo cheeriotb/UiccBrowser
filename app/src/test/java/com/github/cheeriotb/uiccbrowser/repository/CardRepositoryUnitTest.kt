@@ -170,6 +170,10 @@ class CardRepositoryUnitTest {
 
         assertThat(repository.initialize()).isFalse()
         assertThat(repository.isAccessible).isFalse()
+
+        delay(1000)
+
+        verify { cardIoMock.closeRemainingChannel() }
     }
 
     @Test
@@ -225,6 +229,10 @@ class CardRepositoryUnitTest {
 
         // Skip already cached one and move to the next
         assertThat(repository.cacheFileControlParameters(FILE_ID_AD)).isTrue()
+
+        delay(1000)
+
+        verify { cardIoMock.closeRemainingChannel() }
     }
 
     @Test
@@ -616,6 +624,105 @@ class CardRepositoryUnitTest {
         assertThat(response.sw).isEqualTo(Result.SW_NORMAL)
         verify { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
                 VerifyPinQualifier.ADM10.value, pin)) }
+    }
+
+    @Test
+    fun verifyPin_success_retainsLogicalChannel() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        val response = repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+
+        assertThat(response.sw).isEqualTo(Result.SW_NORMAL)
+        delay(1000)
+
+        verify(exactly = 0) { cardIoMock.closeRemainingChannel() }
+    }
+
+    @Test
+    fun verifyPin_failure_closesLogicalChannelByTimer() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray("63C3"))
+
+        val response = repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+
+        assertThat(response.sw).isEqualTo(0x63C3)
+        delay(1000)
+
+        verify { cardIoMock.closeRemainingChannel() }
+    }
+
+    @Test
+    fun readBinary_afterVerifyPinSuccess_keepsLogicalChannel() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
+                Response(hexStringToByteArray(FCP + RESPONSE_NORMAL))
+        every {
+            cardIoMock.transmit(Command(Iso7816.INS_READ_BINARY, 0x00, 0x00, 0x100))
+        } returns
+                Response(hexStringToByteArray(DATA1 + RESPONSE_NORMAL))
+
+        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        val params = ReadBinaryParams.Builder(FILE_ID_FPLMN).build()
+        assertThat(repository.readBinary(params).sw).isEqualTo(Result.SW_NORMAL)
+        delay(1000)
+
+        verify(exactly = 0) { cardIoMock.closeRemainingChannel() }
+    }
+
+    @Test
+    fun releaseLogicalChannel_closesRetainedChannelAndRestoresTimer() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
+                Response(hexStringToByteArray(FCP + RESPONSE_NORMAL))
+        every {
+            cardIoMock.transmit(Command(Iso7816.INS_READ_BINARY, 0x00, 0x00, 0x100))
+        } returns
+                Response(hexStringToByteArray(DATA1 + RESPONSE_NORMAL))
+
+        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        repository.releaseLogicalChannel()
+        val params = ReadBinaryParams.Builder(FILE_ID_FPLMN).build()
+        assertThat(repository.readBinary(params).sw).isEqualTo(Result.SW_NORMAL)
+        delay(1000)
+
+        verify(atLeast = 2) { cardIoMock.closeRemainingChannel() }
     }
 
     @Test

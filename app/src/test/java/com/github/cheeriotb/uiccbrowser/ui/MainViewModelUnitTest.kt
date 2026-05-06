@@ -12,9 +12,13 @@ import android.app.Application
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
 import com.github.cheeriotb.uiccbrowser.R
+import com.github.cheeriotb.uiccbrowser.cardio.Interface
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.usecase.CardInfo
 import com.google.common.truth.Truth.assertThat
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Before
 import org.junit.Test
@@ -205,6 +209,32 @@ class MainViewModelUnitTest {
         viewModel.selectNavItem(item)
 
         assertThat(viewModel.selectedNavItem.value).isEqualTo(item)
+    }
+
+    @Test
+    fun selectNavItem_releasesSelectedSlotChannel() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        val repository = CardRepository.from(app, 0)
+        assertThat(repository).isNotNull()
+        val cardIoMock = mockk<Interface>()
+        every { cardIoMock.closeRemainingChannel() } answers { nothing }
+        ReflectionHelpers.setField(repository, "cardIo", cardIoMock)
+        val viewModel = MainViewModel(app)
+        val selectedSlot =
+            ReflectionHelpers.getField<MutableStateFlow<CardInfo?>>(
+                viewModel,
+                "_selectedSlot"
+            )
+        selectedSlot.value = CardInfo(0, "iccid0")
+        val item = NavItem(
+            label = resources.getString(R.string.nav_item_mf),
+            iconResId = R.drawable.ic_folder,
+            level = NavLevel.MF
+        )
+
+        viewModel.selectNavItem(item)
+
+        verify { cardIoMock.closeRemainingChannel() }
     }
 
     @Test

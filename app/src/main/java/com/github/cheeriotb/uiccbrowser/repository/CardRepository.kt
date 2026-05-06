@@ -35,6 +35,7 @@ class CardRepository private constructor (
     private val tag = TelephonyInterface::class.java.simpleName + slotId
     private var _iccId: String? = null
     private var closingJob: Job? = null
+    private var isLogicalChannelRetained = false
 
     val iccId: String? get() = _iccId
     var isProModeEnabled: Boolean = false
@@ -79,6 +80,7 @@ class CardRepository private constructor (
 
     suspend fun initialize(): Boolean {
         _iccId = null
+        isLogicalChannelRetained = false
 
         if (openChannel()) {
             val selectResponse = select(FileId.PATH_MF, FileId.EF_ICCID, fcpRequest = true)
@@ -105,6 +107,8 @@ class CardRepository private constructor (
                     Log.i(tag, "The card associated with the slot is accessible")
                     return true
                 }
+            } else {
+                startClosingTimer()
             }
         }
 
@@ -119,6 +123,7 @@ class CardRepository private constructor (
             return false // means that the caching process cannot be continued.
         }
         if (cacheIo.get(_iccId!!, fileId.aid, fileId.path, fileId.fileId) != null) {
+            startClosingTimer()
             return true // No need to cache it again
         }
 
@@ -251,9 +256,21 @@ class CardRepository private constructor (
         }
 
         val response = verifyPin(qualifier, paddedCode)
-        startClosingTimer()
+        if (response.isOk) {
+            retainLogicalChannel()
+        } else {
+            startClosingTimer()
+        }
 
         return response
+    }
+
+    fun releaseLogicalChannel() {
+        synchronized(this) {
+            isLogicalChannelRetained = false
+        }
+        cancelClosingTimerJob()
+        cardIo.closeRemainingChannel()
     }
 
     private suspend fun openChannel(
@@ -322,6 +339,10 @@ class CardRepository private constructor (
 
     private fun startClosingTimer() {
         synchronized(this) {
+            if (isLogicalChannelRetained) {
+                Log.d(tag, "Skipped releasing the retained logical channel")
+                return
+            }
             closingJob = GlobalScope.launch {
                 delay(CLOSING_TIMER_MILLIS)
                 cardIo.closeRemainingChannel()
@@ -331,20 +352,30 @@ class CardRepository private constructor (
         }
     }
 
-    private suspend fun cancelClosingTimer() {
-        var controller: Job? = null
+    private fun retainLogicalChannel() {
         synchronized(this) {
-            if (closingJob != null) {
-                closingJob!!.cancel()
-                controller = closingJob
-                closingJob = null
-                Log.d(tag, "Canceled the launched job")
-            }
+            isLogicalChannelRetained = true
+            Log.d(tag, "Retained the logical channel")
         }
+    }
+
+    private fun cancelClosingTimerJob(): Job? {
+        synchronized(this) {
+            val controller = closingJob ?: return null
+            controller.cancel()
+            closingJob = null
+            Log.d(tag, "Canceled the launched job")
+            return controller
+        }
+    }
+
+    private suspend fun cancelClosingTimer() {
+        val controller = cancelClosingTimerJob()
         controller?.join()
     }
 
     suspend fun dispose() {
+        isLogicalChannelRetained = false
         cancelClosingTimer()
         _iccId = null
         cardIo.dispose()

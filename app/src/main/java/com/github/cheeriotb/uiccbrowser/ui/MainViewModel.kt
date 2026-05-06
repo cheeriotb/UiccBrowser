@@ -51,6 +51,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val selectedNavItem: StateFlow<NavItem?> = _selectedNavItem.asStateFlow()
 
     fun selectNavItem(item: NavItem) {
+        releaseSelectedSlotChannel()
         _selectedNavItem.value = item
     }
 
@@ -70,6 +71,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectSlot(slotId: Int) {
         val slotInfo = _availableSlots.value.find { it.slotId == slotId } ?: return
+        releaseSelectedSlotChannel()
         _isProModeEnabled.value = proModeEnabledFor(slotId)
         _selectedSlot.value = slotInfo
         startMfCaching(slotInfo)
@@ -91,6 +93,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun proModeEnabledFor(slotId: Int): Boolean =
         CardRepository.from(getApplication<Application>().applicationContext, slotId)
             ?.isProModeEnabled ?: false
+
+    private fun releaseSelectedSlotChannel() {
+        val slotId = _selectedSlot.value?.slotId ?: return
+        CardRepository.from(getApplication<Application>().applicationContext, slotId)
+            ?.releaseLogicalChannel()
+    }
 
     private fun startMfCaching(cardInfo: CardInfo) {
         viewModelScope.launch {
