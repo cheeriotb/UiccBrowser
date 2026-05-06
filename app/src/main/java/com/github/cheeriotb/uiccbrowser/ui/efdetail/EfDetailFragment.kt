@@ -160,7 +160,11 @@ class EfDetailFragment : Fragment() {
         repo: CardRepository
     ): Boolean {
         while (true) {
-            val outcome = EditAccessUseCase(requireContext()).execute(slotId, viewModel.fileId)
+            val outcome = EditAccessUseCase(requireContext()).execute(
+                slotId,
+                viewModel.fileId,
+                requireReadAccess = requiresReadAccessForEdit(binaryViewModel.readError.value)
+            )
             val failure = outcome.failure
             if (failure != null) {
                 showMessage(getString(messageResId(failure)))
@@ -532,6 +536,9 @@ class EfDetailFragment : Fragment() {
 
         internal fun buildErrorMessage(result: Result, errorMessage: String): String =
             "SW %04X: %s".format(result.sw, errorMessage)
+
+        internal fun requiresReadAccessForEdit(readError: Result?): Boolean =
+            readError?.sw == Result.SW_INSUFFICIENT_SECURITY
 
         internal fun messageResId(failure: EditAccessUseCase.Failure) = when (failure) {
             EditAccessUseCase.Failure.CARD_UNAVAILABLE -> R.string.edit_mode_card_unavailable

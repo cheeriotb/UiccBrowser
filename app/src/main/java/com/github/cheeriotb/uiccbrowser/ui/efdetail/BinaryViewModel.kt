@@ -40,6 +40,9 @@ class BinaryViewModel(
     private val _error = MutableStateFlow<Result?>(null)
     val error: StateFlow<Result?> = _error.asStateFlow()
 
+    private val _readError = MutableStateFlow<Result?>(null)
+    val readError: StateFlow<Result?> = _readError.asStateFlow()
+
     private var dataSource = DataSource.UNKNOWN
     private var recordLength = 0
     private var currentRecordNo = 1
@@ -88,7 +91,7 @@ class BinaryViewModel(
         val readRecordUseCase = ReadRecordUseCase(getApplication())
         val infoResult = readRecordUseCase.getInfoDetailed(slotId, fileId)
         if (infoResult.error != null) {
-            _error.value = infoResult.error
+            setReadError(infoResult.error)
             return
         }
         val info = infoResult.info ?: return
@@ -101,11 +104,12 @@ class BinaryViewModel(
     private suspend fun readBinary(): Boolean {
         val binaryResult = ReadBinaryUseCase(getApplication()).executeDetailed(slotId, fileId)
         if (binaryResult.error != null) {
-            _error.value = binaryResult.error
+            setReadError(binaryResult.error)
             return true
         }
         val data = binaryResult.data ?: return false
         dataSource = DataSource.TRANSPARENT
+        _readError.value = null
         _data.value = data
         return true
     }
@@ -126,10 +130,16 @@ class BinaryViewModel(
         val recordResult = ReadRecordUseCase(getApplication())
             .executeDetailed(slotId, fileId, recordNo, recordLength)
         if (recordResult.error != null) {
-            _error.value = recordResult.error
+            setReadError(recordResult.error)
         } else {
+            _readError.value = null
             _data.value = recordResult.data
         }
+    }
+
+    private fun setReadError(result: Result) {
+        _readError.value = result
+        _error.value = result
     }
 
     internal enum class DataSource {

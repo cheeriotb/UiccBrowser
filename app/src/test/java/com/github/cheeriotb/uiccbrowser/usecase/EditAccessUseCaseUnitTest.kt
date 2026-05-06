@@ -53,6 +53,8 @@ class EditAccessUseCaseUnitTest {
         private const val FID_ARR = "2F06"
         private const val FCP_COMPACT_ADM1_UPDATE_READ_ALWAYS = "62058C03030A00"
         private const val FCP_EXPANDED_ADM1_READ_UPDATE = "620AAB08800103A40383010A"
+        private const val FCP_EXPANDED_PIN1_READ_ADM1_UPDATE =
+                "6212AB10800101A403830101800102A40383010A"
         private const val FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS =
                 "6211AB0F800103A00AA403830101A40383010A"
         private const val FCP_ARR_REF_RECORD4 = "62058B032F0604"
@@ -60,6 +62,8 @@ class EditAccessUseCaseUnitTest {
                 "6211C60F90017083010183010A83010B830181"
         private const val FCP_MF_NO_PIN_STATUS = "62028200"
         private const val ARR_RECORD_ADM1_READ_UPDATE = "800103A40383010A"
+        private const val ARR_RECORD_PIN1_READ_ADM1_UPDATE =
+                "800101A403830101800102A40383010A"
 
         private val FILE_ID = FileId(AID, PATH_ADF, FID_AD)
     }
@@ -112,6 +116,33 @@ class EditAccessUseCaseUnitTest {
     }
 
     @Test
+    fun execute_expandedSecurityAttributesWithoutReadAccess_returnsUpdateQualifier() {
+        runBlocking {
+            cacheFcp(FCP_EXPANDED_PIN1_READ_ADM1_UPDATE)
+
+            val outcome = useCase.execute(0, FILE_ID, requireReadAccess = false)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+        }
+    }
+
+    @Test
+    fun execute_expandedSecurityAttributesWithReadAccess_returnsReadAndUpdateQualifiers() {
+        runBlocking {
+            cacheFcp(FCP_EXPANDED_PIN1_READ_ADM1_UPDATE)
+
+            val outcome = useCase.execute(0, FILE_ID, requireReadAccess = true)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.qualifiers).containsExactly(
+                    VerifyPinQualifier.GLOBAL_PIN1,
+                    VerifyPinQualifier.ADM1
+            )
+        }
+    }
+
+    @Test
     fun execute_expandedOrSecurityAttributes_returnsQualifierOptions() {
         runBlocking {
             cacheFcp(FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS)
@@ -138,6 +169,24 @@ class EditAccessUseCaseUnitTest {
                     } returns Response(hexStringToByteArray(ARR_RECORD_ADM1_READ_UPDATE + "9000"))
 
             val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+        }
+    }
+
+    @Test
+    fun execute_arrReferenceWithoutReadAccess_returnsUpdateQualifier() {
+        runBlocking {
+            cacheFcp(FCP_ARR_REF_RECORD4)
+            every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                    hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
+                    Response(hexStringToByteArray("9000"))
+            every { cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x04, 0x04, 0x100))
+                    } returns
+                    Response(hexStringToByteArray(ARR_RECORD_PIN1_READ_ADM1_UPDATE + "9000"))
+
+            val outcome = useCase.execute(0, FILE_ID, requireReadAccess = false)
 
             assertThat(outcome.failure).isNull()
             assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)

@@ -114,6 +114,25 @@ class EfDetailFragmentUnitTest {
     }
 
     @Test
+    fun requiresReadAccessForEdit_insufficientSecurity_returnsTrue() {
+        val result = Result.Builder().sw(Result.SW_INSUFFICIENT_SECURITY).build()
+
+        assertThat(EfDetailFragment.requiresReadAccessForEdit(result)).isTrue()
+    }
+
+    @Test
+    fun requiresReadAccessForEdit_notInsufficientSecurity_returnsFalse() {
+        val result = Result.Builder().sw(Result.SW_NOT_FOUND).build()
+
+        assertThat(EfDetailFragment.requiresReadAccessForEdit(result)).isFalse()
+    }
+
+    @Test
+    fun requiresReadAccessForEdit_null_returnsFalse() {
+        assertThat(EfDetailFragment.requiresReadAccessForEdit(null)).isFalse()
+    }
+
+    @Test
     fun messageResId_editAccessFailures_returnsMessageResources() {
         assertThat(EfDetailFragment.messageResId(EditAccessUseCase.Failure.CARD_UNAVAILABLE))
             .isEqualTo(R.string.edit_mode_card_unavailable)

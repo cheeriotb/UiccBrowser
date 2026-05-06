@@ -42,7 +42,11 @@ class EditAccessUseCase(private val context: Context) {
         ARR_RECORD_UNAVAILABLE
     }
 
-    suspend fun execute(slotId: Int, fileId: FileId): Outcome {
+    suspend fun execute(
+        slotId: Int,
+        fileId: FileId,
+        requireReadAccess: Boolean = true
+    ): Outcome {
         val repo = CardRepository.from(context, slotId) ?: return Outcome(
                 failure = Failure.CARD_UNAVAILABLE)
         if (!repo.isAccessible) return Outcome(failure = Failure.CARD_UNAVAILABLE)
@@ -54,21 +58,29 @@ class EditAccessUseCase(private val context: Context) {
         val fcpElement = FcpTemplate.decode(context.resources, fcpData)
             ?: return Outcome(failure = Failure.FCP_UNAVAILABLE)
 
-        val directOutcome = directSecurityAttributeOutcome(fcpElement)
+        val requiredMode = if (requireReadAccess) READ_BIT or UPDATE_BIT else UPDATE_BIT
+        val directOutcome = directSecurityAttributeOutcome(fcpElement, requiredMode)
         if (directOutcome != null) return directOutcome
 
         val arrRef = arrReference(fcpElement)
             ?: return Outcome(failure = Failure.SECURITY_ATTRIBUTES_UNAVAILABLE)
-        return arrSecurityAttributeOutcome(repo, fileId, arrRef)
+        return arrSecurityAttributeOutcome(repo, fileId, arrRef, requiredMode)
     }
 
-    private fun directSecurityAttributeOutcome(fcpElement: Element): Outcome? {
+    private fun directSecurityAttributeOutcome(
+        fcpElement: Element,
+        requiredMode: Int
+    ): Outcome? {
         val children = fcpElement.subElements.filterIsInstance<BerTlvElement>()
         val expanded = children.find { it.tag == FcpTemplate.TAG_SECURITY_ATTR_EXPAND }
-        if (expanded != null) return outcomeFromExpandedChildren(expanded.subElements)
+        if (expanded != null) {
+            return outcomeFromExpandedChildren(expanded.subElements, requiredMode)
+        }
 
         val compact = children.find { it.tag == FcpTemplate.TAG_SECURITY_ATTR_COMPACT }
-        if (compact != null) return outcomeFromModeOptions(parseCompact(compact.data))
+        if (compact != null) {
+            return outcomeFromModeOptions(parseCompact(compact.data), requiredMode)
+        }
 
         return null
     }
@@ -76,7 +88,8 @@ class EditAccessUseCase(private val context: Context) {
     private suspend fun arrSecurityAttributeOutcome(
         repo: CardRepository,
         fileId: FileId,
-        reference: ArrReference
+        reference: ArrReference,
+        requiredMode: Int
     ): Outcome {
         val arrFileId = FileId(fileId.aid, fileId.path, reference.fileId)
         val outcomes = reference.recordNumbers.map { recordNo ->
@@ -89,7 +102,7 @@ class EditAccessUseCase(private val context: Context) {
             }
             val element = EfArrRecord.decode(context.resources, result.data)
                 ?: return@map Outcome(failure = Failure.ARR_RECORD_UNAVAILABLE)
-            outcomeFromExpandedChildren(element.subElements)
+            outcomeFromExpandedChildren(element.subElements, requiredMode)
         }
 
         return outcomes
@@ -119,11 +132,13 @@ class EditAccessUseCase(private val context: Context) {
         return Outcome(exploreQualifierOptions = qualifiers)
     }
 
-    private fun outcomeFromExpandedChildren(children: List<Element>): Outcome =
-        outcomeFromModeOptions(parseExpanded(children))
+    private fun outcomeFromExpandedChildren(
+        children: List<Element>,
+        requiredMode: Int
+    ): Outcome = outcomeFromModeOptions(parseExpanded(children), requiredMode)
 
-    private fun outcomeFromModeOptions(options: ModeOptions): Outcome {
-        val qualifierOptions = options.qualifierOptionsFor(READ_BIT or UPDATE_BIT)
+    private fun outcomeFromModeOptions(options: ModeOptions, requiredMode: Int): Outcome {
+        val qualifierOptions = options.qualifierOptionsFor(requiredMode)
         if (qualifierOptions.isEmpty()) {
             return Outcome(failure = Failure.SECURITY_CONDITION_UNSUPPORTED)
         }
