@@ -20,9 +20,11 @@ import com.github.cheeriotb.uiccbrowser.cardio.Response
 import com.github.cheeriotb.uiccbrowser.cardio.TelephonyInterface
 import com.github.cheeriotb.uiccbrowser.util.byteToHexString
 import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -33,9 +35,12 @@ class CardRepository private constructor (
     private val cacheIo: SelectResponseDataSource
 ) {
     private val tag = TelephonyInterface::class.java.simpleName + slotId
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var _iccId: String? = null
     private var closingJob: Job? = null
     private var isLogicalChannelRetained = false
+    private val verifiedPinQualifiers = mutableSetOf<VerifyPinQualifier>()
+    private val trustedPinQualifiersForNextAccess = mutableSetOf<VerifyPinQualifier>()
 
     val iccId: String? get() = _iccId
     var isProModeEnabled: Boolean = false
@@ -68,6 +73,12 @@ class CardRepository private constructor (
             return if (instances!!.size > slotId) instances!![slotId] else null
         }
 
+        private fun clearInstances() {
+            synchronized(this) {
+                instances = null
+            }
+        }
+
         const val SIZE_MAX = 0x100
 
         const val SW_INTERNAL_EXCEPTION = Iso7816.SW1_INTERNAL_EXCEPTION shl 8
@@ -81,6 +92,7 @@ class CardRepository private constructor (
     suspend fun initialize(): Boolean {
         _iccId = null
         isLogicalChannelRetained = false
+        clearVerifiedPins()
 
         if (openChannel()) {
             val selectResponse = select(FileId.PATH_MF, FileId.EF_ICCID, fcpRequest = true)
@@ -160,7 +172,7 @@ class CardRepository private constructor (
                     .build()
         }
 
-        val response = readBinary(params.offset, params.size)
+        val response = transmitReadWriteCommand(readBinaryCommand(params.offset, params.size))
         startClosingTimer()
 
         return Result.Builder(params.fileId.fileId)
@@ -187,7 +199,7 @@ class CardRepository private constructor (
                 .p2(0x04 /* Absolute/current mode, the record number is given in P1 */)
                 .le(params.recordSize)
                 .build()
-        val response = cardIo.transmit(command)
+        val response = transmitReadWriteCommand(command)
         startClosingTimer()
 
         return Result.Builder(params.fileId.fileId)
@@ -218,7 +230,7 @@ class CardRepository private constructor (
                     .p2(0x04 /* Absolute/current mode, the record number is given in P1 */)
                     .le(params.recordSize)
                     .build()
-            val response = cardIo.transmit(command)
+            val response = transmitReadWriteCommand(command)
             val result = Result.Builder(params.fileId.fileId)
                     .data(response.data)
                     .sw(response.sw)
@@ -257,6 +269,7 @@ class CardRepository private constructor (
 
         val response = verifyPin(qualifier, paddedCode)
         if (response.isOk) {
+            rememberVerifiedPin(qualifier)
             retainLogicalChannel()
         } else {
             startClosingTimer()
@@ -268,9 +281,26 @@ class CardRepository private constructor (
     fun releaseLogicalChannel() {
         synchronized(this) {
             isLogicalChannelRetained = false
+            clearVerifiedPins()
         }
         cancelClosingTimerJob()
         cardIo.closeRemainingChannel()
+    }
+
+    /** Returns true when this repository has observed a successful VERIFY for [qualifier]. */
+    fun isPinVerified(qualifier: VerifyPinQualifier): Boolean =
+        synchronized(this) { qualifier in verifiedPinQualifiers }
+
+    /**
+     * Marks remembered PINs that were trusted instead of VERIFY for the next READ/UPDATE command.
+     *
+     * If that command fails with SW6982, only these PINs are removed from the remembered set.
+     */
+    fun markVerifiedPinsTrustedForNextAccess(qualifiers: Collection<VerifyPinQualifier>) {
+        synchronized(this) {
+            trustedPinQualifiersForNextAccess.clear()
+            trustedPinQualifiersForNextAccess.addAll(qualifiers)
+        }
     }
 
     private suspend fun openChannel(
@@ -298,12 +328,23 @@ class CardRepository private constructor (
         offset: Int = 0,
         size: Int = SIZE_MAX
     ): Response {
-        val command = Command.Builder(Iso7816.INS_READ_BINARY)
+        return cardIo.transmit(readBinaryCommand(offset, size))
+    }
+
+    private fun readBinaryCommand(
+        offset: Int = 0,
+        size: Int = SIZE_MAX
+    ): Command =
+        Command.Builder(Iso7816.INS_READ_BINARY)
                 .p1(offset.and(0x7F00).shr(8))
                 .p2(offset.and(0x00FF))
                 .le(size)
                 .build()
-        return cardIo.transmit(command)
+
+    private fun transmitReadWriteCommand(command: Command): Response {
+        val response = cardIo.transmit(command)
+        updateVerifiedPinsForReadWriteResponse(response.sw)
+        return response
     }
 
     private fun verifyPin(
@@ -343,7 +384,7 @@ class CardRepository private constructor (
                 Log.d(tag, "Skipped releasing the retained logical channel")
                 return
             }
-            closingJob = GlobalScope.launch {
+            closingJob = repositoryScope.launch {
                 delay(CLOSING_TIMER_MILLIS)
                 cardIo.closeRemainingChannel()
                 closingJob = null
@@ -356,6 +397,29 @@ class CardRepository private constructor (
         synchronized(this) {
             isLogicalChannelRetained = true
             Log.d(tag, "Retained the logical channel")
+        }
+    }
+
+    private fun rememberVerifiedPin(qualifier: VerifyPinQualifier) {
+        synchronized(this) {
+            verifiedPinQualifiers.add(qualifier)
+            Log.d(tag, "Remembered a successful VERIFY result")
+        }
+    }
+
+    private fun clearVerifiedPins() {
+        synchronized(this) {
+            verifiedPinQualifiers.clear()
+            trustedPinQualifiersForNextAccess.clear()
+        }
+    }
+
+    private fun updateVerifiedPinsForReadWriteResponse(sw: Int) {
+        synchronized(this) {
+            if (sw == Result.SW_INSUFFICIENT_SECURITY) {
+                verifiedPinQualifiers.removeAll(trustedPinQualifiersForNextAccess)
+            }
+            trustedPinQualifiersForNextAccess.clear()
         }
     }
 
@@ -376,9 +440,12 @@ class CardRepository private constructor (
 
     suspend fun dispose() {
         isLogicalChannelRetained = false
+        clearVerifiedPins()
         cancelClosingTimer()
+        repositoryScope.cancel()
         _iccId = null
         cardIo.dispose()
+        clearInstances()
         Log.d(tag, "Disposed")
     }
 }

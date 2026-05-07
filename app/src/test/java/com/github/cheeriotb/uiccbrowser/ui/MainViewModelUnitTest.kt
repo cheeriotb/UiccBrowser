@@ -11,6 +11,7 @@ package com.github.cheeriotb.uiccbrowser.ui
 import android.app.Application
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.rule.GrantPermissionRule
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.cardio.Interface
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
@@ -21,6 +22,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -28,6 +30,9 @@ import org.robolectric.util.ReflectionHelpers
 
 @RunWith(RobolectricTestRunner::class)
 class MainViewModelUnitTest {
+    @Rule @JvmField
+    val grantPermissionRule: GrantPermissionRule =
+        GrantPermissionRule.grant(android.Manifest.permission.READ_PHONE_STATE)
 
     private lateinit var resources: Resources
 

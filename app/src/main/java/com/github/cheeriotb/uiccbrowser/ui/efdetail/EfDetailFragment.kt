@@ -194,13 +194,18 @@ class EfDetailFragment : Fragment() {
     ): Boolean {
         if (qualifierOptions.isEmpty()) return true
 
-        val candidates = mutableListOf<List<VerifyRequirement>>()
+        val candidates = mutableListOf<VerifyCandidate>()
         val unavailable = mutableListOf<VerifyStatus.Unavailable>()
         for (option in qualifierOptions) {
             if (option.isEmpty()) return true
             val requirements = mutableListOf<VerifyRequirement>()
+            val trustedQualifiers = mutableSetOf<VerifyPinQualifier>()
             var optionUsable = true
             for (qualifier in option) {
+                if (repo.isPinVerified(qualifier)) {
+                    trustedQualifiers.add(qualifier)
+                    continue
+                }
                 when (val status = verifyStatus(
                     repo.queryVerifyPinRetries(qualifier, aid).sw,
                     qualifier
@@ -216,8 +221,13 @@ class EfDetailFragment : Fragment() {
                     }
                 }
             }
-            if (optionUsable && requirements.isEmpty()) return true
-            if (optionUsable && requirements.isNotEmpty()) candidates.add(requirements)
+            if (optionUsable && requirements.isEmpty()) {
+                repo.markVerifiedPinsTrustedForNextAccess(trustedQualifiers)
+                return true
+            }
+            if (optionUsable && requirements.isNotEmpty()) {
+                candidates.add(VerifyCandidate(requirements, trustedQualifiers))
+            }
         }
 
         if (candidates.isEmpty()) {
@@ -230,9 +240,10 @@ class EfDetailFragment : Fragment() {
         } else {
             showVerifyOptionDialog(candidates) ?: return false
         }
-        for (requirement in selected) {
+        for (requirement in selected.requirements) {
             if (!verifyQualifier(repo, aid, requirement)) return false
         }
+        repo.markVerifiedPinsTrustedForNextAccess(selected.trustedQualifiers)
         return true
     }
 
@@ -240,8 +251,18 @@ class EfDetailFragment : Fragment() {
         repo: CardRepository,
         qualifiers: List<VerifyPinQualifier>
     ): Boolean {
+        val trustedQualifiers = mutableSetOf<VerifyPinQualifier>()
         val statuses = qualifiers.map { qualifier ->
-            verifyStatus(repo.queryVerifyPinRetries(qualifier).sw, qualifier)
+            if (repo.isPinVerified(qualifier)) {
+                trustedQualifiers.add(qualifier)
+                VerifyStatus.Verified
+            } else {
+                verifyStatus(repo.queryVerifyPinRetries(qualifier).sw, qualifier)
+            }
+        }
+        if (trustedQualifiers.isNotEmpty()) {
+            repo.markVerifiedPinsTrustedForNextAccess(trustedQualifiers)
+            return true
         }
 
         val candidates = statuses.filterIsInstance<VerifyStatus.Available>()
@@ -324,10 +345,10 @@ class EfDetailFragment : Fragment() {
     }
 
     private suspend fun showVerifyOptionDialog(
-        candidates: List<List<VerifyRequirement>>
-    ): List<VerifyRequirement>? = suspendCancellableCoroutine { continuation ->
-        val labels = candidates.map { requirements ->
-            requirements.joinToString(" + ") {
+        candidates: List<VerifyCandidate>
+    ): VerifyCandidate? = suspendCancellableCoroutine { continuation ->
+        val labels = candidates.map { candidate ->
+            candidate.requirements.joinToString(" + ") {
                 verifyPinQualifierDisplayName(it.qualifier)
             }
         }.toTypedArray()
@@ -609,6 +630,11 @@ class EfDetailFragment : Fragment() {
     private data class VerifyRequirement(
         val qualifier: VerifyPinQualifier,
         val retries: Int
+    )
+
+    private data class VerifyCandidate(
+        val requirements: List<VerifyRequirement>,
+        val trustedQualifiers: Set<VerifyPinQualifier>
     )
 
     internal sealed class VerifyStatus {

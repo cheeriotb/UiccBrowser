@@ -401,6 +401,39 @@ class CardRepositoryUnitTest {
     }
 
     @Test
+    fun readBinary_insufficientSecurity_forgetsOnlyTrustedVerifiedPins() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM2.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
+                Response(hexStringToByteArray(FCP + RESPONSE_NORMAL))
+        every {
+            cardIoMock.transmit(Command(Iso7816.INS_READ_BINARY, 0x00, 0x00, 0x100))
+        } returns Response(hexStringToByteArray(
+                "%04X".format(Result.SW_INSUFFICIENT_SECURITY)
+        ))
+
+        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        repository.verifyPin(VerifyPinQualifier.ADM2, PIN_4_BYTES)
+        repository.markVerifiedPinsTrustedForNextAccess(listOf(VerifyPinQualifier.ADM1))
+        repository.readBinary(ReadBinaryParams.Builder(FILE_ID_FPLMN).build())
+
+        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM1)).isFalse()
+        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM2)).isTrue()
+    }
+
+    @Test
     fun readRecord_openChannelError() = runBlocking {
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
         coEvery { cacheIoMock.insert(any()) } answers { nothing }
@@ -606,6 +639,42 @@ class CardRepositoryUnitTest {
         assertThat(response.sw).isEqualTo(Result.SW_NORMAL)
         verify { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
                 VerifyPinQualifier.ADM1.value, paddedPin)) }
+    }
+
+    @Test
+    fun verifyPin_success_remembersVerifiedPin() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+
+        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM1)).isTrue()
+        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM2)).isFalse()
+    }
+
+    @Test
+    fun queryVerifyPinRetries_success_doesNotRememberVerifiedPin() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        repository.queryVerifyPinRetries(VerifyPinQualifier.ADM1)
+
+        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM1)).isFalse()
     }
 
     @Test
