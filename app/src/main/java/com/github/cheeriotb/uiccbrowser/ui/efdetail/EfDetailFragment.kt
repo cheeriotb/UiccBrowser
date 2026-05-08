@@ -149,6 +149,7 @@ class EfDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             if (enableEditMode(slotId, repo)) {
                 editModeEnabled = true
+                viewModel.enableEditMode()
                 requireActivity().invalidateOptionsMenu()
                 showMessage(getString(R.string.edit_mode_enabled))
             }

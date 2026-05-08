@@ -12,6 +12,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.github.cheeriotb.uiccbrowser.element.EfDecoderRegistry
 import com.github.cheeriotb.uiccbrowser.repository.FileId
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class EfDetailViewModel(
     val efName: String,
@@ -21,6 +24,15 @@ class EfDetailViewModel(
 
     val title: String = "$efName ($efFileId)"
     val hasDecoder: Boolean = EfDecoderRegistry.has(fileId.aid, fileId.path + fileId.fileId)
+
+    private val _isEditModeEnabled = MutableStateFlow(false)
+
+    /** Indicates whether write editing controls should be visible for this EF. */
+    val isEditModeEnabled: StateFlow<Boolean> = _isEditModeEnabled.asStateFlow()
+
+    fun enableEditMode() {
+        _isEditModeEnabled.value = true
+    }
 
     class Factory(
         private val efName: String,

@@ -30,6 +30,7 @@ class BinaryFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val mainViewModel: MainViewModel by activityViewModels()
+    private lateinit var efDetailViewModel: EfDetailViewModel
     private lateinit var viewModel: BinaryViewModel
     private lateinit var gridAdapter: BinaryGridAdapter
 
@@ -45,7 +46,7 @@ class BinaryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val efDetailViewModel =
+        efDetailViewModel =
             ViewModelProvider(requireParentFragment())[EfDetailViewModel::class.java]
         val fileId = efDetailViewModel.fileId
         val slotId = mainViewModel.selectedSlot.value?.slotId ?: 0
@@ -92,13 +93,19 @@ class BinaryFragment : Fragment() {
                 launch {
                     viewModel.isLoading.collect { loading ->
                         binding.progressIndicator.isVisible = loading
-                        binding.headerRecyclerView.isVisible = !loading && viewModel.data.value?.isNotEmpty() == true
+                        binding.headerRecyclerView.isVisible =
+                            !loading && viewModel.data.value?.isNotEmpty() == true
                         binding.dataRecyclerView.isVisible = !loading
                     }
                 }
                 launch {
                     viewModel.data.collect { data ->
                         if (data != null) gridAdapter.updateData(data)
+                    }
+                }
+                launch {
+                    efDetailViewModel.isEditModeEnabled.collect { enabled ->
+                        binding.editKeyboardLayout.isVisible = enabled
                     }
                 }
             }

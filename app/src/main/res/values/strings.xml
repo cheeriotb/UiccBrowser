@@ -98,6 +98,26 @@
     <string name="edit_mode_last_attempt">Only one verification attempt remains for %1$s. Edit mode will not continue.</string>
     <string name="edit_mode_blocked">%1$s is blocked. Edit mode will not continue.</string>
     <string name="edit_mode_retries_unknown">Remaining attempts for %1$s are unknown. Edit mode will not continue.</string>
+    <string name="keyboard_hex_0">0</string>
+    <string name="keyboard_hex_1">1</string>
+    <string name="keyboard_hex_2">2</string>
+    <string name="keyboard_hex_3">3</string>
+    <string name="keyboard_hex_4">4</string>
+    <string name="keyboard_hex_5">5</string>
+    <string name="keyboard_hex_6">6</string>
+    <string name="keyboard_hex_7">7</string>
+    <string name="keyboard_hex_8">8</string>
+    <string name="keyboard_hex_9">9</string>
+    <string name="keyboard_hex_a">A</string>
+    <string name="keyboard_hex_b">B</string>
+    <string name="keyboard_hex_c">C</string>
+    <string name="keyboard_hex_d">D</string>
+    <string name="keyboard_hex_e">E</string>
+    <string name="keyboard_hex_f">F</string>
+    <string name="keyboard_insert">Insert</string>
+    <string name="keyboard_delete">Delete</string>
+    <string name="keyboard_quit">Quit</string>
+    <string name="keyboard_save">Save</string>
 
     <string name="sw6982_insufficient_security">Security status not satisfied</string>
     <string name="sw6983_auth_method_blocked">Authentication method blocked</string>
