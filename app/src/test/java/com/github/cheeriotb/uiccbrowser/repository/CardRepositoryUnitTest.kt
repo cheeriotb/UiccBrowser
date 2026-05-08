@@ -434,6 +434,129 @@ class CardRepositoryUnitTest {
     }
 
     @Test
+    fun updateBinary_openChannelError() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
+                Interface.OpenChannelResult.GENERIC_FAILURE
+
+        val data = hexStringToByteArray(DATA1)
+        val params = UpdateBinaryParams.Builder(FILE_ID_FPLMN)
+                .data(data)
+                .build()
+        val result = Result.Builder(FID_FPLMN)
+                .sw(CardRepository.SW_INTERNAL_EXCEPTION)
+                .build()
+        assertThat(repository.updateBinary(params)).isEqualTo(result)
+
+        verify { cardIoMock.openChannel(hexStringToByteArray(AID)) }
+        verify(inverse = true) { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
+                0x08, 0x0C, hexStringToByteArray(PATH_ADF + FID_FPLMN))) }
+    }
+
+    @Test
+    fun updateBinary_selectError() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
+                Response(hexStringToByteArray(RESPONSE_NOT_FOUND))
+
+        val data = hexStringToByteArray(DATA1)
+        val params = UpdateBinaryParams.Builder(FILE_ID_FPLMN)
+                .data(data)
+                .build()
+        val result = Result.Builder(FID_FPLMN)
+                .sw(CardRepository.SW_INTERNAL_EXCEPTION)
+                .build()
+        assertThat(repository.updateBinary(params)).isEqualTo(result)
+
+        verifyOrder {
+            cardIoMock.openChannel(hexStringToByteArray(AID))
+            cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
+                    0x08, 0x0C, hexStringToByteArray(PATH_ADF + FID_FPLMN)))
+        }
+    }
+
+    @Test
+    fun updateBinary_success() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
+                Response(hexStringToByteArray(FCP + RESPONSE_NORMAL))
+        val data = hexStringToByteArray(DATA1)
+        every {
+            cardIoMock.transmit(Command(Iso7816.INS_UPDATE_BINARY, 0x01, 0x23, data))
+        } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        val params = UpdateBinaryParams.Builder(FILE_ID_FPLMN)
+                .offset(0x0123)
+                .data(data)
+                .build()
+        val result = Result.Builder(FID_FPLMN)
+                .sw(Result.SW_NORMAL)
+                .build()
+        assertThat(repository.updateBinary(params)).isEqualTo(result)
+
+        delay(1000)
+
+        verifyOrder {
+            cardIoMock.openChannel(hexStringToByteArray(AID))
+            cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                    hexStringToByteArray(PATH_ADF + FID_FPLMN)))
+            cardIoMock.transmit(Command(Iso7816.INS_UPDATE_BINARY, 0x01, 0x23, data))
+            cardIoMock.closeRemainingChannel()
+        }
+    }
+
+    @Test
+    fun updateBinary_insufficientSecurity_forgetsOnlyTrustedVerifiedPins() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                VerifyPinQualifier.ADM2.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
+                Response(hexStringToByteArray(FCP + RESPONSE_NORMAL))
+        val data = hexStringToByteArray(DATA1)
+        every { cardIoMock.transmit(Command(Iso7816.INS_UPDATE_BINARY, 0x00, 0x00, data)) } returns
+                Response(hexStringToByteArray(
+                        "%04X".format(Result.SW_INSUFFICIENT_SECURITY)
+                ))
+
+        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        repository.verifyPin(VerifyPinQualifier.ADM2, PIN_4_BYTES)
+        repository.markVerifiedPinsTrustedForNextAccess(listOf(VerifyPinQualifier.ADM1))
+        repository.updateBinary(UpdateBinaryParams.Builder(FILE_ID_FPLMN).data(data).build())
+
+        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM1)).isFalse()
+        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM2)).isTrue()
+    }
+
+    @Test
     fun readRecord_openChannelError() = runBlocking {
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) } returns null
         coEvery { cacheIoMock.insert(any()) } answers { nothing }
@@ -509,6 +632,98 @@ class CardRepositoryUnitTest {
             cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                     hexStringToByteArray(FID_DIR)))
             cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x01, 0x04, 0x100))
+            cardIoMock.closeRemainingChannel()
+        }
+    }
+
+    @Test
+    fun updateRecord_openChannelError() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
+                Interface.OpenChannelResult.GENERIC_FAILURE
+
+        val data = hexStringToByteArray(DATA1)
+        val params = UpdateRecordParams.Builder(FILE_ID_DIR)
+                .recordNo(1)
+                .data(data)
+                .build()
+        val result = Result.Builder(FID_DIR)
+                .sw(CardRepository.SW_INTERNAL_EXCEPTION)
+                .build()
+        assertThat(repository.updateRecord(params)).isEqualTo(result)
+
+        verify { cardIoMock.openChannel(hexStringToByteArray(AID)) }
+        verify(inverse = true) { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
+                0x08, 0x0C, hexStringToByteArray(FID_DIR))) }
+    }
+
+    @Test
+    fun updateRecord_selectError() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                hexStringToByteArray(FID_DIR))) } returns
+                Response(hexStringToByteArray(RESPONSE_NOT_FOUND))
+
+        val data = hexStringToByteArray(DATA1)
+        val params = UpdateRecordParams.Builder(FILE_ID_DIR)
+                .recordNo(1)
+                .data(data)
+                .build()
+        val result = Result.Builder(FID_DIR)
+                .sw(CardRepository.SW_INTERNAL_EXCEPTION)
+                .build()
+        assertThat(repository.updateRecord(params)).isEqualTo(result)
+
+        verifyOrder {
+            cardIoMock.openChannel(hexStringToByteArray(AID))
+            cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE,
+                    0x08, 0x0C, hexStringToByteArray(FID_DIR)))
+        }
+    }
+
+    @Test
+    fun updateRecord_success() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                hexStringToByteArray(FID_DIR))) } returns
+                Response(hexStringToByteArray(FCP + RESPONSE_NORMAL))
+        val data = hexStringToByteArray(DATA1)
+        every {
+            cardIoMock.transmit(Command(Iso7816.INS_UPDATE_RECORD, 0x02, 0x04, data))
+        } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        val params = UpdateRecordParams.Builder(FILE_ID_DIR)
+                .recordNo(2)
+                .data(data)
+                .build()
+        val result = Result.Builder(FID_DIR)
+                .sw(Result.SW_NORMAL)
+                .build()
+        assertThat(repository.updateRecord(params)).isEqualTo(result)
+
+        delay(1000)
+
+        verifyOrder {
+            cardIoMock.openChannel(hexStringToByteArray(AID))
+            cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                    hexStringToByteArray(FID_DIR)))
+            cardIoMock.transmit(Command(Iso7816.INS_UPDATE_RECORD, 0x02, 0x04, data))
             cardIoMock.closeRemainingChannel()
         }
     }

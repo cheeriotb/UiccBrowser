@@ -172,7 +172,12 @@ class CardRepository private constructor (
                     .build()
         }
 
-        val response = transmitReadWriteCommand(readBinaryCommand(params.offset, params.size))
+        val command = Command.Builder(Iso7816.INS_READ_BINARY)
+                .p1(params.offset.and(0x7F00).shr(8))
+                .p2(params.offset.and(0x00FF))
+                .le(params.size)
+                .build()
+        val response = transmitReadWriteCommand(command)
         startClosingTimer()
 
         return Result.Builder(params.fileId.fileId)
@@ -198,6 +203,60 @@ class CardRepository private constructor (
                 .p1(params.recordNo)
                 .p2(0x04 /* Absolute/current mode, the record number is given in P1 */)
                 .le(params.recordSize)
+                .build()
+        val response = transmitReadWriteCommand(command)
+        startClosingTimer()
+
+        return Result.Builder(params.fileId.fileId)
+                .data(response.data)
+                .sw(response.sw)
+                .build()
+    }
+
+    suspend fun updateBinary(
+        params: UpdateBinaryParams
+    ): Result {
+        if (!isAccessible
+                || !openChannel(params.fileId.aid)
+                || !select(params.fileId.path, params.fileId.fileId).isOk) {
+            startClosingTimer()
+            return Result.Builder(params.fileId.fileId)
+                    .data(DATA_NONE)
+                    .sw(SW_INTERNAL_EXCEPTION)
+                    .build()
+        }
+
+        val command = Command.Builder(Iso7816.INS_UPDATE_BINARY)
+                .p1(params.offset.and(0x7F00).shr(8))
+                .p2(params.offset.and(0x00FF))
+                .data(params.data)
+                .build()
+        val response = transmitReadWriteCommand(command)
+        startClosingTimer()
+
+        return Result.Builder(params.fileId.fileId)
+                .data(response.data)
+                .sw(response.sw)
+                .build()
+    }
+
+    suspend fun updateRecord(
+        params: UpdateRecordParams
+    ): Result {
+        if (!isAccessible
+                || !openChannel(params.fileId.aid)
+                || !select(params.fileId.path, params.fileId.fileId).isOk) {
+            startClosingTimer()
+            return Result.Builder(params.fileId.fileId)
+                    .data(DATA_NONE)
+                    .sw(SW_INTERNAL_EXCEPTION)
+                    .build()
+        }
+
+        val command = Command.Builder(Iso7816.INS_UPDATE_RECORD)
+                .p1(params.recordNo)
+                .p2(0x04 /* Absolute/current mode, the record number is given in P1 */)
+                .data(params.data)
                 .build()
         val response = transmitReadWriteCommand(command)
         startClosingTimer()
@@ -328,18 +387,13 @@ class CardRepository private constructor (
         offset: Int = 0,
         size: Int = SIZE_MAX
     ): Response {
-        return cardIo.transmit(readBinaryCommand(offset, size))
-    }
-
-    private fun readBinaryCommand(
-        offset: Int = 0,
-        size: Int = SIZE_MAX
-    ): Command =
-        Command.Builder(Iso7816.INS_READ_BINARY)
+        val command = Command.Builder(Iso7816.INS_READ_BINARY)
                 .p1(offset.and(0x7F00).shr(8))
                 .p2(offset.and(0x00FF))
                 .le(size)
                 .build()
+        return cardIo.transmit(command)
+    }
 
     private fun transmitReadWriteCommand(command: Command): Response {
         val response = cardIo.transmit(command)
