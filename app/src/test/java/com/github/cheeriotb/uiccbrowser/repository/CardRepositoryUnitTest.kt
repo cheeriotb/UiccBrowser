@@ -230,9 +230,7 @@ class CardRepositoryUnitTest {
         // Skip already cached one and move to the next
         assertThat(repository.cacheFileControlParameters(FILE_ID_AD)).isTrue()
 
-        delay(1000)
-
-        verify { cardIoMock.closeRemainingChannel() }
+        verify(inverse = true) { cardIoMock.openChannel(hexStringToByteArray(AID)) }
     }
 
     @Test
@@ -241,6 +239,7 @@ class CardRepositoryUnitTest {
         coEvery { cacheIoMock.insert(any()) } answers { nothing }
         repository.initialize()
 
+        coEvery { cacheIoMock.get(ICCID, AID, PATH_ADF, FID_AD) } returns null
         every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
                 Interface.OpenChannelResult.GENERIC_FAILURE
 
@@ -302,6 +301,34 @@ class CardRepositoryUnitTest {
         coVerify {
             cacheIoMock.insert(SelectResponse(ICCID, FileId.AID_NONE,
                     FileId.PATH_MF, FileId.MF, hexStringToByteArray(FCP), Result.SW_NORMAL))
+        }
+    }
+
+    @Test
+    fun readDirectoryFileControlParameters_adfSelectsDirectoryOnly() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+                } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x04,
+                hexStringToByteArray(PATH_ADF))) } returns
+                Response(hexStringToByteArray(RESPONSE_FCP))
+
+        val result = repository.readDirectoryFileControlParameters(LEVEL_ADF)
+
+        assertThat(result.isOk).isTrue()
+        assertThat(result.data).isEqualTo(hexStringToByteArray(FCP))
+        verify {
+            cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x04,
+                    hexStringToByteArray(PATH_ADF)))
+        }
+    }
+
+    @Test
+    fun readDirectoryFileControlParameters_efFileIdRejected() {
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { repository.readDirectoryFileControlParameters(FILE_ID_AD) }
         }
     }
 

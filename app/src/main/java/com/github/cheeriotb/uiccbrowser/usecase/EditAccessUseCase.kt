@@ -95,7 +95,7 @@ class EditAccessUseCase(private val context: Context) {
         val outcomes = reference.recordNumbers.map { recordNo ->
             val result = repo.readRecord(ReadRecordParams(arrFileId, recordNo))
             if (result.sw == Result.SW_INSUFFICIENT_SECURITY) {
-                return arrAccessKeyOutcome(repo)
+                return arrAccessKeyOutcome(fileId)
             }
             if (!result.isOk || result.data.isEmpty()) {
                 return Outcome(failure = Failure.ARR_READ_FAILED)
@@ -112,14 +112,9 @@ class EditAccessUseCase(private val context: Context) {
             ?: Outcome(failure = Failure.ARR_RECORD_UNAVAILABLE)
     }
 
-    private suspend fun arrAccessKeyOutcome(repo: CardRepository): Outcome {
-        val mfFileId = FileId(FileId.AID_NONE, FileId.PATH_MF, FileId.MF)
-        if (!repo.cacheFileControlParameters(mfFileId)) {
-            return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
-        }
-
-        val fcpData = repo.queryFileControlParameters(mfFileId)
-            .firstOrNull { it.isOk }
+    private fun arrAccessKeyOutcome(fileId: FileId): Outcome {
+        val fcpData = CurrentDirectoryFcpUseCase(context).queryForEf(fileId)
+            ?.takeIf { it.isOk }
             ?.data
             ?: return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
         val fcpElement = FcpTemplate.decode(context.resources, fcpData)

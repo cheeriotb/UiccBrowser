@@ -58,9 +58,10 @@ class EditAccessUseCaseUnitTest {
         private const val FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS =
                 "6211AB0F800103A00AA403830101A40383010A"
         private const val FCP_ARR_REF_RECORD4 = "62058B032F0604"
-        private const val FCP_MF_PIN_STATUS_ADM1_ADM2_LOCAL_PIN1 =
-                "6211C60F90017083010183010A83010B830181"
-        private const val FCP_MF_NO_PIN_STATUS = "62028200"
+        private const val FCP_ADF_PIN_STATUS_ADM1_ADM2_LOCAL_PIN1 =
+                "62238410A0000000871001FFFFFFFFFFFFFFFFFFC60F90017083010183010A83010B830181"
+        private const val FCP_ADF_NO_PIN_STATUS =
+                "62128410A0000000871001FFFFFFFFFFFFFFFFFF"
         private const val ARR_RECORD_ADM1_READ_UPDATE = "800103A40383010A"
         private const val ARR_RECORD_PIN1_READ_ADM1_UPDATE =
                 "800101A403830101800102A40383010A"
@@ -82,12 +83,14 @@ class EditAccessUseCaseUnitTest {
         ReflectionHelpers.setField(repository, "cardIo", cardIoMock)
         ReflectionHelpers.setField(repository, "cacheIo", cacheIoMock)
         ReflectionHelpers.setField(repository, "_iccId", ICCID)
+        CurrentDirectoryFcpUseCase.clearCache()
 
         useCase = EditAccessUseCase(ApplicationProvider.getApplicationContext())
     }
 
     @After
     fun tearDown() {
+        CurrentDirectoryFcpUseCase.clearCache()
         ReflectionHelpers.setStaticField(CardRepository::class.java, "instances", null)
     }
 
@@ -213,7 +216,7 @@ class EditAccessUseCaseUnitTest {
     fun execute_arrReferenceInsufficientSecurity_returnsExploreQualifierOptions() {
         runBlocking {
             cacheFcp(FCP_ARR_REF_RECORD4)
-            cacheMfFcp(FCP_MF_PIN_STATUS_ADM1_ADM2_LOCAL_PIN1)
+            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_ADM1_ADM2_LOCAL_PIN1)
             every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                     hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
                     Response(hexStringToByteArray("9000"))
@@ -235,7 +238,7 @@ class EditAccessUseCaseUnitTest {
     fun execute_arrReferenceInsufficientSecurityWithoutC6_returnsAccessKeysUnavailable() {
         runBlocking {
             cacheFcp(FCP_ARR_REF_RECORD4)
-            cacheMfFcp(FCP_MF_NO_PIN_STATUS)
+            prepareCurrentDirectoryFcp(FCP_ADF_NO_PIN_STATUS)
             every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                     hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
                     Response(hexStringToByteArray("9000"))
@@ -273,15 +276,11 @@ class EditAccessUseCaseUnitTest {
                 )
     }
 
-    private fun cacheMfFcp(fcp: String) {
-        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.MF) } returns
-                SelectResponse(
-                        ICCID,
-                        FileId.AID_NONE,
-                        FileId.PATH_MF,
-                        FileId.MF,
-                        hexStringToByteArray(fcp),
-                        Result.SW_NORMAL
-                )
+    private suspend fun prepareCurrentDirectoryFcp(fcp: String) {
+        every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x04,
+                hexStringToByteArray(PATH_ADF))) } returns
+                Response(hexStringToByteArray(fcp + "9000"))
+        CurrentDirectoryFcpUseCase(ApplicationProvider.getApplicationContext())
+            .prepareForEf(0, FILE_ID)
     }
 }

@@ -131,12 +131,14 @@ class CardRepository private constructor (
     suspend fun cacheFileControlParameters(
         fileId: FileId
     ): Boolean {
-        if (!isAccessible || !openChannel(fileId.aid)) {
+        if (!isAccessible) {
             return false // means that the caching process cannot be continued.
         }
         if (cacheIo.get(_iccId!!, fileId.aid, fileId.path, fileId.fileId) != null) {
-            startClosingTimer()
             return true // No need to cache it again
+        }
+        if (!openChannel(fileId.aid)) {
+            return false // means that the caching process cannot be continued.
         }
 
         val response = select(fileId.path, fileId.fileId, fcpRequest = true)
@@ -157,6 +159,37 @@ class CardRepository private constructor (
         } else {
             Result.from(cacheIo.get(_iccId!!, fileId.aid, fileId.path, fileId.fileId))
         }
+    }
+
+    /**
+     * Selects an MF, DF, or ADF by MF-relative path and returns its FCP template.
+     *
+     * This directory-only API is separate from EF FCP caching. [directory] must not identify an EF.
+     */
+    suspend fun readDirectoryFileControlParameters(directory: FileId): Result {
+        require(directory.fileId == FileId.FID_ALMIGHTY) {
+            "Directory FCP requests must not specify an EF file ID"
+        }
+        if (!isAccessible || !openChannel(directory.aid)) {
+            startClosingTimer()
+            return Result.Builder(directory.path)
+                    .data(DATA_NONE)
+                    .sw(SW_INTERNAL_EXCEPTION)
+                    .build()
+        }
+
+        val command = Command.Builder(Iso7816.INS_SELECT_FILE)
+                .p1(if (directory.path == FileId.PATH_MF) 0x00 else 0x08)
+                .p2(0x04 /* Return FCP template */)
+                .data(hexStringToByteArray(
+                        if (directory.path == FileId.PATH_MF) FID_MF else directory.path))
+                .build()
+        val response = cardIo.transmit(command)
+        startClosingTimer()
+        return Result.Builder(directory.path)
+                .data(response.data)
+                .sw(response.sw)
+                .build()
     }
 
     suspend fun readBinary(
