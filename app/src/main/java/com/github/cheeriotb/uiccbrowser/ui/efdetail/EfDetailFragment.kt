@@ -59,6 +59,9 @@ class EfDetailFragment : Fragment() {
     private lateinit var binaryViewModel: BinaryViewModel
     private var editModeEnabled = false
 
+    /** True while a READ failure is being recovered by VERIFY and refresh. */
+    private var readAccessRecoveryInProgress = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -163,12 +166,43 @@ class EfDetailFragment : Fragment() {
     private suspend fun enableEditMode(
         slotId: Int,
         repo: CardRepository
+    ): Boolean = verifyAccessRequirements(
+        slotId,
+        repo,
+        requireReadAccess = requiresReadAccessForEdit(binaryViewModel.readError.value)
+    )
+
+    private suspend fun enableReadAccess(
+        slotId: Int,
+        repo: CardRepository
+    ): Boolean = verifyAccessRequirements(slotId, repo, EditAccessUseCase.RequiredAccess.READ)
+
+    /**
+     * Verifies all key references needed for the requested EF access mode.
+     */
+    private suspend fun verifyAccessRequirements(
+        slotId: Int,
+        repo: CardRepository,
+        requireReadAccess: Boolean
+    ): Boolean {
+        val requiredAccess = if (requireReadAccess) {
+            EditAccessUseCase.RequiredAccess.READ_UPDATE
+        } else {
+            EditAccessUseCase.RequiredAccess.UPDATE
+        }
+        return verifyAccessRequirements(slotId, repo, requiredAccess)
+    }
+
+    private suspend fun verifyAccessRequirements(
+        slotId: Int,
+        repo: CardRepository,
+        requiredAccess: EditAccessUseCase.RequiredAccess
     ): Boolean {
         while (true) {
             val outcome = EditAccessUseCase(requireContext()).execute(
                 slotId,
                 viewModel.fileId,
-                requireReadAccess = requiresReadAccessForEdit(binaryViewModel.readError.value)
+                requiredAccess
             )
             val failure = outcome.failure
             if (failure != null) {
@@ -514,17 +548,49 @@ class EfDetailFragment : Fragment() {
                 launch {
                     binaryViewModel.error.collect { result ->
                         if (result != null) {
-                            Snackbar.make(
-                                binding.root,
-                                buildErrorMessage(result, getString(errorMessageResId(result))),
-                                Snackbar.LENGTH_LONG
-                            ).show()
-                            binaryViewModel.clearError()
+                            handleReadError(result)
                         }
                     }
                 }
             }
         }
+    }
+
+    private fun handleReadError(result: Result) {
+        if (shouldAttemptReadAccessRecovery(result, readAccessRecoveryInProgress)) {
+            readAccessRecoveryInProgress = true
+            binaryViewModel.clearError()
+            viewLifecycleOwner.lifecycleScope.launch {
+                val recovered = try {
+                    val slotId = mainViewModel.selectedSlot.value?.slotId
+                    val repo = slotId?.let { CardRepository.from(requireContext(), it) }
+                    if (slotId != null && repo != null) {
+                        enableReadAccess(slotId, repo)
+                    } else {
+                        false
+                    }
+                } finally {
+                    readAccessRecoveryInProgress = false
+                }
+                if (recovered) {
+                    binaryViewModel.refresh()
+                } else {
+                    showReadError(result)
+                }
+            }
+            return
+        }
+
+        showReadError(result)
+        binaryViewModel.clearError()
+    }
+
+    private fun showReadError(result: Result) {
+        Snackbar.make(
+            binding.root,
+            buildErrorMessage(result, getString(errorMessageResId(result))),
+            Snackbar.LENGTH_LONG
+        ).show()
     }
 
     override fun onResume() {
@@ -565,6 +631,11 @@ class EfDetailFragment : Fragment() {
 
         internal fun requiresReadAccessForEdit(readError: Result?): Boolean =
             readError?.sw == Result.SW_INSUFFICIENT_SECURITY
+
+        internal fun shouldAttemptReadAccessRecovery(
+            readError: Result,
+            inProgress: Boolean
+        ): Boolean = readError.sw == Result.SW_INSUFFICIENT_SECURITY && !inProgress
 
         internal fun messageResId(failure: EditAccessUseCase.Failure) = when (failure) {
             EditAccessUseCase.Failure.CARD_UNAVAILABLE -> R.string.edit_mode_card_unavailable

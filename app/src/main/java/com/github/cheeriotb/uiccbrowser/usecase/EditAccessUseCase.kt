@@ -42,10 +42,38 @@ class EditAccessUseCase(private val context: Context) {
         ARR_RECORD_UNAVAILABLE
     }
 
+    /**
+     * Access mode set to resolve from EF security attributes.
+     */
+    enum class RequiredAccess(val bits: Int) {
+        READ(READ_BIT),
+        UPDATE(UPDATE_BIT),
+        READ_UPDATE(READ_BIT or UPDATE_BIT)
+    }
+
+    /**
+     * Resolves VERIFY requirements for edit access.
+     */
     suspend fun execute(
         slotId: Int,
         fileId: FileId,
         requireReadAccess: Boolean = true
+    ): Outcome {
+        val requiredAccess = if (requireReadAccess) {
+            RequiredAccess.READ_UPDATE
+        } else {
+            RequiredAccess.UPDATE
+        }
+        return execute(slotId, fileId, requiredAccess)
+    }
+
+    /**
+     * Resolves VERIFY requirements for the requested access mode.
+     */
+    suspend fun execute(
+        slotId: Int,
+        fileId: FileId,
+        requiredAccess: RequiredAccess
     ): Outcome {
         val repo = CardRepository.from(context, slotId) ?: return Outcome(
                 failure = Failure.CARD_UNAVAILABLE)
@@ -58,28 +86,48 @@ class EditAccessUseCase(private val context: Context) {
         val fcpElement = FcpTemplate.decode(context.resources, fcpData)
             ?: return Outcome(failure = Failure.FCP_UNAVAILABLE)
 
-        val requiredMode = if (requireReadAccess) READ_BIT or UPDATE_BIT else UPDATE_BIT
-        val directOutcome = directSecurityAttributeOutcome(fcpElement, requiredMode)
+        val requiredMode = requiredAccess.bits
+        val enabledKeyReferences = currentEnabledKeyReferences(fileId)
+        val directOutcome = directSecurityAttributeOutcome(
+            fcpElement,
+            requiredMode,
+            enabledKeyReferences
+        )
         if (directOutcome != null) return directOutcome
 
         val arrRef = arrReference(fcpElement)
             ?: return Outcome(failure = Failure.SECURITY_ATTRIBUTES_UNAVAILABLE)
-        return arrSecurityAttributeOutcome(repo, fileId, arrRef, requiredMode)
+        return arrSecurityAttributeOutcome(
+            repo,
+            fileId,
+            arrRef,
+            requiredMode,
+            enabledKeyReferences
+        )
     }
 
     private fun directSecurityAttributeOutcome(
         fcpElement: Element,
-        requiredMode: Int
+        requiredMode: Int,
+        enabledKeyReferences: Set<KeyReference>?
     ): Outcome? {
         val children = fcpElement.subElements.filterIsInstance<BerTlvElement>()
         val expanded = children.find { it.tag == FcpTemplate.TAG_SECURITY_ATTR_EXPAND }
         if (expanded != null) {
-            return outcomeFromExpandedChildren(expanded.subElements, requiredMode)
+            return outcomeFromExpandedChildren(
+                expanded.subElements,
+                requiredMode,
+                enabledKeyReferences
+            )
         }
 
         val compact = children.find { it.tag == FcpTemplate.TAG_SECURITY_ATTR_COMPACT }
         if (compact != null) {
-            return outcomeFromAccessRules(parseCompact(compact.data), requiredMode)
+            return outcomeFromAccessRules(
+                parseCompact(compact.data),
+                requiredMode,
+                enabledKeyReferences
+            )
         }
 
         return null
@@ -89,7 +137,8 @@ class EditAccessUseCase(private val context: Context) {
         repo: CardRepository,
         fileId: FileId,
         reference: ArrReference,
-        requiredMode: Int
+        requiredMode: Int,
+        enabledKeyReferences: Set<KeyReference>?
     ): Outcome {
         val recordNo = applicableArrRecordNumber(fileId, reference)
             ?: return Outcome(failure = Failure.SECURITY_CONDITION_UNSUPPORTED)
@@ -106,7 +155,11 @@ class EditAccessUseCase(private val context: Context) {
         }
         val element = EfArrRecord.decode(context.resources, result.data)
             ?: return Outcome(failure = Failure.ARR_RECORD_UNAVAILABLE)
-        return outcomeFromExpandedChildren(element.subElements, requiredMode)
+        return outcomeFromExpandedChildren(
+            element.subElements,
+            requiredMode,
+            enabledKeyReferences
+        )
     }
 
     /**
@@ -140,16 +193,35 @@ class EditAccessUseCase(private val context: Context) {
 
     private fun outcomeFromExpandedChildren(
         children: List<Element>,
-        requiredMode: Int
-    ): Outcome = outcomeFromAccessRules(parseExpanded(children), requiredMode)
+        requiredMode: Int,
+        enabledKeyReferences: Set<KeyReference>?
+    ): Outcome = outcomeFromAccessRules(
+        parseExpanded(children),
+        requiredMode,
+        enabledKeyReferences
+    )
 
-    private fun outcomeFromAccessRules(rules: AccessRules, requiredMode: Int): Outcome {
+    private fun outcomeFromAccessRules(
+        rules: AccessRules,
+        requiredMode: Int,
+        enabledKeyReferences: Set<KeyReference>?
+    ): Outcome {
         val keyReferenceOptions = rules.keyReferenceOptionsFor(requiredMode)
+            .filterDisabledKeyReferences(enabledKeyReferences)
         if (keyReferenceOptions.isEmpty()) {
             return Outcome(failure = Failure.SECURITY_CONDITION_UNSUPPORTED)
         }
 
         return Outcome(keyReferenceOptions = keyReferenceOptions)
+    }
+
+    private fun List<List<KeyReference>>.filterDisabledKeyReferences(
+        enabledKeyReferences: Set<KeyReference>?
+    ): List<List<KeyReference>> {
+        if (enabledKeyReferences == null) return this
+        return map { option ->
+            option.filter { it in enabledKeyReferences }
+        }.distinct()
     }
 
     private fun parseExpanded(children: List<Element>): AccessRules {
@@ -271,6 +343,28 @@ class EditAccessUseCase(private val context: Context) {
             .filterIsInstance<BerTlvElement>()
             .find { it.tag == FcpTemplate.TAG_PIN_STATUS_TEMPLATE }
             ?: return emptyList()
+        return enabledKeyReferencesFrom(pinStatusTemplate)?.toList().orEmpty()
+    }
+
+    private fun currentEnabledKeyReferences(fileId: FileId): Set<KeyReference>? {
+        val fcpData = CurrentDirectoryFcpUseCase(context).queryForEf(fileId)
+            ?.takeIf { it.isOk }
+            ?.data
+            ?: return null
+        val fcpElement = FcpTemplate.decode(context.resources, fcpData) ?: return null
+        val pinStatusTemplate = fcpElement.subElements
+            .filterIsInstance<BerTlvElement>()
+            .find { it.tag == FcpTemplate.TAG_PIN_STATUS_TEMPLATE }
+            ?: return null
+        return enabledKeyReferencesFrom(pinStatusTemplate)
+    }
+
+    /**
+     * Returns key references enabled by the PIN status template.
+     *
+     * A missing PS DO means the template lists usable keys but does not provide bit status.
+     */
+    private fun enabledKeyReferencesFrom(pinStatusTemplate: BerTlvElement): Set<KeyReference>? {
         val children = pinStatusTemplate.subElements.filterIsInstance<BerTlvElement>()
         val psData = children.find { it.tag == FcpTemplate.TAG_PS_DO }?.data
         val entries = pinStatusTemplateEntries(children)
@@ -278,7 +372,7 @@ class EditAccessUseCase(private val context: Context) {
         return entries
             .filterIndexed { index, _ -> psData == null || psData.isPinEnabled(index) }
             .mapNotNull { it.keyReference?.keyReference }
-            .distinct()
+            .toSet()
     }
 
     /**

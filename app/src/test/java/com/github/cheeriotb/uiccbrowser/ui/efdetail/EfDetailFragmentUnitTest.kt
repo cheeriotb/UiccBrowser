@@ -133,6 +133,30 @@ class EfDetailFragmentUnitTest {
     }
 
     @Test
+    fun shouldAttemptReadAccessRecovery_insufficientSecurityAndIdle_returnsTrue() {
+        val result = Result.Builder().sw(Result.SW_INSUFFICIENT_SECURITY).build()
+
+        assertThat(EfDetailFragment.shouldAttemptReadAccessRecovery(result, inProgress = false))
+            .isTrue()
+    }
+
+    @Test
+    fun shouldAttemptReadAccessRecovery_alreadyInProgress_returnsFalse() {
+        val result = Result.Builder().sw(Result.SW_INSUFFICIENT_SECURITY).build()
+
+        assertThat(EfDetailFragment.shouldAttemptReadAccessRecovery(result, inProgress = true))
+            .isFalse()
+    }
+
+    @Test
+    fun shouldAttemptReadAccessRecovery_otherError_returnsFalse() {
+        val result = Result.Builder().sw(Result.SW_NOT_FOUND).build()
+
+        assertThat(EfDetailFragment.shouldAttemptReadAccessRecovery(result, inProgress = false))
+            .isFalse()
+    }
+
+    @Test
     fun messageResId_editAccessFailures_returnsMessageResources() {
         assertThat(EfDetailFragment.messageResId(EditAccessUseCase.Failure.CARD_UNAVAILABLE))
             .isEqualTo(R.string.edit_mode_card_unavailable)

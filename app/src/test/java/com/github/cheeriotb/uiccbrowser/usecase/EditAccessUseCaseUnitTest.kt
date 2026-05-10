@@ -55,6 +55,7 @@ class EditAccessUseCaseUnitTest {
         private const val FCP_EXPANDED_ADM1_READ_UPDATE = "620AAB08800103A40383010A"
         private const val FCP_EXPANDED_PIN1_READ_ADM1_UPDATE =
                 "6212AB10800101A403830101800102A40383010A"
+        private const val FCP_EXPANDED_PIN1_READ_UPDATE = "620AAB08800103A403830101"
         private const val FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS =
                 "6211AB0F800103A00AA403830101A40383010A"
         private const val FCP_EXPANDED_ADM1_OR_UNIVERSAL_PIN_UPDATE_READ_ALWAYS =
@@ -71,8 +72,14 @@ class EditAccessUseCaseUnitTest {
                 "62238410A0000000871001FFFFFFFFFFFFFFFFFFC60F90017083010183010A83010B830181"
         private const val FCP_ADF_PIN_STATUS_APPLICATION_PIN1 =
                 "621A8410A0000000871001FFFFFFFFFFFFFFFFFFC606900180830101"
+        private const val FCP_ADF_PIN_STATUS_APPLICATION_PIN1_ADM1 =
+                "621D8410A0000000871001FFFFFFFFFFFFFFFFFFC6099001C083010183010A"
+        private const val FCP_ADF_PIN_STATUS_ADM1_ONLY =
+                "621D8410A0000000871001FFFFFFFFFFFFFFFFFFC60990018083010A830101"
         private const val FCP_ADF_PIN_STATUS_UNIVERSAL_PIN_USE =
                 "621D8410A0000000871001FFFFFFFFFFFFFFFFFFC609900180950108830111"
+        private const val FCP_ADF_PIN_STATUS_UNIVERSAL_PIN_USE_ADM1 =
+                "62208410A0000000871001FFFFFFFFFFFFFFFFFFC60C9001C095010883011183010A"
         private const val FCP_ADF_PIN_STATUS_UNIVERSAL_PIN_WITHOUT_USAGE =
                 "621A8410A0000000871001FFFFFFFFFFFFFFFFFFC606900180830111"
         private const val FCP_ADF_PIN_STATUS_USAGE_QUALIFIERS =
@@ -154,6 +161,18 @@ class EditAccessUseCaseUnitTest {
     }
 
     @Test
+    fun execute_readAccess_returnsReadKeyReferenceOnly() {
+        runBlocking {
+            cacheFcp(FCP_EXPANDED_PIN1_READ_ADM1_UPDATE)
+
+            val outcome = useCase.execute(0, FILE_ID, EditAccessUseCase.RequiredAccess.READ)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.APPLICATION_PIN1)
+        }
+    }
+
+    @Test
     fun execute_expandedSecurityAttributesWithReadAccess_returnsReadAndUpdateKeyReferences() {
         runBlocking {
             cacheFcp(FCP_EXPANDED_PIN1_READ_ADM1_UPDATE)
@@ -165,6 +184,32 @@ class EditAccessUseCaseUnitTest {
                     KeyReference.APPLICATION_PIN1,
                     KeyReference.ADM1
             )
+        }
+    }
+
+    @Test
+    fun execute_disabledKeyReference_filtersVerifyOptions() {
+        runBlocking {
+            cacheFcp(FCP_EXPANDED_PIN1_READ_ADM1_UPDATE)
+            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_ADM1_ONLY)
+
+            val outcome = useCase.execute(0, FILE_ID, requireReadAccess = true)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
+        }
+    }
+
+    @Test
+    fun execute_onlyDisabledKeyReference_returnsNoVerifyOption() {
+        runBlocking {
+            cacheFcp(FCP_EXPANDED_PIN1_READ_UPDATE)
+            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_ADM1_ONLY)
+
+            val outcome = useCase.execute(0, FILE_ID, requireReadAccess = true)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.keyReferences).isEmpty()
         }
     }
 
@@ -281,7 +326,7 @@ class EditAccessUseCaseUnitTest {
     fun execute_arrReferenceWithSeRecords_selectsSe01Record() {
         runBlocking {
             cacheFcp(FCP_ARR_REF_SE_RECORDS)
-            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_APPLICATION_PIN1)
+            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_APPLICATION_PIN1_ADM1)
             every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                     hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
                     Response(hexStringToByteArray("9000"))
@@ -299,7 +344,7 @@ class EditAccessUseCaseUnitTest {
     fun execute_arrReferenceWithSeRecords_selectsSe00Record() {
         runBlocking {
             cacheFcp(FCP_ARR_REF_SE00_SE01_RECORDS)
-            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_UNIVERSAL_PIN_USE)
+            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_UNIVERSAL_PIN_USE_ADM1)
             every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                     hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
                     Response(hexStringToByteArray("9000"))
