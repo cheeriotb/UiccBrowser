@@ -121,16 +121,16 @@ class CardRepositoryUnitTest {
     }
 
     @Test
-    fun verifyPinQualifier_values() {
-        assertThat(VerifyPinQualifier.GLOBAL_PIN1.value).isEqualTo(0x01)
-        assertThat(VerifyPinQualifier.GLOBAL_PIN8.value).isEqualTo(0x08)
-        assertThat(VerifyPinQualifier.ADM1.value).isEqualTo(0x0A)
-        assertThat(VerifyPinQualifier.ADM5.value).isEqualTo(0x0E)
-        assertThat(VerifyPinQualifier.UNIVERSAL_PIN.value).isEqualTo(0x11)
-        assertThat(VerifyPinQualifier.LOCAL_PIN1.value).isEqualTo(0x81)
-        assertThat(VerifyPinQualifier.LOCAL_PIN8.value).isEqualTo(0x88)
-        assertThat(VerifyPinQualifier.ADM6.value).isEqualTo(0x8A)
-        assertThat(VerifyPinQualifier.ADM10.value).isEqualTo(0x8E)
+    fun verifyPinKeyReference_values() {
+        assertThat(KeyReference.APPLICATION_PIN1.value).isEqualTo(0x01)
+        assertThat(KeyReference.APPLICATION_PIN8.value).isEqualTo(0x08)
+        assertThat(KeyReference.ADM1.value).isEqualTo(0x0A)
+        assertThat(KeyReference.ADM5.value).isEqualTo(0x0E)
+        assertThat(KeyReference.UNIVERSAL_PIN.value).isEqualTo(0x11)
+        assertThat(KeyReference.LOCAL_PIN1.value).isEqualTo(0x81)
+        assertThat(KeyReference.LOCAL_PIN8.value).isEqualTo(0x88)
+        assertThat(KeyReference.ADM6.value).isEqualTo(0x8A)
+        assertThat(KeyReference.ADM10.value).isEqualTo(0x8E)
     }
 
     @Test
@@ -156,9 +156,9 @@ class CardRepositoryUnitTest {
         assertThat(repository.readAllRecords(readAllRecordParams)[0].sw)
                 .isEqualTo(CardRepository.SW_INTERNAL_EXCEPTION)
 
-        assertThat(repository.queryVerifyPinRetries(VerifyPinQualifier.ADM1).sw)
+        assertThat(repository.queryVerifyPinRetries(KeyReference.ADM1).sw)
                 .isEqualTo(CardRepository.SW_INTERNAL_EXCEPTION)
-        assertThat(repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES).sw)
+        assertThat(repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES).sw)
                 .isEqualTo(CardRepository.SW_INTERNAL_EXCEPTION)
     }
 
@@ -438,10 +438,10 @@ class CardRepositoryUnitTest {
 
         val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                KeyReference.ADM1.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM2.value, paddedPin)) } returns
+                KeyReference.ADM2.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                 hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
@@ -452,13 +452,13 @@ class CardRepositoryUnitTest {
                 "%04X".format(Result.SW_INSUFFICIENT_SECURITY)
         ))
 
-        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
-        repository.verifyPin(VerifyPinQualifier.ADM2, PIN_4_BYTES)
-        repository.markVerifiedPinsTrustedForNextAccess(listOf(VerifyPinQualifier.ADM1))
+        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
+        repository.verifyPin(KeyReference.ADM2, PIN_4_BYTES)
+        repository.markVerifiedPinsTrustedForNextAccess(listOf(KeyReference.ADM1))
         repository.readBinary(ReadBinaryParams.Builder(FILE_ID_FPLMN).build())
 
-        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM1)).isFalse()
-        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM2)).isTrue()
+        assertThat(repository.isPinVerified(KeyReference.ADM1)).isFalse()
+        assertThat(repository.isPinVerified(KeyReference.ADM2)).isTrue()
     }
 
     @Test
@@ -561,10 +561,10 @@ class CardRepositoryUnitTest {
 
         val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                KeyReference.ADM1.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM2.value, paddedPin)) } returns
+                KeyReference.ADM2.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                 hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
@@ -575,13 +575,13 @@ class CardRepositoryUnitTest {
                         "%04X".format(Result.SW_INSUFFICIENT_SECURITY)
                 ))
 
-        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
-        repository.verifyPin(VerifyPinQualifier.ADM2, PIN_4_BYTES)
-        repository.markVerifiedPinsTrustedForNextAccess(listOf(VerifyPinQualifier.ADM1))
+        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
+        repository.verifyPin(KeyReference.ADM2, PIN_4_BYTES)
+        repository.markVerifiedPinsTrustedForNextAccess(listOf(KeyReference.ADM1))
         repository.updateBinary(UpdateBinaryParams.Builder(FILE_ID_FPLMN).data(data).build())
 
-        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM1)).isFalse()
-        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM2)).isTrue()
+        assertThat(repository.isPinVerified(KeyReference.ADM1)).isFalse()
+        assertThat(repository.isPinVerified(KeyReference.ADM2)).isTrue()
     }
 
     @Test
@@ -857,13 +857,13 @@ class CardRepositoryUnitTest {
         repository.initialize()
 
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value)) } returns Response(hexStringToByteArray("63C3"))
+                KeyReference.ADM1.value)) } returns Response(hexStringToByteArray("63C3"))
 
-        val response = repository.queryVerifyPinRetries(VerifyPinQualifier.ADM1)
+        val response = repository.queryVerifyPinRetries(KeyReference.ADM1)
 
         assertThat(response.sw).isEqualTo(0x63C3)
         verify { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value)) }
+                KeyReference.ADM1.value)) }
     }
 
     @Test
@@ -874,14 +874,14 @@ class CardRepositoryUnitTest {
 
         val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                KeyReference.ADM1.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
 
-        val response = repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        val response = repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
 
         assertThat(response.sw).isEqualTo(Result.SW_NORMAL)
         verify { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value, paddedPin)) }
+                KeyReference.ADM1.value, paddedPin)) }
     }
 
     @Test
@@ -894,13 +894,13 @@ class CardRepositoryUnitTest {
 
         val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                KeyReference.ADM1.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
 
-        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
 
-        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM1)).isTrue()
-        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM2)).isFalse()
+        assertThat(repository.isPinVerified(KeyReference.ADM1)).isTrue()
+        assertThat(repository.isPinVerified(KeyReference.ADM2)).isFalse()
     }
 
     @Test
@@ -912,12 +912,12 @@ class CardRepositoryUnitTest {
         repository.initialize()
 
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value)) } returns
+                KeyReference.ADM1.value)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
 
-        repository.queryVerifyPinRetries(VerifyPinQualifier.ADM1)
+        repository.queryVerifyPinRetries(KeyReference.ADM1)
 
-        assertThat(repository.isPinVerified(VerifyPinQualifier.ADM1)).isFalse()
+        assertThat(repository.isPinVerified(KeyReference.ADM1)).isFalse()
     }
 
     @Test
@@ -928,14 +928,14 @@ class CardRepositoryUnitTest {
 
         val pin = hexStringToByteArray(PIN_8_BYTES)
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM10.value, pin)) } returns
+                KeyReference.ADM10.value, pin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
 
-        val response = repository.verifyPin(VerifyPinQualifier.ADM10, PIN_8_BYTES)
+        val response = repository.verifyPin(KeyReference.ADM10, PIN_8_BYTES)
 
         assertThat(response.sw).isEqualTo(Result.SW_NORMAL)
         verify { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM10.value, pin)) }
+                KeyReference.ADM10.value, pin)) }
     }
 
     @Test
@@ -948,10 +948,10 @@ class CardRepositoryUnitTest {
 
         val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                KeyReference.ADM1.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
 
-        val response = repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        val response = repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
 
         assertThat(response.sw).isEqualTo(Result.SW_NORMAL)
         delay(1000)
@@ -969,10 +969,10 @@ class CardRepositoryUnitTest {
 
         val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                KeyReference.ADM1.value, paddedPin)) } returns
                 Response(hexStringToByteArray("63C3"))
 
-        val response = repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        val response = repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
 
         assertThat(response.sw).isEqualTo(0x63C3)
         delay(1000)
@@ -990,7 +990,7 @@ class CardRepositoryUnitTest {
 
         val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                KeyReference.ADM1.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                 hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
@@ -1000,7 +1000,7 @@ class CardRepositoryUnitTest {
         } returns
                 Response(hexStringToByteArray(DATA1 + RESPONSE_NORMAL))
 
-        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
         val params = ReadBinaryParams.Builder(FILE_ID_FPLMN).build()
         assertThat(repository.readBinary(params).sw).isEqualTo(Result.SW_NORMAL)
         delay(1000)
@@ -1018,7 +1018,7 @@ class CardRepositoryUnitTest {
 
         val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.ADM1.value, paddedPin)) } returns
+                KeyReference.ADM1.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
         every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                 hexStringToByteArray(PATH_ADF + FID_FPLMN))) } returns
@@ -1028,7 +1028,7 @@ class CardRepositoryUnitTest {
         } returns
                 Response(hexStringToByteArray(DATA1 + RESPONSE_NORMAL))
 
-        repository.verifyPin(VerifyPinQualifier.ADM1, PIN_4_BYTES)
+        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
         repository.releaseLogicalChannel()
         val params = ReadBinaryParams.Builder(FILE_ID_FPLMN).build()
         assertThat(repository.readBinary(params).sw).isEqualTo(Result.SW_NORMAL)
@@ -1046,29 +1046,29 @@ class CardRepositoryUnitTest {
         every { cardIoMock.openChannel(hexStringToByteArray(AID)) } returns
                 Interface.OpenChannelResult.GENERIC_FAILURE
 
-        val response = repository.verifyPin(VerifyPinQualifier.LOCAL_PIN1, PIN_4_BYTES, AID)
+        val response = repository.verifyPin(KeyReference.LOCAL_PIN1, PIN_4_BYTES, AID)
 
         assertThat(response.sw).isEqualTo(CardRepository.SW_INTERNAL_EXCEPTION)
         verify(inverse = true) { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                VerifyPinQualifier.LOCAL_PIN1.value, hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF"))) }
+                KeyReference.LOCAL_PIN1.value, hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF"))) }
     }
 
     @Test
     fun verifyPin_invalidCode_throws() {
         assertThat(assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { repository.verifyPin(VerifyPinQualifier.ADM1, "") }
+            runBlocking { repository.verifyPin(KeyReference.ADM1, "") }
         }).hasMessageThat().isEqualTo("PIN/ADM code must be between 1 and 8 bytes")
 
         assertThat(assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { repository.verifyPin(VerifyPinQualifier.ADM1, "123") }
+            runBlocking { repository.verifyPin(KeyReference.ADM1, "123") }
         }).hasMessageThat().isEqualTo("PIN/ADM code must contain an even number of hex digits")
 
         assertThat(assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { repository.verifyPin(VerifyPinQualifier.ADM1, "3132333X") }
+            runBlocking { repository.verifyPin(KeyReference.ADM1, "3132333X") }
         }).hasMessageThat().isEqualTo("PIN/ADM code must be a hex string")
 
         assertThat(assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { repository.verifyPin(VerifyPinQualifier.ADM1, "313233343536373839") }
+            runBlocking { repository.verifyPin(KeyReference.ADM1, "313233343536373839") }
         }).hasMessageThat().isEqualTo("PIN/ADM code must be between 1 and 8 bytes")
     }
 }

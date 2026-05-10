@@ -10,7 +10,7 @@ package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.repository.Result
-import com.github.cheeriotb.uiccbrowser.repository.VerifyPinQualifier
+import com.github.cheeriotb.uiccbrowser.repository.KeyReference
 import com.github.cheeriotb.uiccbrowser.usecase.EditAccessUseCase
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -150,11 +150,11 @@ class EfDetailFragmentUnitTest {
     fun arrAccessKeyUnavailableMessageResId_allBlocked_returnsNoVerifiableKey() {
         val statuses = listOf(
             EfDetailFragment.VerifyStatus.Unavailable(
-                VerifyPinQualifier.ADM1,
+                KeyReference.ADM1,
                 EfDetailFragment.VerifyUnavailableReason.BLOCKED
             ),
             EfDetailFragment.VerifyStatus.Unavailable(
-                VerifyPinQualifier.ADM2,
+                KeyReference.ADM2,
                 EfDetailFragment.VerifyUnavailableReason.BLOCKED
             )
         )
@@ -167,11 +167,11 @@ class EfDetailFragmentUnitTest {
     fun arrAccessKeyUnavailableMessageResId_blockedAndLastAttempt_returnsNoSafeKey() {
         val statuses = listOf(
             EfDetailFragment.VerifyStatus.Unavailable(
-                VerifyPinQualifier.ADM1,
+                KeyReference.ADM1,
                 EfDetailFragment.VerifyUnavailableReason.BLOCKED
             ),
             EfDetailFragment.VerifyStatus.Unavailable(
-                VerifyPinQualifier.ADM2,
+                KeyReference.ADM2,
                 EfDetailFragment.VerifyUnavailableReason.LAST_ATTEMPT
             )
         )
@@ -181,20 +181,20 @@ class EfDetailFragmentUnitTest {
     }
 
     @Test
-    fun displayName_formatsVerifyPinQualifierNames() {
-        assertThat(EfDetailFragment.verifyPinQualifierDisplayName(
-            VerifyPinQualifier.GLOBAL_PIN1
+    fun displayName_formatsKeyReferenceNames() {
+        assertThat(EfDetailFragment.keyReferenceDisplayNameResId(
+            KeyReference.APPLICATION_PIN1
         ))
-            .isEqualTo("Global PIN1")
-        assertThat(EfDetailFragment.verifyPinQualifierDisplayName(
-            VerifyPinQualifier.LOCAL_PIN8
+            .isEqualTo(R.string.key_reference_application_pin1)
+        assertThat(EfDetailFragment.keyReferenceDisplayNameResId(
+            KeyReference.LOCAL_PIN8
         ))
-            .isEqualTo("Local PIN8")
-        assertThat(EfDetailFragment.verifyPinQualifierDisplayName(
-            VerifyPinQualifier.UNIVERSAL_PIN
+            .isEqualTo(R.string.key_reference_local_pin8)
+        assertThat(EfDetailFragment.keyReferenceDisplayNameResId(
+            KeyReference.UNIVERSAL_PIN
         ))
-            .isEqualTo("Universal PIN")
-        assertThat(EfDetailFragment.verifyPinQualifierDisplayName(VerifyPinQualifier.ADM10))
-            .isEqualTo("ADM10")
+            .isEqualTo(R.string.key_reference_universal_pin)
+        assertThat(EfDetailFragment.keyReferenceDisplayNameResId(KeyReference.ADM10))
+            .isEqualTo(R.string.key_reference_adm10)
     }
 }

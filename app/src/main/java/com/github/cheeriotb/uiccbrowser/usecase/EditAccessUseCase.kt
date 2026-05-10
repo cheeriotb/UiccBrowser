@@ -18,18 +18,18 @@ import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 import com.github.cheeriotb.uiccbrowser.repository.ReadRecordParams
 import com.github.cheeriotb.uiccbrowser.repository.Result
-import com.github.cheeriotb.uiccbrowser.repository.VerifyPinQualifier
+import com.github.cheeriotb.uiccbrowser.repository.KeyReference
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 
 class EditAccessUseCase(private val context: Context) {
 
     data class Outcome(
-        val qualifierOptions: List<List<VerifyPinQualifier>> = emptyList(),
-        val exploreQualifierOptions: List<VerifyPinQualifier> = emptyList(),
+        val keyReferenceOptions: List<List<KeyReference>> = emptyList(),
+        val exploreKeyReferenceOptions: List<KeyReference> = emptyList(),
         val failure: Failure? = null
     ) {
-        val qualifiers: List<VerifyPinQualifier>
-            get() = qualifierOptions.firstOrNull().orEmpty()
+        val keyReferences: List<KeyReference>
+            get() = keyReferenceOptions.firstOrNull().orEmpty()
     }
 
     enum class Failure {
@@ -130,12 +130,12 @@ class EditAccessUseCase(private val context: Context) {
             ?: return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
         val fcpElement = FcpTemplate.decode(context.resources, fcpData)
             ?: return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
-        val qualifiers = arrAccessKeyQualifiers(fcpElement)
-        if (qualifiers.isEmpty()) {
+        val keyReferences = arrAccessKeyReferences(fcpElement)
+        if (keyReferences.isEmpty()) {
             return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
         }
 
-        return Outcome(exploreQualifierOptions = qualifiers)
+        return Outcome(exploreKeyReferenceOptions = keyReferences)
     }
 
     private fun outcomeFromExpandedChildren(
@@ -144,12 +144,12 @@ class EditAccessUseCase(private val context: Context) {
     ): Outcome = outcomeFromAccessRules(parseExpanded(children), requiredMode)
 
     private fun outcomeFromAccessRules(rules: AccessRules, requiredMode: Int): Outcome {
-        val qualifierOptions = rules.qualifierOptionsFor(requiredMode)
-        if (qualifierOptions.isEmpty()) {
+        val keyReferenceOptions = rules.keyReferenceOptionsFor(requiredMode)
+        if (keyReferenceOptions.isEmpty()) {
             return Outcome(failure = Failure.SECURITY_CONDITION_UNSUPPORTED)
         }
 
-        return Outcome(qualifierOptions = qualifierOptions)
+        return Outcome(keyReferenceOptions = keyReferenceOptions)
     }
 
     private fun parseExpanded(children: List<Element>): AccessRules {
@@ -219,8 +219,8 @@ class EditAccessUseCase(private val context: Context) {
                 ?: SecurityCondition.Unsupported
         }
 
-    private fun keyReferencesFrom(children: List<Element>): List<KeyReference> {
-        val keyReferences = mutableListOf<KeyReference>()
+    private fun keyReferencesFrom(children: List<Element>): List<AccessKeyReference> {
+        val keyReferences = mutableListOf<AccessKeyReference>()
         var usageQualifier: ByteArray? = null
         children.filterIsInstance<BerTlvElement>().forEach { child ->
             when (child.tag) {
@@ -266,7 +266,7 @@ class EditAccessUseCase(private val context: Context) {
         return ArrReference(arrFileId, references)
     }
 
-    private fun arrAccessKeyQualifiers(fcpElement: Element): List<VerifyPinQualifier> {
+    private fun arrAccessKeyReferences(fcpElement: Element): List<KeyReference> {
         val pinStatusTemplate = fcpElement.subElements
             .filterIsInstance<BerTlvElement>()
             .find { it.tag == FcpTemplate.TAG_PIN_STATUS_TEMPLATE }
@@ -277,7 +277,7 @@ class EditAccessUseCase(private val context: Context) {
 
         return entries
             .filterIndexed { index, _ -> psData == null || psData.isPinEnabled(index) }
-            .mapNotNull { it.keyReference?.qualifier }
+            .mapNotNull { it.keyReference?.keyReference }
             .distinct()
     }
 
@@ -300,13 +300,13 @@ class EditAccessUseCase(private val context: Context) {
         val enabledEntries = pinStatusTemplateEntries(children)
             .filterIndexed { index, _ -> psData.isPinEnabled(index) }
 
-        if (enabledEntries.any { it.keyReference?.qualifier?.isApplicationPin() == true }) {
+        if (enabledEntries.any { it.keyReference?.keyReference?.isApplicationPin() == true }) {
             return SE_ID_01
         }
         val universalPin = enabledEntries
             .mapNotNull { it.keyReference }
             .firstOrNull {
-                it.qualifier == VerifyPinQualifier.UNIVERSAL_PIN
+                it.keyReference == KeyReference.UNIVERSAL_PIN
             } ?: return SE_ID_00
 
         return when (universalPin.usageQualifier) {
@@ -349,22 +349,22 @@ class EditAccessUseCase(private val context: Context) {
     private fun keyReferenceFor(
         value: Int,
         usageQualifier: ByteArray? = null
-    ): KeyReference? =
-        VerifyPinQualifier.entries
+    ): AccessKeyReference? =
+        KeyReference.entries
             .find { it.value == value }
-            ?.let { KeyReference(it, usageQualifier?.let(::byteArrayToHexString)) }
+            ?.let { AccessKeyReference(it, usageQualifier?.let(::byteArrayToHexString)) }
 
-    private fun VerifyPinQualifier.isApplicationPin(): Boolean =
-        value in VerifyPinQualifier.GLOBAL_PIN1.value..VerifyPinQualifier.GLOBAL_PIN8.value
+    private fun KeyReference.isApplicationPin(): Boolean =
+        value in KeyReference.APPLICATION_PIN1.value..KeyReference.APPLICATION_PIN8.value
 
-    private data class KeyReference(
-        val qualifier: VerifyPinQualifier,
+    private data class AccessKeyReference(
+        val keyReference: KeyReference,
         val usageQualifier: String?
     )
 
     private data class PinStatusEntry(
         val usageQualifier: ByteArray?,
-        val keyReference: KeyReference?
+        val keyReference: AccessKeyReference?
     )
 
     private data class ArrReference(
@@ -381,27 +381,27 @@ class EditAccessUseCase(private val context: Context) {
         data object Always : SecurityCondition()
         data object Never : SecurityCondition()
         data object Unsupported : SecurityCondition()
-        data class Verify(val keyReferences: Set<KeyReference>) : SecurityCondition()
+        data class Verify(val keyReferences: Set<AccessKeyReference>) : SecurityCondition()
         data class And(val conditions: List<SecurityCondition>) : SecurityCondition()
         data class Or(val conditions: List<SecurityCondition>) : SecurityCondition()
 
         /**
          * Converts the parsed condition tree into selectable VERIFY options.
          */
-        fun qualifierOptions(): List<Set<KeyReference>> = when (this) {
+        fun keyReferenceOptions(): List<Set<AccessKeyReference>> = when (this) {
             Always -> listOf(emptySet())
             Never, Unsupported -> emptyList()
             is Verify -> listOf(keyReferences)
             is And -> combineAnd(conditions)
-            is Or -> conditions.flatMap { it.qualifierOptions() }
+            is Or -> conditions.flatMap { it.keyReferenceOptions() }
         }
 
         private fun combineAnd(
             conditions: List<SecurityCondition>
-        ): List<Set<KeyReference>> {
-            var result = listOf(emptySet<KeyReference>())
+        ): List<Set<AccessKeyReference>> {
+            var result = listOf(emptySet<AccessKeyReference>())
             for (condition in conditions) {
-                val childOptions = condition.qualifierOptions()
+                val childOptions = condition.keyReferenceOptions()
                 if (childOptions.isEmpty()) return emptyList()
                 result = result.flatMap { base -> childOptions.map { base + it } }
             }
@@ -417,40 +417,40 @@ class EditAccessUseCase(private val context: Context) {
          */
         fun add(accessMode: Int, condition: SecurityCondition) {
             val relevantMode = accessMode and (READ_BIT or UPDATE_BIT)
-            val options = condition.qualifierOptions().map { option ->
-                option.map { it.qualifier }.toSet()
+            val options = condition.keyReferenceOptions().map { option ->
+                option.map { it.keyReference }.toSet()
             }
             if (relevantMode != 0 && options.isNotEmpty()) {
                 rules.add(ModeRule(relevantMode, options))
             }
         }
 
-        fun qualifierOptionsFor(requiredMode: Int): List<List<VerifyPinQualifier>> {
+        fun keyReferenceOptionsFor(requiredMode: Int): List<List<KeyReference>> {
             val choices = rules.flatMap { rule ->
                 rule.options.map { option -> ModeChoice(rule.accessMode, option) }
             }
-            val results = mutableSetOf<Set<VerifyPinQualifier>>()
+            val results = mutableSetOf<Set<KeyReference>>()
 
-            fun collect(index: Int, coveredMode: Int, qualifiers: Set<VerifyPinQualifier>) {
+            fun collect(index: Int, coveredMode: Int, keyReferences: Set<KeyReference>) {
                 if (coveredMode and requiredMode == requiredMode) {
-                    results.add(qualifiers)
+                    results.add(keyReferences)
                     return
                 }
                 if (index >= choices.size) return
 
-                collect(index + 1, coveredMode, qualifiers)
+                collect(index + 1, coveredMode, keyReferences)
                 val choice = choices[index]
                 collect(
                     index + 1,
                     coveredMode or choice.accessMode,
-                    qualifiers + choice.qualifiers
+                    keyReferences + choice.keyReferences
                 )
             }
 
             collect(0, 0, emptySet())
             return results
                 .filter { option -> results.none { it != option && option.containsAll(it) } }
-                .sortedWith(compareBy<Set<VerifyPinQualifier>> { it.size }
+                .sortedWith(compareBy<Set<KeyReference>> { it.size }
                     .thenBy { option -> option.joinToString(",") { it.value.toString() } })
                 .map { it.toList() }
         }
@@ -458,12 +458,12 @@ class EditAccessUseCase(private val context: Context) {
 
     private data class ModeRule(
         val accessMode: Int,
-        val options: List<Set<VerifyPinQualifier>>
+        val options: List<Set<KeyReference>>
     )
 
     private data class ModeChoice(
         val accessMode: Int,
-        val qualifiers: Set<VerifyPinQualifier>
+        val keyReferences: Set<KeyReference>
     )
 
     companion object {

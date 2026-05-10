@@ -104,7 +104,14 @@ class SecurityAttrExpanded {
 
             val reference = rawData[0].toInt() and 0xFF
             val key = when (reference) {
-                in 0x01..0x08 -> "Global PIN$reference"
+                0x01 -> resources.getString(R.string.key_reference_application_pin1)
+                0x02 -> resources.getString(R.string.key_reference_application_pin2)
+                0x03 -> resources.getString(R.string.key_reference_application_pin3)
+                0x04 -> resources.getString(R.string.key_reference_application_pin4)
+                0x05 -> resources.getString(R.string.key_reference_application_pin5)
+                0x06 -> resources.getString(R.string.key_reference_application_pin6)
+                0x07 -> resources.getString(R.string.key_reference_application_pin7)
+                0x08 -> resources.getString(R.string.key_reference_application_pin8)
                 in 0x0A..0x0E -> "ADM${reference - 0x09}"
                 0x11 -> "Universal PIN"
                 in 0x81..0x88 -> "Local PIN${reference - 0x80}"

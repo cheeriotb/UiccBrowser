@@ -19,7 +19,7 @@ import com.github.cheeriotb.uiccbrowser.cardio.Response
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 import com.github.cheeriotb.uiccbrowser.repository.Result
-import com.github.cheeriotb.uiccbrowser.repository.VerifyPinQualifier
+import com.github.cheeriotb.uiccbrowser.repository.KeyReference
 import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -69,7 +69,7 @@ class EditAccessUseCaseUnitTest {
                 "62088B062F0600000004"
         private const val FCP_ADF_PIN_STATUS_ADM1_ADM2_LOCAL_PIN1 =
                 "62238410A0000000871001FFFFFFFFFFFFFFFFFFC60F90017083010183010A83010B830181"
-        private const val FCP_ADF_PIN_STATUS_GLOBAL_PIN1 =
+        private const val FCP_ADF_PIN_STATUS_APPLICATION_PIN1 =
                 "621A8410A0000000871001FFFFFFFFFFFFFFFFFFC606900180830101"
         private const val FCP_ADF_PIN_STATUS_UNIVERSAL_PIN_USE =
                 "621D8410A0000000871001FFFFFFFFFFFFFFFFFFC609900180950108830111"
@@ -118,69 +118,69 @@ class EditAccessUseCaseUnitTest {
     }
 
     @Test
-    fun execute_compactSecurityAttributes_returnsRequiredQualifier() {
+    fun execute_compactSecurityAttributes_returnsRequiredKeyReference() {
         runBlocking {
             cacheFcp(FCP_COMPACT_ADM1_UPDATE_READ_ALWAYS)
 
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
         }
     }
 
     @Test
-    fun execute_expandedSecurityAttributes_returnsRequiredQualifier() {
+    fun execute_expandedSecurityAttributes_returnsRequiredKeyReference() {
         runBlocking {
             cacheFcp(FCP_EXPANDED_ADM1_READ_UPDATE)
 
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
         }
     }
 
     @Test
-    fun execute_expandedSecurityAttributesWithoutReadAccess_returnsUpdateQualifier() {
+    fun execute_expandedSecurityAttributesWithoutReadAccess_returnsUpdateKeyReference() {
         runBlocking {
             cacheFcp(FCP_EXPANDED_PIN1_READ_ADM1_UPDATE)
 
             val outcome = useCase.execute(0, FILE_ID, requireReadAccess = false)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
         }
     }
 
     @Test
-    fun execute_expandedSecurityAttributesWithReadAccess_returnsReadAndUpdateQualifiers() {
+    fun execute_expandedSecurityAttributesWithReadAccess_returnsReadAndUpdateKeyReferences() {
         runBlocking {
             cacheFcp(FCP_EXPANDED_PIN1_READ_ADM1_UPDATE)
 
             val outcome = useCase.execute(0, FILE_ID, requireReadAccess = true)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifiers).containsExactly(
-                    VerifyPinQualifier.GLOBAL_PIN1,
-                    VerifyPinQualifier.ADM1
+            assertThat(outcome.keyReferences).containsExactly(
+                    KeyReference.APPLICATION_PIN1,
+                    KeyReference.ADM1
             )
         }
     }
 
     @Test
-    fun execute_expandedOrSecurityAttributes_returnsQualifierOptions() {
+    fun execute_expandedOrSecurityAttributes_returnsKeyReferenceOptions() {
         runBlocking {
             cacheFcp(FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS)
 
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifierOptions).containsExactly(
-                    listOf(VerifyPinQualifier.GLOBAL_PIN1),
-                    listOf(VerifyPinQualifier.ADM1)
+            assertThat(outcome.keyReferenceOptions).containsExactly(
+                    listOf(KeyReference.APPLICATION_PIN1),
+                    listOf(KeyReference.ADM1)
             ).inOrder()
-            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.GLOBAL_PIN1)
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.APPLICATION_PIN1)
         }
     }
 
@@ -192,9 +192,9 @@ class EditAccessUseCaseUnitTest {
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifierOptions).containsExactly(
-                    listOf(VerifyPinQualifier.ADM1),
-                    listOf(VerifyPinQualifier.UNIVERSAL_PIN)
+            assertThat(outcome.keyReferenceOptions).containsExactly(
+                    listOf(KeyReference.ADM1),
+                    listOf(KeyReference.UNIVERSAL_PIN)
             ).inOrder()
         }
     }
@@ -224,12 +224,12 @@ class EditAccessUseCaseUnitTest {
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
         }
     }
 
     @Test
-    fun execute_arrReferenceWithoutReadAccess_returnsUpdateQualifier() {
+    fun execute_arrReferenceWithoutReadAccess_returnsUpdateKeyReference() {
         runBlocking {
             cacheFcp(FCP_ARR_REF_RECORD4)
             every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
@@ -242,12 +242,12 @@ class EditAccessUseCaseUnitTest {
             val outcome = useCase.execute(0, FILE_ID, requireReadAccess = false)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
         }
     }
 
     @Test
-    fun execute_arrReferenceReadAlwaysUpdateLocalPin_returnsUpdateQualifier() {
+    fun execute_arrReferenceReadAlwaysUpdateLocalPin_returnsUpdateKeyReference() {
         runBlocking {
             cacheFcp(FCP_ARR_REF_RECORD4)
             every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
@@ -261,7 +261,7 @@ class EditAccessUseCaseUnitTest {
             val outcome = useCase.execute(0, FILE_ID, requireReadAccess = true)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.LOCAL_PIN1)
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.LOCAL_PIN1)
         }
     }
 
@@ -281,7 +281,7 @@ class EditAccessUseCaseUnitTest {
     fun execute_arrReferenceWithSeRecords_selectsSe01Record() {
         runBlocking {
             cacheFcp(FCP_ARR_REF_SE_RECORDS)
-            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_GLOBAL_PIN1)
+            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_APPLICATION_PIN1)
             every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
                     hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
                     Response(hexStringToByteArray("9000"))
@@ -291,7 +291,7 @@ class EditAccessUseCaseUnitTest {
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
         }
     }
 
@@ -309,7 +309,7 @@ class EditAccessUseCaseUnitTest {
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
         }
     }
 
@@ -382,7 +382,7 @@ class EditAccessUseCaseUnitTest {
     }
 
     @Test
-    fun execute_arrReferenceInsufficientSecurity_returnsExploreQualifierOptions() {
+    fun execute_arrReferenceInsufficientSecurity_returnsExploreKeyReferenceOptions() {
         runBlocking {
             cacheFcp(FCP_ARR_REF_RECORD4)
             prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_ADM1_ADM2_LOCAL_PIN1)
@@ -395,10 +395,10 @@ class EditAccessUseCaseUnitTest {
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.exploreQualifierOptions).containsExactly(
-                    VerifyPinQualifier.ADM1,
-                    VerifyPinQualifier.ADM2,
-                    VerifyPinQualifier.LOCAL_PIN1
+            assertThat(outcome.exploreKeyReferenceOptions).containsExactly(
+                    KeyReference.ADM1,
+                    KeyReference.ADM2,
+                    KeyReference.LOCAL_PIN1
             ).inOrder()
         }
     }
@@ -417,9 +417,9 @@ class EditAccessUseCaseUnitTest {
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.exploreQualifierOptions).containsExactly(
-                    VerifyPinQualifier.GLOBAL_PIN1,
-                    VerifyPinQualifier.ADM1
+            assertThat(outcome.exploreKeyReferenceOptions).containsExactly(
+                    KeyReference.APPLICATION_PIN1,
+                    KeyReference.ADM1
             ).inOrder()
         }
     }
@@ -438,9 +438,9 @@ class EditAccessUseCaseUnitTest {
             val outcome = useCase.execute(0, FILE_ID)
 
             assertThat(outcome.failure).isNull()
-            assertThat(outcome.exploreQualifierOptions).containsExactly(
-                    VerifyPinQualifier.GLOBAL_PIN1,
-                    VerifyPinQualifier.UNIVERSAL_PIN
+            assertThat(outcome.exploreKeyReferenceOptions).containsExactly(
+                    KeyReference.APPLICATION_PIN1,
+                    KeyReference.UNIVERSAL_PIN
             ).inOrder()
         }
     }

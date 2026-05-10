@@ -90,7 +90,7 @@ class SecurityAttrExpandedUnitTest {
         val children = element.subElements.filterIsInstance<BerTlvElement>()
 
         assertThat(children.map { it.toString() })
-                .containsExactly("01 (Global PIN1)", "0A (ADM1)", "11 (Universal PIN)")
+                .containsExactly("01 (Application PIN1)", "0A (ADM1)", "11 (Universal PIN)")
                 .inOrder()
     }
 

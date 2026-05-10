@@ -39,8 +39,8 @@ class CardRepository private constructor (
     private var _iccId: String? = null
     private var closingJob: Job? = null
     private var isLogicalChannelRetained = false
-    private val verifiedPinQualifiers = mutableSetOf<VerifyPinQualifier>()
-    private val trustedPinQualifiersForNextAccess = mutableSetOf<VerifyPinQualifier>()
+    private val verifiedPinKeyReferences = mutableSetOf<KeyReference>()
+    private val trustedPinKeyReferencesForNextAccess = mutableSetOf<KeyReference>()
 
     val iccId: String? get() = _iccId
     var isProModeEnabled: Boolean = false
@@ -334,7 +334,7 @@ class CardRepository private constructor (
     }
 
     suspend fun queryVerifyPinRetries(
-        qualifier: VerifyPinQualifier,
+        keyReference: KeyReference,
         aid: String = FileId.AID_NONE
     ): Response {
         if (!isAccessible || !openChannel(aid)) {
@@ -342,14 +342,14 @@ class CardRepository private constructor (
             return internalExceptionResponse()
         }
 
-        val response = verifyPin(qualifier)
+        val response = verifyPin(keyReference)
         startClosingTimer()
 
         return response
     }
 
     suspend fun verifyPin(
-        qualifier: VerifyPinQualifier,
+        keyReference: KeyReference,
         code: String,
         aid: String = FileId.AID_NONE
     ): Response {
@@ -359,9 +359,9 @@ class CardRepository private constructor (
             return internalExceptionResponse()
         }
 
-        val response = verifyPin(qualifier, paddedCode)
+        val response = verifyPin(keyReference, paddedCode)
         if (response.isOk) {
-            rememberVerifiedPin(qualifier)
+            rememberVerifiedPin(keyReference)
             retainLogicalChannel()
         } else {
             startClosingTimer()
@@ -379,19 +379,19 @@ class CardRepository private constructor (
         cardIo.closeRemainingChannel()
     }
 
-    /** Returns true when this repository has observed a successful VERIFY for [qualifier]. */
-    fun isPinVerified(qualifier: VerifyPinQualifier): Boolean =
-        synchronized(this) { qualifier in verifiedPinQualifiers }
+    /** Returns true when this repository has observed a successful VERIFY for [keyReference]. */
+    fun isPinVerified(keyReference: KeyReference): Boolean =
+        synchronized(this) { keyReference in verifiedPinKeyReferences }
 
     /**
      * Marks remembered PINs that were trusted instead of VERIFY for the next READ/UPDATE command.
      *
      * If that command fails with SW6982, only these PINs are removed from the remembered set.
      */
-    fun markVerifiedPinsTrustedForNextAccess(qualifiers: Collection<VerifyPinQualifier>) {
+    fun markVerifiedPinsTrustedForNextAccess(keyReferences: Collection<KeyReference>) {
         synchronized(this) {
-            trustedPinQualifiersForNextAccess.clear()
-            trustedPinQualifiersForNextAccess.addAll(qualifiers)
+            trustedPinKeyReferencesForNextAccess.clear()
+            trustedPinKeyReferencesForNextAccess.addAll(keyReferences)
         }
     }
 
@@ -435,12 +435,12 @@ class CardRepository private constructor (
     }
 
     private fun verifyPin(
-        qualifier: VerifyPinQualifier,
+        keyReference: KeyReference,
         data: ByteArray = DATA_NONE
     ): Response {
         val command = Command.Builder(Iso7816.INS_VERIFY_PIN)
                 .p1(0x00)
-                .p2(qualifier.value)
+                .p2(keyReference.value)
                 .data(data)
                 .build()
         return cardIo.transmit(command)
@@ -487,26 +487,26 @@ class CardRepository private constructor (
         }
     }
 
-    private fun rememberVerifiedPin(qualifier: VerifyPinQualifier) {
+    private fun rememberVerifiedPin(keyReference: KeyReference) {
         synchronized(this) {
-            verifiedPinQualifiers.add(qualifier)
+            verifiedPinKeyReferences.add(keyReference)
             Log.d(tag, "Remembered a successful VERIFY result")
         }
     }
 
     private fun clearVerifiedPins() {
         synchronized(this) {
-            verifiedPinQualifiers.clear()
-            trustedPinQualifiersForNextAccess.clear()
+            verifiedPinKeyReferences.clear()
+            trustedPinKeyReferencesForNextAccess.clear()
         }
     }
 
     private fun updateVerifiedPinsForReadWriteResponse(sw: Int) {
         synchronized(this) {
             if (sw == Result.SW_INSUFFICIENT_SECURITY) {
-                verifiedPinQualifiers.removeAll(trustedPinQualifiersForNextAccess)
+                verifiedPinKeyReferences.removeAll(trustedPinKeyReferencesForNextAccess)
             }
-            trustedPinQualifiersForNextAccess.clear()
+            trustedPinKeyReferencesForNextAccess.clear()
         }
     }
 

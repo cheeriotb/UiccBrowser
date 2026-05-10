@@ -8,15 +8,16 @@
 
 package com.github.cheeriotb.uiccbrowser.repository
 
-enum class VerifyPinQualifier(val value: Int) {
-    GLOBAL_PIN1(0x01),
-    GLOBAL_PIN2(0x02),
-    GLOBAL_PIN3(0x03),
-    GLOBAL_PIN4(0x04),
-    GLOBAL_PIN5(0x05),
-    GLOBAL_PIN6(0x06),
-    GLOBAL_PIN7(0x07),
-    GLOBAL_PIN8(0x08),
+/** ETSI TS 102 221 key reference values used as VERIFY command P2. */
+enum class KeyReference(val value: Int) {
+    APPLICATION_PIN1(0x01),
+    APPLICATION_PIN2(0x02),
+    APPLICATION_PIN3(0x03),
+    APPLICATION_PIN4(0x04),
+    APPLICATION_PIN5(0x05),
+    APPLICATION_PIN6(0x06),
+    APPLICATION_PIN7(0x07),
+    APPLICATION_PIN8(0x08),
 
     ADM1(0x0A),
     ADM2(0x0B),

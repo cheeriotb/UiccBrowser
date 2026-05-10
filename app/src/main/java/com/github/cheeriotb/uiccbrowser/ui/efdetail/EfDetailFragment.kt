@@ -38,7 +38,7 @@ import com.github.cheeriotb.uiccbrowser.databinding.FragmentEfDetailBinding
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 import com.github.cheeriotb.uiccbrowser.repository.Result
-import com.github.cheeriotb.uiccbrowser.repository.VerifyPinQualifier
+import com.github.cheeriotb.uiccbrowser.repository.KeyReference
 import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
 import com.github.cheeriotb.uiccbrowser.usecase.CurrentDirectoryFcpUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.EditAccessUseCase
@@ -176,48 +176,48 @@ class EfDetailFragment : Fragment() {
                 return false
             }
 
-            if (outcome.exploreQualifierOptions.isNotEmpty()) {
-                if (!verifyArrAccessKeyOptions(repo, outcome.exploreQualifierOptions)) {
+            if (outcome.exploreKeyReferenceOptions.isNotEmpty()) {
+                if (!verifyArrAccessKeyOptions(repo, outcome.exploreKeyReferenceOptions)) {
                     return false
                 }
                 continue
             }
 
-            val verified = verifyQualifierOptions(
+            val verified = verifyKeyReferenceOptions(
                 repo,
                 viewModel.fileId.aid,
-                outcome.qualifierOptions
+                outcome.keyReferenceOptions
             )
             return verified
         }
     }
 
-    private suspend fun verifyQualifierOptions(
+    private suspend fun verifyKeyReferenceOptions(
         repo: CardRepository,
         aid: String,
-        qualifierOptions: List<List<VerifyPinQualifier>>
+        keyReferenceOptions: List<List<KeyReference>>
     ): Boolean {
-        if (qualifierOptions.isEmpty()) return true
+        if (keyReferenceOptions.isEmpty()) return true
 
         val candidates = mutableListOf<VerifyCandidate>()
         val unavailable = mutableListOf<VerifyStatus.Unavailable>()
-        for (option in qualifierOptions) {
+        for (option in keyReferenceOptions) {
             if (option.isEmpty()) return true
             val requirements = mutableListOf<VerifyRequirement>()
-            val trustedQualifiers = mutableSetOf<VerifyPinQualifier>()
+            val trustedKeyReferences = mutableSetOf<KeyReference>()
             var optionUsable = true
-            for (qualifier in option) {
-                if (repo.isPinVerified(qualifier)) {
-                    trustedQualifiers.add(qualifier)
+            for (keyReference in option) {
+                if (repo.isPinVerified(keyReference)) {
+                    trustedKeyReferences.add(keyReference)
                     continue
                 }
                 when (val status = verifyStatus(
-                    repo.queryVerifyPinRetries(qualifier, aid).sw,
-                    qualifier
+                    repo.queryVerifyPinRetries(keyReference, aid).sw,
+                    keyReference
                 )) {
                     VerifyStatus.Verified -> Unit
                     is VerifyStatus.Available ->
-                        requirements.add(VerifyRequirement(qualifier, status.retries))
+                        requirements.add(VerifyRequirement(keyReference, status.retries))
                     is VerifyStatus.Unavailable -> {
                         unavailable.add(status)
                         requirements.clear()
@@ -227,11 +227,11 @@ class EfDetailFragment : Fragment() {
                 }
             }
             if (optionUsable && requirements.isEmpty()) {
-                repo.markVerifiedPinsTrustedForNextAccess(trustedQualifiers)
+                repo.markVerifiedPinsTrustedForNextAccess(trustedKeyReferences)
                 return true
             }
             if (optionUsable && requirements.isNotEmpty()) {
-                candidates.add(VerifyCandidate(requirements, trustedQualifiers))
+                candidates.add(VerifyCandidate(requirements, trustedKeyReferences))
             }
         }
 
@@ -246,32 +246,32 @@ class EfDetailFragment : Fragment() {
             showVerifyOptionDialog(candidates) ?: return false
         }
         for (requirement in selected.requirements) {
-            if (!verifyQualifier(repo, aid, requirement)) return false
+            if (!verifyKeyReference(repo, aid, requirement)) return false
         }
-        repo.markVerifiedPinsTrustedForNextAccess(selected.trustedQualifiers)
+        repo.markVerifiedPinsTrustedForNextAccess(selected.trustedKeyReferences)
         return true
     }
 
     private suspend fun verifyArrAccessKeyOptions(
         repo: CardRepository,
-        qualifiers: List<VerifyPinQualifier>
+        keyReferences: List<KeyReference>
     ): Boolean {
-        val trustedQualifiers = mutableSetOf<VerifyPinQualifier>()
-        val statuses = qualifiers.map { qualifier ->
-            if (repo.isPinVerified(qualifier)) {
-                trustedQualifiers.add(qualifier)
+        val trustedKeyReferences = mutableSetOf<KeyReference>()
+        val statuses = keyReferences.map { keyReference ->
+            if (repo.isPinVerified(keyReference)) {
+                trustedKeyReferences.add(keyReference)
                 VerifyStatus.Verified
             } else {
-                verifyStatus(repo.queryVerifyPinRetries(qualifier).sw, qualifier)
+                verifyStatus(repo.queryVerifyPinRetries(keyReference).sw, keyReference)
             }
         }
-        if (trustedQualifiers.isNotEmpty()) {
-            repo.markVerifiedPinsTrustedForNextAccess(trustedQualifiers)
+        if (trustedKeyReferences.isNotEmpty()) {
+            repo.markVerifiedPinsTrustedForNextAccess(trustedKeyReferences)
             return true
         }
 
         val candidates = statuses.filterIsInstance<VerifyStatus.Available>()
-            .map { VerifyRequirement(it.qualifier, it.retries) }
+            .map { VerifyRequirement(it.keyReference, it.retries) }
         if (candidates.isEmpty()) {
             showArrAccessKeyUnavailableMessage(statuses)
             return false
@@ -281,23 +281,23 @@ class EfDetailFragment : Fragment() {
             R.string.edit_mode_arr_verify_option_title,
             candidates
         ) ?: return false
-        return verifyQualifier(repo, FileId.AID_NONE, selected)
+        return verifyKeyReference(repo, FileId.AID_NONE, selected)
     }
 
-    private suspend fun verifyQualifier(
+    private suspend fun verifyKeyReference(
         repo: CardRepository,
         aid: String,
         requirement: VerifyRequirement
     ): Boolean {
-        val qualifier = requirement.qualifier
+        val keyReference = requirement.keyReference
         var retries = requirement.retries
 
         while (true) {
-            val code = showVerifyDialog(qualifier, retries) ?: return false
-            val response = repo.verifyPin(qualifier, code, aid)
+            val code = showVerifyDialog(keyReference, retries) ?: return false
+            val response = repo.verifyPin(keyReference, code, aid)
             if (response.isOk) return true
 
-            when (val status = verifyStatus(response.sw, qualifier)) {
+            when (val status = verifyStatus(response.sw, keyReference)) {
                 VerifyStatus.Verified -> return true
                 is VerifyStatus.Available -> retries = status.retries
                 is VerifyStatus.Unavailable -> {
@@ -309,20 +309,20 @@ class EfDetailFragment : Fragment() {
         }
     }
 
-    private fun verifyStatus(sw: Int, qualifier: VerifyPinQualifier): VerifyStatus {
+    private fun verifyStatus(sw: Int, keyReference: KeyReference): VerifyStatus {
         return when {
             sw == Result.SW_NORMAL -> VerifyStatus.Verified
             sw == Result.SW_AUTH_METHOD_BLOCKED ->
-                VerifyStatus.Unavailable(qualifier, VerifyUnavailableReason.BLOCKED)
+                VerifyStatus.Unavailable(keyReference, VerifyUnavailableReason.BLOCKED)
             sw == 0x63C1 ->
-                VerifyStatus.Unavailable(qualifier, VerifyUnavailableReason.LAST_ATTEMPT)
-            sw in 0x63C2..0x63CF -> VerifyStatus.Available(sw and 0x0F, qualifier)
-            else -> VerifyStatus.Unavailable(qualifier, VerifyUnavailableReason.UNKNOWN)
+                VerifyStatus.Unavailable(keyReference, VerifyUnavailableReason.LAST_ATTEMPT)
+            sw in 0x63C2..0x63CF -> VerifyStatus.Available(sw and 0x0F, keyReference)
+            else -> VerifyStatus.Unavailable(keyReference, VerifyUnavailableReason.UNKNOWN)
         }
     }
 
     private fun showVerifyUnavailableMessage(status: VerifyStatus.Unavailable) {
-        val name = verifyPinQualifierDisplayName(status.qualifier)
+        val name = getString(keyReferenceDisplayNameResId(status.keyReference))
         val message = when (status.reason) {
             VerifyUnavailableReason.BLOCKED -> getString(R.string.edit_mode_blocked, name)
             VerifyUnavailableReason.LAST_ATTEMPT ->
@@ -354,7 +354,7 @@ class EfDetailFragment : Fragment() {
     ): VerifyCandidate? = suspendCancellableCoroutine { continuation ->
         val labels = candidates.map { candidate ->
             candidate.requirements.joinToString(" + ") {
-                verifyPinQualifierDisplayName(it.qualifier)
+                getString(keyReferenceDisplayNameResId(it.keyReference))
             }
         }.toTypedArray()
 
@@ -379,7 +379,7 @@ class EfDetailFragment : Fragment() {
         candidates: List<VerifyRequirement>
     ): VerifyRequirement? = suspendCancellableCoroutine { continuation ->
         val labels = candidates.map {
-            verifyPinQualifierDisplayName(it.qualifier)
+            getString(keyReferenceDisplayNameResId(it.keyReference))
         }.toTypedArray()
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
@@ -399,7 +399,7 @@ class EfDetailFragment : Fragment() {
     }
 
     private suspend fun showVerifyDialog(
-        qualifier: VerifyPinQualifier,
+        keyReference: KeyReference,
         retries: Int
     ): String? = suspendCancellableCoroutine { continuation ->
         val input = EditText(requireContext()).apply {
@@ -422,7 +422,7 @@ class EfDetailFragment : Fragment() {
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(
                 R.string.edit_mode_verify_title,
-                verifyPinQualifierDisplayName(qualifier)
+                getString(keyReferenceDisplayNameResId(keyReference))
             ))
             .setView(layout)
             .setPositiveButton(android.R.string.ok, null)
@@ -594,35 +594,35 @@ class EfDetailFragment : Fragment() {
                 else -> null
             }
 
-        internal fun verifyPinQualifierDisplayName(qualifier: VerifyPinQualifier): String =
-            when (qualifier) {
-                VerifyPinQualifier.GLOBAL_PIN1 -> "Global PIN1"
-                VerifyPinQualifier.GLOBAL_PIN2 -> "Global PIN2"
-                VerifyPinQualifier.GLOBAL_PIN3 -> "Global PIN3"
-                VerifyPinQualifier.GLOBAL_PIN4 -> "Global PIN4"
-                VerifyPinQualifier.GLOBAL_PIN5 -> "Global PIN5"
-                VerifyPinQualifier.GLOBAL_PIN6 -> "Global PIN6"
-                VerifyPinQualifier.GLOBAL_PIN7 -> "Global PIN7"
-                VerifyPinQualifier.GLOBAL_PIN8 -> "Global PIN8"
-                VerifyPinQualifier.ADM1 -> "ADM1"
-                VerifyPinQualifier.ADM2 -> "ADM2"
-                VerifyPinQualifier.ADM3 -> "ADM3"
-                VerifyPinQualifier.ADM4 -> "ADM4"
-                VerifyPinQualifier.ADM5 -> "ADM5"
-                VerifyPinQualifier.UNIVERSAL_PIN -> "Universal PIN"
-                VerifyPinQualifier.LOCAL_PIN1 -> "Local PIN1"
-                VerifyPinQualifier.LOCAL_PIN2 -> "Local PIN2"
-                VerifyPinQualifier.LOCAL_PIN3 -> "Local PIN3"
-                VerifyPinQualifier.LOCAL_PIN4 -> "Local PIN4"
-                VerifyPinQualifier.LOCAL_PIN5 -> "Local PIN5"
-                VerifyPinQualifier.LOCAL_PIN6 -> "Local PIN6"
-                VerifyPinQualifier.LOCAL_PIN7 -> "Local PIN7"
-                VerifyPinQualifier.LOCAL_PIN8 -> "Local PIN8"
-                VerifyPinQualifier.ADM6 -> "ADM6"
-                VerifyPinQualifier.ADM7 -> "ADM7"
-                VerifyPinQualifier.ADM8 -> "ADM8"
-                VerifyPinQualifier.ADM9 -> "ADM9"
-                VerifyPinQualifier.ADM10 -> "ADM10"
+        internal fun keyReferenceDisplayNameResId(keyReference: KeyReference): Int =
+            when (keyReference) {
+                KeyReference.APPLICATION_PIN1 -> R.string.key_reference_application_pin1
+                KeyReference.APPLICATION_PIN2 -> R.string.key_reference_application_pin2
+                KeyReference.APPLICATION_PIN3 -> R.string.key_reference_application_pin3
+                KeyReference.APPLICATION_PIN4 -> R.string.key_reference_application_pin4
+                KeyReference.APPLICATION_PIN5 -> R.string.key_reference_application_pin5
+                KeyReference.APPLICATION_PIN6 -> R.string.key_reference_application_pin6
+                KeyReference.APPLICATION_PIN7 -> R.string.key_reference_application_pin7
+                KeyReference.APPLICATION_PIN8 -> R.string.key_reference_application_pin8
+                KeyReference.ADM1 -> R.string.key_reference_adm1
+                KeyReference.ADM2 -> R.string.key_reference_adm2
+                KeyReference.ADM3 -> R.string.key_reference_adm3
+                KeyReference.ADM4 -> R.string.key_reference_adm4
+                KeyReference.ADM5 -> R.string.key_reference_adm5
+                KeyReference.UNIVERSAL_PIN -> R.string.key_reference_universal_pin
+                KeyReference.LOCAL_PIN1 -> R.string.key_reference_local_pin1
+                KeyReference.LOCAL_PIN2 -> R.string.key_reference_local_pin2
+                KeyReference.LOCAL_PIN3 -> R.string.key_reference_local_pin3
+                KeyReference.LOCAL_PIN4 -> R.string.key_reference_local_pin4
+                KeyReference.LOCAL_PIN5 -> R.string.key_reference_local_pin5
+                KeyReference.LOCAL_PIN6 -> R.string.key_reference_local_pin6
+                KeyReference.LOCAL_PIN7 -> R.string.key_reference_local_pin7
+                KeyReference.LOCAL_PIN8 -> R.string.key_reference_local_pin8
+                KeyReference.ADM6 -> R.string.key_reference_adm6
+                KeyReference.ADM7 -> R.string.key_reference_adm7
+                KeyReference.ADM8 -> R.string.key_reference_adm8
+                KeyReference.ADM9 -> R.string.key_reference_adm9
+                KeyReference.ADM10 -> R.string.key_reference_adm10
             }
 
         const val ARG_EF_NAME = "efName"
@@ -634,23 +634,23 @@ class EfDetailFragment : Fragment() {
     }
 
     private data class VerifyRequirement(
-        val qualifier: VerifyPinQualifier,
+        val keyReference: KeyReference,
         val retries: Int
     )
 
     private data class VerifyCandidate(
         val requirements: List<VerifyRequirement>,
-        val trustedQualifiers: Set<VerifyPinQualifier>
+        val trustedKeyReferences: Set<KeyReference>
     )
 
     internal sealed class VerifyStatus {
         object Verified : VerifyStatus()
         data class Available(
             val retries: Int,
-            val qualifier: VerifyPinQualifier
+            val keyReference: KeyReference
         ) : VerifyStatus()
         data class Unavailable(
-            val qualifier: VerifyPinQualifier,
+            val keyReference: KeyReference,
             val reason: VerifyUnavailableReason
         ) : VerifyStatus()
     }
