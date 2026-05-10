@@ -93,6 +93,9 @@ class EditAccessUseCase(private val context: Context) {
     ): Outcome {
         val recordNo = applicableArrRecordNumber(fileId, reference)
             ?: return Outcome(failure = Failure.SECURITY_CONDITION_UNSUPPORTED)
+        if (recordNo <= 0) {
+            return Outcome(failure = Failure.SECURITY_CONDITION_UNSUPPORTED)
+        }
         val arrFileId = FileId(fileId.aid, fileId.path, reference.fileId)
         val result = repo.readRecord(ReadRecordParams(arrFileId, recordNo))
         if (result.sw == Result.SW_INSUFFICIENT_SECURITY) {
@@ -258,7 +261,7 @@ class EditAccessUseCase(private val context: Context) {
                     recordNumber = data[it + 1].toInt() and 0xFF
                 )
             }
-        }.filter { it.recordNumber > 0 }
+        }
         if (references.isEmpty()) return null
         return ArrReference(arrFileId, references)
     }

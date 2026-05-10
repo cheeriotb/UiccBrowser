@@ -40,11 +40,6 @@
             "id": "6F38"
         },
         {
-            "name": "ACM",
-            "description": "Accumulated Call Meter",
-            "id": "6F39"
-        },
-        {
             "name": "GID1",
             "description": "Group Identifier Level 1",
             "id": "6F3E"
