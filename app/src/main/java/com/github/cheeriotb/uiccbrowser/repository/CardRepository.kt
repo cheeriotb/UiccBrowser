@@ -39,8 +39,13 @@ class CardRepository private constructor (
     private var _iccId: String? = null
     private var closingJob: Job? = null
     private var isLogicalChannelRetained = false
-    private val verifiedPinKeyReferences = mutableSetOf<KeyReference>()
-    private val trustedPinKeyReferencesForNextAccess = mutableSetOf<KeyReference>()
+    private var currentDirectoryKey: DirectoryKey? = null
+    private val verifiedGlobalPinKeyReferences = mutableSetOf<KeyReference>()
+    private val verifiedLocalPinKeyReferences = mutableSetOf<ScopedKeyReference>()
+    private val verifiedAdmKeyReferences = mutableSetOf<ScopedKeyReference>()
+    private val trustedGlobalPinKeyReferencesForNextAccess = mutableSetOf<KeyReference>()
+    private val trustedLocalPinKeyReferencesForNextAccess = mutableSetOf<ScopedKeyReference>()
+    private val trustedAdmKeyReferencesForNextAccess = mutableSetOf<ScopedKeyReference>()
 
     val iccId: String? get() = _iccId
     var isProModeEnabled: Boolean = false
@@ -92,6 +97,7 @@ class CardRepository private constructor (
     suspend fun initialize(): Boolean {
         _iccId = null
         isLogicalChannelRetained = false
+        currentDirectoryKey = null
         clearVerifiedPins()
 
         if (openChannel()) {
@@ -111,7 +117,13 @@ class CardRepository private constructor (
                     _iccId = builder.toString()
                     Log.d(tag, "ICCID: $_iccId")
 
-                    if (cacheIo.get(_iccId!!, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID) == null) {
+                    val cachedIccid = cacheIo.get(
+                        _iccId!!,
+                        FileId.AID_NONE,
+                        FileId.PATH_MF,
+                        FileId.EF_ICCID
+                    )
+                    if (cachedIccid == null) {
                         cacheIo.insert(SelectResponse(_iccId!!, FileId.AID_NONE, FileId.PATH_MF,
                             FileId.EF_ICCID, selectResponse.data, selectResponse.sw))
                     }
@@ -351,7 +363,8 @@ class CardRepository private constructor (
     suspend fun verifyPin(
         keyReference: KeyReference,
         code: String,
-        aid: String = FileId.AID_NONE
+        aid: String = FileId.AID_NONE,
+        fileId: FileId? = null
     ): Response {
         val paddedCode = padVerifyPinCode(code)
         if (!isAccessible || !openChannel(aid)) {
@@ -361,8 +374,12 @@ class CardRepository private constructor (
 
         val response = verifyPin(keyReference, paddedCode)
         if (response.isOk) {
-            rememberVerifiedPin(keyReference)
-            retainLogicalChannel()
+            rememberVerifiedPin(keyReference, fileId)
+            if (keyReference.isAdm()) {
+                retainLogicalChannel()
+            } else {
+                startClosingTimer()
+            }
         } else {
             startClosingTimer()
         }
@@ -373,25 +390,64 @@ class CardRepository private constructor (
     fun releaseLogicalChannel() {
         synchronized(this) {
             isLogicalChannelRetained = false
-            clearVerifiedPins()
+            clearVerifiedAdmKeys()
+            clearTrustedKeysForNextAccess()
         }
         cancelClosingTimerJob()
         cardIo.closeRemainingChannel()
     }
 
-    /** Returns true when this repository has observed a successful VERIFY for [keyReference]. */
-    fun isPinVerified(keyReference: KeyReference): Boolean =
-        synchronized(this) { keyReference in verifiedPinKeyReferences }
+    /**
+     * Returns true when this repository has observed a successful VERIFY for [keyReference].
+     *
+     * Local PINs and ADM keys are scoped to [fileId]'s parent directory when it is supplied.
+     */
+    fun isPinVerified(keyReference: KeyReference, fileId: FileId? = null): Boolean =
+        synchronized(this) {
+            when {
+                keyReference.isGlobalPin() -> keyReference in verifiedGlobalPinKeyReferences
+                keyReference.isLocalPin() -> scopedKeyReference(keyReference, fileId)
+                    ?.let { it in verifiedLocalPinKeyReferences } ?: false
+                keyReference.isAdm() -> scopedKeyReference(keyReference, fileId)
+                    ?.let { it in verifiedAdmKeyReferences } ?: false
+                else -> false
+            }
+        }
 
     /**
      * Marks remembered PINs that were trusted instead of VERIFY for the next READ/UPDATE command.
      *
      * If that command fails with SW6982, only these PINs are removed from the remembered set.
      */
-    fun markVerifiedPinsTrustedForNextAccess(keyReferences: Collection<KeyReference>) {
+    fun markVerifiedPinsTrustedForNextAccess(
+        keyReferences: Collection<KeyReference>,
+        fileId: FileId? = null
+    ) {
         synchronized(this) {
-            trustedPinKeyReferencesForNextAccess.clear()
-            trustedPinKeyReferencesForNextAccess.addAll(keyReferences)
+            clearTrustedKeysForNextAccess()
+            trustedGlobalPinKeyReferencesForNextAccess.addAll(
+                keyReferences.filter { it.isGlobalPin() }
+            )
+            keyReferences.filter { it.isLocalPin() }
+                .mapNotNull { scopedKeyReference(it, fileId) }
+                .toCollection(trustedLocalPinKeyReferencesForNextAccess)
+            keyReferences.filter { it.isAdm() }
+                .mapNotNull { scopedKeyReference(it, fileId) }
+                .toCollection(trustedAdmKeyReferencesForNextAccess)
+        }
+    }
+
+    /**
+     * Updates the app-level current directory context and drops directory-scoped keys.
+     */
+    fun updateCurrentDirectoryContext(aid: String, path: String) {
+        synchronized(this) {
+            val newKey = DirectoryKey(aid, path)
+            if (currentDirectoryKey == newKey) return
+            currentDirectoryKey = newKey
+            verifiedLocalPinKeyReferences.clear()
+            clearVerifiedAdmKeys()
+            clearTrustedKeysForNextAccess()
         }
     }
 
@@ -487,27 +543,63 @@ class CardRepository private constructor (
         }
     }
 
-    private fun rememberVerifiedPin(keyReference: KeyReference) {
+    private fun rememberVerifiedPin(keyReference: KeyReference, fileId: FileId?) {
         synchronized(this) {
-            verifiedPinKeyReferences.add(keyReference)
+            when {
+                keyReference.isGlobalPin() -> verifiedGlobalPinKeyReferences.add(keyReference)
+                keyReference.isLocalPin() -> scopedKeyReference(keyReference, fileId)
+                    ?.let { verifiedLocalPinKeyReferences.add(it) }
+                keyReference.isAdm() -> scopedKeyReference(keyReference, fileId)
+                    ?.let { verifiedAdmKeyReferences.add(it) }
+            }
             Log.d(tag, "Remembered a successful VERIFY result")
         }
     }
 
     private fun clearVerifiedPins() {
         synchronized(this) {
-            verifiedPinKeyReferences.clear()
-            trustedPinKeyReferencesForNextAccess.clear()
+            verifiedGlobalPinKeyReferences.clear()
+            verifiedLocalPinKeyReferences.clear()
+            clearVerifiedAdmKeys()
+            clearTrustedKeysForNextAccess()
+        }
+    }
+
+    private fun clearVerifiedAdmKeys() {
+        synchronized(this) {
+            verifiedAdmKeyReferences.clear()
+        }
+    }
+
+    private fun clearTrustedKeysForNextAccess() {
+        synchronized(this) {
+            trustedGlobalPinKeyReferencesForNextAccess.clear()
+            trustedLocalPinKeyReferencesForNextAccess.clear()
+            trustedAdmKeyReferencesForNextAccess.clear()
         }
     }
 
     private fun updateVerifiedPinsForReadWriteResponse(sw: Int) {
         synchronized(this) {
             if (sw == Result.SW_INSUFFICIENT_SECURITY) {
-                verifiedPinKeyReferences.removeAll(trustedPinKeyReferencesForNextAccess)
+                verifiedGlobalPinKeyReferences.removeAll(
+                    trustedGlobalPinKeyReferencesForNextAccess
+                )
+                verifiedLocalPinKeyReferences.removeAll(
+                    trustedLocalPinKeyReferencesForNextAccess
+                )
+                verifiedAdmKeyReferences.removeAll(trustedAdmKeyReferencesForNextAccess)
             }
-            trustedPinKeyReferencesForNextAccess.clear()
+            clearTrustedKeysForNextAccess()
         }
+    }
+
+    private fun scopedKeyReference(
+        keyReference: KeyReference,
+        fileId: FileId?
+    ): ScopedKeyReference? {
+        val key = fileId?.let { DirectoryKey(it.aid, it.path) } ?: currentDirectoryKey
+        return key?.let { ScopedKeyReference(keyReference, it) }
     }
 
     private fun cancelClosingTimerJob(): Job? {
@@ -527,6 +619,7 @@ class CardRepository private constructor (
 
     suspend fun dispose() {
         isLogicalChannelRetained = false
+        currentDirectoryKey = null
         clearVerifiedPins()
         cancelClosingTimer()
         repositoryScope.cancel()
@@ -535,4 +628,11 @@ class CardRepository private constructor (
         clearInstances()
         Log.d(tag, "Disposed")
     }
+
+    private data class DirectoryKey(val aid: String, val path: String)
+
+    private data class ScopedKeyReference(
+        val keyReference: KeyReference,
+        val directoryKey: DirectoryKey
+    )
 }

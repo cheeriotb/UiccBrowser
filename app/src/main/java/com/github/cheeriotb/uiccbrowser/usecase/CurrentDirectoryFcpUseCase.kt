@@ -44,6 +44,7 @@ class CurrentDirectoryFcpUseCase(private val context: Context) {
             cachedKey = key
             cachedResult = result
         }
+        repo.updateCurrentDirectoryContext(efFileId.aid, efFileId.path)
     }
 
     /** Returns the cached FCP only when it belongs to [efFileId]'s current directory context. */

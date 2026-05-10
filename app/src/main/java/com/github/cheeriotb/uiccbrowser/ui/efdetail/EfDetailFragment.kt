@@ -241,7 +241,7 @@ class EfDetailFragment : Fragment() {
             val trustedKeyReferences = mutableSetOf<KeyReference>()
             var optionUsable = true
             for (keyReference in option) {
-                if (repo.isPinVerified(keyReference)) {
+                if (repo.isPinVerified(keyReference, viewModel.fileId)) {
                     trustedKeyReferences.add(keyReference)
                     continue
                 }
@@ -261,7 +261,10 @@ class EfDetailFragment : Fragment() {
                 }
             }
             if (optionUsable && requirements.isEmpty()) {
-                repo.markVerifiedPinsTrustedForNextAccess(trustedKeyReferences)
+                repo.markVerifiedPinsTrustedForNextAccess(
+                    trustedKeyReferences,
+                    viewModel.fileId
+                )
                 return true
             }
             if (optionUsable && requirements.isNotEmpty()) {
@@ -282,7 +285,10 @@ class EfDetailFragment : Fragment() {
         for (requirement in selected.requirements) {
             if (!verifyKeyReference(repo, aid, requirement)) return false
         }
-        repo.markVerifiedPinsTrustedForNextAccess(selected.trustedKeyReferences)
+        repo.markVerifiedPinsTrustedForNextAccess(
+            selected.trustedKeyReferences,
+            viewModel.fileId
+        )
         return true
     }
 
@@ -292,7 +298,7 @@ class EfDetailFragment : Fragment() {
     ): Boolean {
         val trustedKeyReferences = mutableSetOf<KeyReference>()
         val statuses = keyReferences.map { keyReference ->
-            if (repo.isPinVerified(keyReference)) {
+            if (repo.isPinVerified(keyReference, viewModel.fileId)) {
                 trustedKeyReferences.add(keyReference)
                 VerifyStatus.Verified
             } else {
@@ -300,7 +306,7 @@ class EfDetailFragment : Fragment() {
             }
         }
         if (trustedKeyReferences.isNotEmpty()) {
-            repo.markVerifiedPinsTrustedForNextAccess(trustedKeyReferences)
+            repo.markVerifiedPinsTrustedForNextAccess(trustedKeyReferences, viewModel.fileId)
             return true
         }
 
@@ -328,7 +334,7 @@ class EfDetailFragment : Fragment() {
 
         while (true) {
             val code = showVerifyDialog(keyReference, retries) ?: return false
-            val response = repo.verifyPin(keyReference, code, aid)
+            val response = repo.verifyPin(keyReference, code, aid, viewModel.fileId)
             if (response.isOk) return true
 
             when (val status = verifyStatus(response.sw, keyReference)) {

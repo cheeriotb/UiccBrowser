@@ -40,5 +40,16 @@ enum class KeyReference(val value: Int) {
     ADM7(0x8B),
     ADM8(0x8C),
     ADM9(0x8D),
-    ADM10(0x8E)
+    ADM10(0x8E);
+
+    /** Returns true for Universal PIN and Application PIN key references. */
+    fun isGlobalPin(): Boolean =
+        this == UNIVERSAL_PIN || value in APPLICATION_PIN1.value..APPLICATION_PIN8.value
+
+    /** Returns true for Local PIN key references scoped to an ADF or DF. */
+    fun isLocalPin(): Boolean = value in LOCAL_PIN1.value..LOCAL_PIN8.value
+
+    /** Returns true for administrative key references. */
+    fun isAdm(): Boolean =
+        value in ADM1.value..ADM5.value || value in ADM6.value..ADM10.value
 }

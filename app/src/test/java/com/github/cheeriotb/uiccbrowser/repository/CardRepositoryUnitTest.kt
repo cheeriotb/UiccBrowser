@@ -452,13 +452,16 @@ class CardRepositoryUnitTest {
                 "%04X".format(Result.SW_INSUFFICIENT_SECURITY)
         ))
 
-        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
-        repository.verifyPin(KeyReference.ADM2, PIN_4_BYTES)
-        repository.markVerifiedPinsTrustedForNextAccess(listOf(KeyReference.ADM1))
+        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES, fileId = FILE_ID_FPLMN)
+        repository.verifyPin(KeyReference.ADM2, PIN_4_BYTES, fileId = FILE_ID_FPLMN)
+        repository.markVerifiedPinsTrustedForNextAccess(
+                listOf(KeyReference.ADM1),
+                FILE_ID_FPLMN
+        )
         repository.readBinary(ReadBinaryParams.Builder(FILE_ID_FPLMN).build())
 
-        assertThat(repository.isPinVerified(KeyReference.ADM1)).isFalse()
-        assertThat(repository.isPinVerified(KeyReference.ADM2)).isTrue()
+        assertThat(repository.isPinVerified(KeyReference.ADM1, FILE_ID_FPLMN)).isFalse()
+        assertThat(repository.isPinVerified(KeyReference.ADM2, FILE_ID_FPLMN)).isTrue()
     }
 
     @Test
@@ -575,13 +578,16 @@ class CardRepositoryUnitTest {
                         "%04X".format(Result.SW_INSUFFICIENT_SECURITY)
                 ))
 
-        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
-        repository.verifyPin(KeyReference.ADM2, PIN_4_BYTES)
-        repository.markVerifiedPinsTrustedForNextAccess(listOf(KeyReference.ADM1))
+        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES, fileId = FILE_ID_FPLMN)
+        repository.verifyPin(KeyReference.ADM2, PIN_4_BYTES, fileId = FILE_ID_FPLMN)
+        repository.markVerifiedPinsTrustedForNextAccess(
+                listOf(KeyReference.ADM1),
+                FILE_ID_FPLMN
+        )
         repository.updateBinary(UpdateBinaryParams.Builder(FILE_ID_FPLMN).data(data).build())
 
-        assertThat(repository.isPinVerified(KeyReference.ADM1)).isFalse()
-        assertThat(repository.isPinVerified(KeyReference.ADM2)).isTrue()
+        assertThat(repository.isPinVerified(KeyReference.ADM1, FILE_ID_FPLMN)).isFalse()
+        assertThat(repository.isPinVerified(KeyReference.ADM2, FILE_ID_FPLMN)).isTrue()
     }
 
     @Test
@@ -894,13 +900,13 @@ class CardRepositoryUnitTest {
 
         val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
         every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
-                KeyReference.ADM1.value, paddedPin)) } returns
+                KeyReference.APPLICATION_PIN1.value, paddedPin)) } returns
                 Response(hexStringToByteArray(RESPONSE_NORMAL))
 
-        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES)
+        repository.verifyPin(KeyReference.APPLICATION_PIN1, PIN_4_BYTES)
 
-        assertThat(repository.isPinVerified(KeyReference.ADM1)).isTrue()
-        assertThat(repository.isPinVerified(KeyReference.ADM2)).isFalse()
+        assertThat(repository.isPinVerified(KeyReference.APPLICATION_PIN1)).isTrue()
+        assertThat(repository.isPinVerified(KeyReference.APPLICATION_PIN2)).isFalse()
     }
 
     @Test
@@ -918,6 +924,56 @@ class CardRepositoryUnitTest {
         repository.queryVerifyPinRetries(KeyReference.ADM1)
 
         assertThat(repository.isPinVerified(KeyReference.ADM1)).isFalse()
+    }
+
+    @Test
+    fun verifyPin_success_remembersLocalPinForDirectoryOnly() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val anotherFileId = FileId(AID, PATH_ADF + "5FC0", FID_FPLMN)
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                KeyReference.LOCAL_PIN1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        repository.verifyPin(KeyReference.LOCAL_PIN1, PIN_4_BYTES, AID, FILE_ID_FPLMN)
+
+        assertThat(repository.isPinVerified(KeyReference.LOCAL_PIN1, FILE_ID_FPLMN)).isTrue()
+        assertThat(repository.isPinVerified(KeyReference.LOCAL_PIN1, anotherFileId)).isFalse()
+    }
+
+    @Test
+    fun updateCurrentDirectoryContext_clearsLocalPinAndAdmButKeepsApplicationPin() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                KeyReference.APPLICATION_PIN1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                KeyReference.LOCAL_PIN1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                KeyReference.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        repository.updateCurrentDirectoryContext(AID, PATH_ADF)
+        repository.verifyPin(KeyReference.APPLICATION_PIN1, PIN_4_BYTES)
+        repository.verifyPin(KeyReference.LOCAL_PIN1, PIN_4_BYTES, AID, FILE_ID_FPLMN)
+        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES, AID, FILE_ID_FPLMN)
+        repository.updateCurrentDirectoryContext(AID, PATH_ADF + "5FC0")
+
+        assertThat(repository.isPinVerified(KeyReference.APPLICATION_PIN1)).isTrue()
+        assertThat(repository.isPinVerified(KeyReference.LOCAL_PIN1, FILE_ID_FPLMN)).isFalse()
+        assertThat(repository.isPinVerified(KeyReference.ADM1, FILE_ID_FPLMN)).isFalse()
     }
 
     @Test
@@ -1035,6 +1091,30 @@ class CardRepositoryUnitTest {
         delay(1000)
 
         verify(atLeast = 2) { cardIoMock.closeRemainingChannel() }
+    }
+
+    @Test
+    fun releaseLogicalChannel_keepsApplicationPinAndClearsAdm() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                KeyReference.APPLICATION_PIN1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                KeyReference.ADM1.value, paddedPin)) } returns
+                Response(hexStringToByteArray(RESPONSE_NORMAL))
+
+        repository.verifyPin(KeyReference.APPLICATION_PIN1, PIN_4_BYTES)
+        repository.verifyPin(KeyReference.ADM1, PIN_4_BYTES, AID, FILE_ID_FPLMN)
+        repository.releaseLogicalChannel()
+
+        assertThat(repository.isPinVerified(KeyReference.APPLICATION_PIN1)).isTrue()
+        assertThat(repository.isPinVerified(KeyReference.ADM1, FILE_ID_FPLMN)).isFalse()
     }
 
     @Test
