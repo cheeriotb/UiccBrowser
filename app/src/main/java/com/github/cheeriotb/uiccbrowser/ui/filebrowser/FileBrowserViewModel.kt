@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.github.cheeriotb.uiccbrowser.usecase.CacheFileControlParametersUseCase
+import com.github.cheeriotb.uiccbrowser.usecase.CurrentDirectoryFcpUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.FileEntry
 import com.github.cheeriotb.uiccbrowser.usecase.GetFileListUseCase
 import com.github.cheeriotb.uiccbrowser.repository.FileId
@@ -32,6 +33,8 @@ class FileBrowserViewModel(
 ) : AndroidViewModel(application) {
 
     private val cacheFiles = CacheFileControlParametersUseCase(application.applicationContext)
+    private val currentDirectoryFcp =
+        CurrentDirectoryFcpUseCase(application.applicationContext)
     private val getFileList = GetFileListUseCase(application.applicationContext)
 
     private val _entries = MutableStateFlow<List<FileEntry>>(emptyList())
@@ -46,6 +49,7 @@ class FileBrowserViewModel(
             if (aid != FileId.AID_NONE && parentPath == FileId.PATH_ADF) {
                 cacheFiles.execute(rawResId, slotId, aid)
             }
+            currentDirectoryFcp.prepareForDirectory(slotId, aid, parentPath)
             _entries.value = getFileList.execute(rawResId, slotId, aid, parentPath)
             _isLoading.value = false
         }

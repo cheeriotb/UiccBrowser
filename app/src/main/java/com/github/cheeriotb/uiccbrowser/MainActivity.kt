@@ -117,6 +117,10 @@ class MainActivity : AppCompatActivity() {
                     supportActionBar?.title =
                         arguments?.getString(FileBrowserFragment.ARG_TITLE)
                 }
+                R.id.nav_current_directory_fcp -> {
+                    supportActionBar?.title =
+                        arguments?.getString(FileBrowserFragment.ARG_TITLE)
+                }
                 R.id.nav_ef_detail -> {
                     val efName = arguments?.getString(EfDetailFragment.ARG_EF_NAME) ?: ""
                     val efFileId = arguments?.getString(EfDetailFragment.ARG_EF_FILE_ID) ?: ""

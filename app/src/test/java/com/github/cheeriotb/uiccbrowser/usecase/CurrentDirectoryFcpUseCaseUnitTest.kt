@@ -16,7 +16,6 @@ import com.github.cheeriotb.uiccbrowser.cardio.Interface
 import com.github.cheeriotb.uiccbrowser.cardio.Iso7816
 import com.github.cheeriotb.uiccbrowser.cardio.Response
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
-import com.github.cheeriotb.uiccbrowser.repository.FileId
 import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
@@ -48,8 +47,6 @@ class CurrentDirectoryFcpUseCaseUnitTest {
         private const val AID_ISIM = "A0000000871004FFFFFFFFFFFFFFFFFF"
         private const val PATH_ADF = "7FFF"
         private const val PATH_DF_5GS = "7FFF5FC0"
-        private const val FID_AD = "6FAD"
-        private const val FID_OPL5G = "4F08"
         private const val FCP_ADF_USIM =
                 "62128410A0000000871001FFFFFFFFFFFFFFFFFF"
         private const val FCP_ADF_ISIM =
@@ -83,24 +80,22 @@ class CurrentDirectoryFcpUseCaseUnitTest {
     }
 
     @Test
-    fun prepareForEf_cachesValidatedDirectoryFcp() = runBlocking {
-        val fileId = FileId(AID_USIM, PATH_DF_5GS, FID_OPL5G)
+    fun prepareForDirectory_cachesValidatedDirectoryFcp() = runBlocking {
         selectDirectoryReturns(PATH_DF_5GS, FCP_DF_5GS)
 
-        useCase.prepareForEf(0, fileId)
+        useCase.prepareForDirectory(0, AID_USIM, PATH_DF_5GS)
 
-        val cached = useCase.queryForEf(fileId)
+        val cached = useCase.queryForDirectory(AID_USIM, PATH_DF_5GS)
         assertThat(cached).isNotNull()
         assertThat(cached!!.data).isEqualTo(hexStringToByteArray(FCP_DF_5GS))
     }
 
     @Test
-    fun prepareForEf_sameDirectoryAlreadyCached_doesNotSelectAgain() = runBlocking {
-        val fileId = FileId(AID_USIM, PATH_ADF, FID_AD)
+    fun prepareForDirectory_sameDirectoryAlreadyCached_doesNotSelectAgain() = runBlocking {
         selectDirectoryReturns(PATH_ADF, FCP_ADF_USIM)
 
-        useCase.prepareForEf(0, fileId)
-        useCase.prepareForEf(0, fileId)
+        useCase.prepareForDirectory(0, AID_USIM, PATH_ADF)
+        useCase.prepareForDirectory(0, AID_USIM, PATH_ADF)
 
         verify(exactly = 1) {
             cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x04,
@@ -109,30 +104,26 @@ class CurrentDirectoryFcpUseCaseUnitTest {
     }
 
     @Test
-    fun prepareForEf_samePathDifferentAid_replacesCache() = runBlocking {
-        val usimFileId = FileId(AID_USIM, PATH_ADF, FID_AD)
-        val isimFileId = FileId(AID_ISIM, PATH_ADF, FID_AD)
+    fun prepareForDirectory_samePathDifferentAid_replacesCache() = runBlocking {
         selectDirectoryReturnsMany(PATH_ADF, listOf(FCP_ADF_USIM, FCP_ADF_ISIM))
 
-        useCase.prepareForEf(0, usimFileId)
-        useCase.prepareForEf(0, isimFileId)
+        useCase.prepareForDirectory(0, AID_USIM, PATH_ADF)
+        useCase.prepareForDirectory(0, AID_ISIM, PATH_ADF)
 
-        assertThat(useCase.queryForEf(usimFileId)).isNull()
-        assertThat(useCase.queryForEf(isimFileId)).isNotNull()
+        assertThat(useCase.queryForDirectory(AID_USIM, PATH_ADF)).isNull()
+        assertThat(useCase.queryForDirectory(AID_ISIM, PATH_ADF)).isNotNull()
     }
 
     @Test
-    fun prepareForEf_invalidDirectoryFcpClearsOldCache() = runBlocking {
-        val oldFileId = FileId(AID_USIM, PATH_ADF, FID_AD)
-        val newFileId = FileId(AID_USIM, PATH_DF_5GS, FID_OPL5G)
+    fun prepareForDirectory_invalidDirectoryFcpClearsOldCache() = runBlocking {
         selectDirectoryReturns(PATH_ADF, FCP_ADF_USIM)
         selectDirectoryReturns(PATH_DF_5GS, FCP_WRONG_DIRECTORY)
 
-        useCase.prepareForEf(0, oldFileId)
-        useCase.prepareForEf(0, newFileId)
+        useCase.prepareForDirectory(0, AID_USIM, PATH_ADF)
+        useCase.prepareForDirectory(0, AID_USIM, PATH_DF_5GS)
 
-        assertThat(useCase.queryForEf(oldFileId)).isNull()
-        assertThat(useCase.queryForEf(newFileId)).isNull()
+        assertThat(useCase.queryForDirectory(AID_USIM, PATH_ADF)).isNull()
+        assertThat(useCase.queryForDirectory(AID_USIM, PATH_DF_5GS)).isNull()
     }
 
     private fun selectDirectoryReturns(path: String, fcp: String) {

@@ -80,6 +80,7 @@
     <string name="pro_mode_dialog_message">You are about to enable Pro Mode for the currently selected SIM. This mode lets you choose operations that may damage the SIM card. Do you want to continue?</string>
     <string name="action_refresh">Refresh</string>
     <string name="action_edit">Edit</string>
+    <string name="action_show_fcp_template">Show FCP Template</string>
     <string name="edit_mode_verify_title">Verify %1$s</string>
     <string name="edit_mode_verify_option_title">Select verification method</string>
     <string name="edit_mode_arr_verify_option_title">Select EF ARR verification key</string>

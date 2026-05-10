@@ -537,6 +537,6 @@ class EditAccessUseCaseUnitTest {
                 hexStringToByteArray(PATH_ADF))) } returns
                 Response(hexStringToByteArray(fcp + "9000"))
         CurrentDirectoryFcpUseCase(ApplicationProvider.getApplicationContext())
-            .prepareForEf(0, FILE_ID)
+            .prepareForDirectory(0, FILE_ID.aid, FILE_ID.path)
     }
 }

@@ -16,6 +16,9 @@
         <action
             android:id="@+id/action_file_browser_to_ef_detail"
             app:destination="@id/nav_ef_detail" />
+        <action
+            android:id="@+id/action_file_browser_to_current_directory_fcp"
+            app:destination="@id/nav_current_directory_fcp" />
     </fragment>
 
     <fragment
@@ -44,6 +47,25 @@
         <action
             android:id="@+id/action_file_browser_to_ef_detail"
             app:destination="@id/nav_ef_detail" />
+        <action
+            android:id="@+id/action_file_browser_to_current_directory_fcp"
+            app:destination="@id/nav_current_directory_fcp" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_current_directory_fcp"
+        android:name="com.github.cheeriotb.uiccbrowser.ui.filebrowser.CurrentDirectoryFcpFragment"
+        android:label=""
+        tools:layout="@layout/fragment_fcp">
+        <argument
+            android:name="aid"
+            app:argType="string" />
+        <argument
+            android:name="parentPath"
+            app:argType="string" />
+        <argument
+            android:name="title"
+            app:argType="string" />
     </fragment>
 
     <fragment

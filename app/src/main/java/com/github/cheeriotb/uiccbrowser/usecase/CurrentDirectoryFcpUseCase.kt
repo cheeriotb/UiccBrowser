@@ -24,9 +24,9 @@ import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
  */
 class CurrentDirectoryFcpUseCase(private val context: Context) {
 
-    /** Selects the parent directory of [efFileId] if the cached directory context differs. */
-    suspend fun prepareForEf(slotId: Int, efFileId: FileId) {
-        val key = DirectoryKey(efFileId.aid, efFileId.path)
+    /** Selects the directory identified by [aid] and [path] when it is not already cached. */
+    suspend fun prepareForDirectory(slotId: Int, aid: String, path: String) {
+        val key = DirectoryKey(aid, path)
         synchronized(lock) {
             if (cachedKey == key && cachedResult != null) return
             cachedKey = null
@@ -37,19 +37,19 @@ class CurrentDirectoryFcpUseCase(private val context: Context) {
         if (!repo.isAccessible) return
 
         val result = repo.readDirectoryFileControlParameters(
-                FileId(efFileId.aid, efFileId.path, FileId.FID_ALMIGHTY))
+                FileId(aid, path, FileId.FID_ALMIGHTY))
         if (!result.isOk || !isExpectedDirectoryFcp(result.data, key)) return
 
         synchronized(lock) {
             cachedKey = key
             cachedResult = result
         }
-        repo.updateCurrentDirectoryContext(efFileId.aid, efFileId.path)
+        repo.updateCurrentDirectoryContext(aid, path)
     }
 
-    /** Returns the cached FCP only when it belongs to [efFileId]'s current directory context. */
-    fun queryForEf(efFileId: FileId): Result? = synchronized(lock) {
-        val key = DirectoryKey(efFileId.aid, efFileId.path)
+    /** Returns the cached FCP only when it belongs to the requested directory context. */
+    fun queryForDirectory(aid: String, path: String): Result? = synchronized(lock) {
+        val key = DirectoryKey(aid, path)
         cachedResult.takeIf { cachedKey == key }
     }
 

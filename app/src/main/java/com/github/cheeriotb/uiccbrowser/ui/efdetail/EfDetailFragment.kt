@@ -40,7 +40,6 @@ import com.github.cheeriotb.uiccbrowser.repository.FileId
 import com.github.cheeriotb.uiccbrowser.repository.Result
 import com.github.cheeriotb.uiccbrowser.repository.KeyReference
 import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
-import com.github.cheeriotb.uiccbrowser.usecase.CurrentDirectoryFcpUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.EditAccessUseCase
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
@@ -86,9 +85,6 @@ class EfDetailFragment : Fragment() {
         )[EfDetailViewModel::class.java]
 
         val slotId = mainViewModel.selectedSlot.value?.slotId ?: 0
-        viewLifecycleOwner.lifecycleScope.launch {
-            CurrentDirectoryFcpUseCase(requireContext()).prepareForEf(slotId, viewModel.fileId)
-        }
         binaryViewModel = ViewModelProvider(
             this,
             BinaryViewModel.Factory(requireActivity().application, viewModel.fileId, slotId)

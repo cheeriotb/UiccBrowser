@@ -10,10 +10,14 @@ package com.github.cheeriotb.uiccbrowser.ui.filebrowser
 
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
+import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -91,7 +95,14 @@ class FileBrowserFragment : Fragment() {
 
         viewModel = ViewModelProvider(
             this,
-            FileBrowserViewModel.Factory(requireActivity().application, rawResId, slotId, aid, parentPath, title)
+            FileBrowserViewModel.Factory(
+                requireActivity().application,
+                rawResId,
+                slotId,
+                aid,
+                parentPath,
+                title
+            )
         )[FileBrowserViewModel::class.java]
 
         setupUi(displayPath)
@@ -107,18 +118,30 @@ class FileBrowserFragment : Fragment() {
 
         viewModel = ViewModelProvider(
             this,
-            FileBrowserViewModel.Factory(requireActivity().application, rawResId, slotId, aid, parentPath, title)
+            FileBrowserViewModel.Factory(
+                requireActivity().application,
+                rawResId,
+                slotId,
+                aid,
+                parentPath,
+                title
+            )
         )[FileBrowserViewModel::class.java]
 
         setupUi(displayPath)
     }
 
     private fun setupUi(displayPath: String) {
+        setupOptionsMenu()
         val adapter = FileEntryAdapter(
             onDirectoryClick = { entry ->
                 val childPath = viewModel.parentPath + entry.id
                 val childDisplayPath = FileBrowserViewModel.formatDisplayPath(childPath)
-                val childTitle = FileBrowserViewModel.buildSubTitle(entry.name, entry.id, displayPath)
+                val childTitle = FileBrowserViewModel.buildSubTitle(
+                    entry.name,
+                    entry.id,
+                    displayPath
+                )
 
                 findNavController().navigate(
                     R.id.action_file_browser_to_sublevel,
@@ -147,7 +170,9 @@ class FileBrowserFragment : Fragment() {
         binding.recyclerView.apply {
             this.adapter = adapter
             layoutManager = LinearLayoutManager(requireContext())
-            addItemDecoration(DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL))
+            addItemDecoration(
+                DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL)
+            )
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -166,6 +191,39 @@ class FileBrowserFragment : Fragment() {
             }
         }
 
+    }
+
+    private fun setupOptionsMenu() {
+        requireActivity().addMenuProvider(
+            object : MenuProvider {
+                override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                    menuInflater.inflate(R.menu.file_browser, menu)
+                }
+
+                override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                    return when (menuItem.itemId) {
+                        R.id.action_show_fcp_template -> {
+                            showCurrentDirectoryFcp()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+            },
+            viewLifecycleOwner,
+            Lifecycle.State.RESUMED
+        )
+    }
+
+    private fun showCurrentDirectoryFcp() {
+        findNavController().navigate(
+            R.id.action_file_browser_to_current_directory_fcp,
+            bundleOf(
+                ARG_AID to viewModel.aid,
+                ARG_PARENT_PATH to viewModel.parentPath,
+                ARG_TITLE to viewModel.title
+            )
+        )
     }
 
     override fun onResume() {

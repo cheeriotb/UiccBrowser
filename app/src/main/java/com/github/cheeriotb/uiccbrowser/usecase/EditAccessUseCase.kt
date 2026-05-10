@@ -177,7 +177,8 @@ class EditAccessUseCase(private val context: Context) {
     }
 
     private fun arrAccessKeyOutcome(fileId: FileId): Outcome {
-        val fcpData = CurrentDirectoryFcpUseCase(context).queryForEf(fileId)
+        val fcpData = CurrentDirectoryFcpUseCase(context)
+            .queryForDirectory(fileId.aid, fileId.path)
             ?.takeIf { it.isOk }
             ?.data
             ?: return Outcome(failure = Failure.ARR_ACCESS_KEYS_UNAVAILABLE)
@@ -347,7 +348,8 @@ class EditAccessUseCase(private val context: Context) {
     }
 
     private fun currentEnabledKeyReferences(fileId: FileId): Set<KeyReference>? {
-        val fcpData = CurrentDirectoryFcpUseCase(context).queryForEf(fileId)
+        val fcpData = CurrentDirectoryFcpUseCase(context)
+            .queryForDirectory(fileId.aid, fileId.path)
             ?.takeIf { it.isOk }
             ?.data
             ?: return null
@@ -379,7 +381,8 @@ class EditAccessUseCase(private val context: Context) {
      * Resolves ETSI-defined SE00/SE01 from the current directory PIN status template.
      */
     private fun currentSecurityEnvironmentId(fileId: FileId): Int? {
-        val fcpData = CurrentDirectoryFcpUseCase(context).queryForEf(fileId)
+        val fcpData = CurrentDirectoryFcpUseCase(context)
+            .queryForDirectory(fileId.aid, fileId.path)
             ?.takeIf { it.isOk }
             ?.data
             ?: return null
