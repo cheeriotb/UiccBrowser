@@ -91,7 +91,7 @@ class EditAccessUseCase(private val context: Context) {
         reference: ArrReference,
         requiredMode: Int
     ): Outcome {
-        val recordNo = reference.applicableRecordNumber()
+        val recordNo = applicableArrRecordNumber(fileId, reference)
             ?: return Outcome(failure = Failure.SECURITY_CONDITION_UNSUPPORTED)
         val arrFileId = FileId(fileId.aid, fileId.path, reference.fileId)
         val result = repo.readRecord(ReadRecordParams(arrFileId, recordNo))
@@ -104,6 +104,20 @@ class EditAccessUseCase(private val context: Context) {
         val element = EfArrRecord.decode(context.resources, result.data)
             ?: return Outcome(failure = Failure.ARR_RECORD_UNAVAILABLE)
         return outcomeFromExpandedChildren(element.subElements, requiredMode)
+    }
+
+    /**
+     * Returns an EF ARR record number when the direct or SEID-qualified reference is resolvable.
+     */
+    private fun applicableArrRecordNumber(fileId: FileId, reference: ArrReference): Int? {
+        val directReference = reference.recordReferences.singleOrNull()
+            ?.takeIf { it.seId == null }
+        if (directReference != null) return directReference.recordNumber
+
+        val seId = currentSecurityEnvironmentId(fileId) ?: return null
+        return reference.recordReferences
+            .singleOrNull { it.seId == seId }
+            ?.recordNumber
     }
 
     private fun arrAccessKeyOutcome(fileId: FileId): Outcome {
@@ -264,6 +278,41 @@ class EditAccessUseCase(private val context: Context) {
             .distinct()
     }
 
+    /**
+     * Resolves ETSI-defined SE00/SE01 from the current directory PIN status template.
+     */
+    private fun currentSecurityEnvironmentId(fileId: FileId): Int? {
+        val fcpData = CurrentDirectoryFcpUseCase(context).queryForEf(fileId)
+            ?.takeIf { it.isOk }
+            ?.data
+            ?: return null
+        val fcpElement = FcpTemplate.decode(context.resources, fcpData) ?: return null
+        val pinStatusTemplate = fcpElement.subElements
+            .filterIsInstance<BerTlvElement>()
+            .find { it.tag == FcpTemplate.TAG_PIN_STATUS_TEMPLATE }
+            ?: return null
+        val children = pinStatusTemplate.subElements.filterIsInstance<BerTlvElement>()
+        val psData = children.find { it.tag == FcpTemplate.TAG_PS_DO }?.data
+            ?: return null
+        val enabledEntries = pinStatusTemplateEntries(children)
+            .filterIndexed { index, _ -> psData.isPinEnabled(index) }
+
+        if (enabledEntries.any { it.keyReference?.qualifier?.isApplicationPin() == true }) {
+            return SE_ID_01
+        }
+        val universalPin = enabledEntries
+            .mapNotNull { it.keyReference }
+            .firstOrNull {
+                it.qualifier == VerifyPinQualifier.UNIVERSAL_PIN
+            } ?: return SE_ID_00
+
+        return when (universalPin.usageQualifier) {
+            USE_UNIVERSAL_PIN -> SE_ID_00
+            DO_NOT_USE_UNIVERSAL_PIN -> SE_ID_01
+            else -> null
+        }
+    }
+
     private fun pinStatusTemplateEntries(children: List<BerTlvElement>): List<PinStatusEntry> {
         val entries = mutableListOf<PinStatusEntry>()
         var usageQualifier: ByteArray? = null
@@ -302,6 +351,9 @@ class EditAccessUseCase(private val context: Context) {
             .find { it.value == value }
             ?.let { KeyReference(it, usageQualifier?.let(::byteArrayToHexString)) }
 
+    private fun VerifyPinQualifier.isApplicationPin(): Boolean =
+        value in VerifyPinQualifier.GLOBAL_PIN1.value..VerifyPinQualifier.GLOBAL_PIN8.value
+
     private data class KeyReference(
         val qualifier: VerifyPinQualifier,
         val usageQualifier: String?
@@ -315,13 +367,7 @@ class EditAccessUseCase(private val context: Context) {
     private data class ArrReference(
         val fileId: String,
         val recordReferences: List<ArrRecordReference>
-    ) {
-        /**
-         * Returns a record number only when the ARR reference is unambiguous.
-         */
-        fun applicableRecordNumber(): Int? =
-            recordReferences.singleOrNull()?.recordNumber
-    }
+    )
 
     private data class ArrRecordReference(
         val seId: Int?,
@@ -422,6 +468,10 @@ class EditAccessUseCase(private val context: Context) {
         private const val UPDATE_BIT = 0x02
         private const val COMPACT_ALWAYS = 0x00
         private const val COMPACT_NEVER = 0xFF
+        private const val SE_ID_00 = 0x00
+        private const val SE_ID_01 = 0x01
+        private const val USE_UNIVERSAL_PIN = "08"
+        private const val DO_NOT_USE_UNIVERSAL_PIN = "00"
         private val ACCESS_MODE_TAGS = 0x80..0x8F
     }
 }
