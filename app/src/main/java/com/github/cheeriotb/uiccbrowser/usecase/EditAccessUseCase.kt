@@ -180,19 +180,17 @@ class EditAccessUseCase(private val context: Context) {
             SecurityAttrExpanded.TAG_OR_DO -> SecurityCondition.Or(
                 element.subElements.filterIsInstance<BerTlvElement>().map(::conditionFor)
             )
+            SecurityAttrExpanded.TAG_NOT_DO -> SecurityCondition.Unsupported
             else -> SecurityCondition.Unsupported
         }
 
     private fun controlDoCondition(element: BerTlvElement): SecurityCondition {
-        val qualifiers = element.subElements
-            .filterIsInstance<BerTlvElement>()
-            .filter { it.tag == SecurityAttrExpanded.TAG_KEY_REFERENCE }
-            .mapNotNull { keyReferenceFor(it.data.firstOrNull()?.toInt()?.and(0xFF) ?: -1) }
+        val keyReferences = keyReferencesFrom(element.subElements)
             .toSet()
-        return if (qualifiers.isEmpty()) {
+        return if (keyReferences.isEmpty()) {
             SecurityCondition.Unsupported
         } else {
-            SecurityCondition.Verify(qualifiers)
+            SecurityCondition.Verify(keyReferences)
         }
     }
 
@@ -203,6 +201,30 @@ class EditAccessUseCase(private val context: Context) {
             else -> keyReferenceFor(value)?.let { SecurityCondition.Verify(setOf(it)) }
                 ?: SecurityCondition.Unsupported
         }
+
+    private fun keyReferencesFrom(children: List<Element>): List<KeyReference> {
+        val keyReferences = mutableListOf<KeyReference>()
+        var usageQualifier: ByteArray? = null
+        children.filterIsInstance<BerTlvElement>().forEach { child ->
+            when (child.tag) {
+                SecurityAttrExpanded.TAG_USAGE_QUALIFIER -> {
+                    usageQualifier = child.data
+                }
+                SecurityAttrExpanded.TAG_KEY_REFERENCE -> {
+                    val keyReference = keyReferenceFor(
+                        child.data.firstOrNull()?.toInt()?.and(0xFF) ?: -1,
+                        usageQualifier
+                    )
+                    if (keyReference != null) keyReferences.add(keyReference)
+                    usageQualifier = null
+                }
+                else -> {
+                    usageQualifier = null
+                }
+            }
+        }
+        return keyReferences
+    }
 
     private fun arrReference(fcpElement: Element): ArrReference? {
         val element = fcpElement.subElements
@@ -234,13 +256,36 @@ class EditAccessUseCase(private val context: Context) {
             ?: return emptyList()
         val children = pinStatusTemplate.subElements.filterIsInstance<BerTlvElement>()
         val psData = children.find { it.tag == FcpTemplate.TAG_PS_DO }?.data
-        val keyReferences = children
-            .filter { it.tag == FcpTemplate.TAG_KEY_REFERENCE }
-            .mapNotNull { keyReferenceFor(it.data.firstOrNull()?.toInt()?.and(0xFF) ?: -1) }
+        val entries = pinStatusTemplateEntries(children)
 
-        return keyReferences
+        return entries
             .filterIndexed { index, _ -> psData == null || psData.isPinEnabled(index) }
+            .mapNotNull { it.keyReference?.qualifier }
             .distinct()
+    }
+
+    private fun pinStatusTemplateEntries(children: List<BerTlvElement>): List<PinStatusEntry> {
+        val entries = mutableListOf<PinStatusEntry>()
+        var usageQualifier: ByteArray? = null
+        children.forEach { child ->
+            when (child.tag) {
+                FcpTemplate.TAG_USAGE_QUALIFIER_DO -> {
+                    usageQualifier = child.data
+                }
+                FcpTemplate.TAG_KEY_REFERENCE -> {
+                    val keyReference = keyReferenceFor(
+                        child.data.firstOrNull()?.toInt()?.and(0xFF) ?: -1,
+                        usageQualifier
+                    )
+                    entries.add(PinStatusEntry(usageQualifier, keyReference))
+                    usageQualifier = null
+                }
+                else -> {
+                    usageQualifier = null
+                }
+            }
+        }
+        return entries
     }
 
     private fun ByteArray.isPinEnabled(index: Int): Boolean {
@@ -249,8 +294,23 @@ class EditAccessUseCase(private val context: Context) {
         return (this[byteIndex].toInt() and (0x80 ushr (index % 8))) != 0
     }
 
-    private fun keyReferenceFor(value: Int): VerifyPinQualifier? =
-        VerifyPinQualifier.entries.find { it.value == value }
+    private fun keyReferenceFor(
+        value: Int,
+        usageQualifier: ByteArray? = null
+    ): KeyReference? =
+        VerifyPinQualifier.entries
+            .find { it.value == value }
+            ?.let { KeyReference(it, usageQualifier?.let(::byteArrayToHexString)) }
+
+    private data class KeyReference(
+        val qualifier: VerifyPinQualifier,
+        val usageQualifier: String?
+    )
+
+    private data class PinStatusEntry(
+        val usageQualifier: ByteArray?,
+        val keyReference: KeyReference?
+    )
 
     private data class ArrReference(
         val fileId: String,
@@ -272,14 +332,14 @@ class EditAccessUseCase(private val context: Context) {
         data object Always : SecurityCondition()
         data object Never : SecurityCondition()
         data object Unsupported : SecurityCondition()
-        data class Verify(val keyReferences: Set<VerifyPinQualifier>) : SecurityCondition()
+        data class Verify(val keyReferences: Set<KeyReference>) : SecurityCondition()
         data class And(val conditions: List<SecurityCondition>) : SecurityCondition()
         data class Or(val conditions: List<SecurityCondition>) : SecurityCondition()
 
         /**
          * Converts the parsed condition tree into selectable VERIFY options.
          */
-        fun qualifierOptions(): List<Set<VerifyPinQualifier>> = when (this) {
+        fun qualifierOptions(): List<Set<KeyReference>> = when (this) {
             Always -> listOf(emptySet())
             Never, Unsupported -> emptyList()
             is Verify -> listOf(keyReferences)
@@ -289,8 +349,8 @@ class EditAccessUseCase(private val context: Context) {
 
         private fun combineAnd(
             conditions: List<SecurityCondition>
-        ): List<Set<VerifyPinQualifier>> {
-            var result = listOf(emptySet<VerifyPinQualifier>())
+        ): List<Set<KeyReference>> {
+            var result = listOf(emptySet<KeyReference>())
             for (condition in conditions) {
                 val childOptions = condition.qualifierOptions()
                 if (childOptions.isEmpty()) return emptyList()
@@ -308,7 +368,9 @@ class EditAccessUseCase(private val context: Context) {
          */
         fun add(accessMode: Int, condition: SecurityCondition) {
             val relevantMode = accessMode and (READ_BIT or UPDATE_BIT)
-            val options = condition.qualifierOptions()
+            val options = condition.qualifierOptions().map { option ->
+                option.map { it.qualifier }.toSet()
+            }
             if (relevantMode != 0 && options.isNotEmpty()) {
                 rules.add(ModeRule(relevantMode, options))
             }
