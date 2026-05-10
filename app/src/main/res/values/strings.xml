@@ -98,6 +98,10 @@
     <string name="edit_mode_last_attempt">Only one verification attempt remains for %1$s. Edit mode will not continue.</string>
     <string name="edit_mode_blocked">%1$s is blocked. Edit mode will not continue.</string>
     <string name="edit_mode_retries_unknown">Remaining attempts for %1$s are unknown. Edit mode will not continue.</string>
+    <string name="edit_quit_confirm_message">Quit edit mode?</string>
+    <string name="edit_save_confirm_message">Write the currently displayed data to the SIM?</string>
+    <string name="edit_save_success">Data was written successfully.</string>
+    <string name="edit_save_failed_unknown_file_type">This file type cannot be written.</string>
     <string name="key_reference_application_pin1">Application PIN1</string>
     <string name="key_reference_application_pin2">Application PIN2</string>
     <string name="key_reference_application_pin3">Application PIN3</string>

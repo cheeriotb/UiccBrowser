@@ -119,6 +119,7 @@ class EfDetailFragment : Fragment() {
         setupRecordSelector()
         setupOptionsMenu()
         observeBinaryViewModel()
+        observeKeyboardEvents()
     }
 
     private fun setupOptionsMenu() {
@@ -134,7 +135,11 @@ class EfDetailFragment : Fragment() {
                 override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                     return when (menuItem.itemId) {
                         R.id.action_refresh -> {
-                            binaryViewModel.refresh()
+                            if (editModeEnabled) {
+                                stopEditMode(refresh = true)
+                            } else {
+                                binaryViewModel.refresh()
+                            }
                             true
                         }
                         R.id.action_edit -> {
@@ -157,6 +162,10 @@ class EfDetailFragment : Fragment() {
             if (enableEditMode(slotId, repo)) {
                 editModeEnabled = true
                 viewModel.enableEditMode()
+                binaryViewModel.startEditMode()
+                if (binaryViewModel.data.value == null) {
+                    binaryViewModel.refresh()
+                }
                 requireActivity().invalidateOptionsMenu()
                 showMessage(getString(R.string.edit_mode_enabled))
             }
@@ -511,6 +520,7 @@ class EfDetailFragment : Fragment() {
 
     private fun setupRecordSelector() {
         binding.recordDropdown.setOnItemClickListener { _, _, position, _ ->
+            if (editModeEnabled) stopEditMode(refresh = false)
             binaryViewModel.loadRecord(position + 1)
         }
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
@@ -561,6 +571,81 @@ class EfDetailFragment : Fragment() {
             }
         }
     }
+
+    private fun observeKeyboardEvents() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.keyboardEvent.collect { event ->
+                    when (event) {
+                        EfDetailViewModel.KeyboardEvent.QUIT -> quitEditMode()
+                        EfDetailViewModel.KeyboardEvent.SAVE -> saveEditMode()
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun quitEditMode() {
+        if (confirm(R.string.edit_quit_confirm_message)) {
+            stopEditMode(refresh = true)
+        }
+    }
+
+    private suspend fun saveEditMode() {
+        if (!confirm(R.string.edit_save_confirm_message)) return
+        val slotId = mainViewModel.selectedSlot.value?.slotId
+        val repo = slotId?.let { CardRepository.from(requireContext(), it) }
+        if (slotId == null || repo == null) {
+            showMessage(getString(R.string.edit_mode_card_unavailable))
+            return
+        }
+        val result = binaryViewModel.save(repo)
+        if (result == null) {
+            showMessage(getString(R.string.edit_save_failed_unknown_file_type))
+            return
+        }
+        if (result.sw == Result.SW_INSUFFICIENT_SECURITY
+            && verifyAccessRequirements(slotId, repo, EditAccessUseCase.RequiredAccess.UPDATE)
+        ) {
+            showSaveResult(binaryViewModel.save(repo) ?: result)
+            return
+        }
+        showSaveResult(result)
+    }
+
+    private fun showSaveResult(result: Result) {
+        if (result.isOk) {
+            showMessage(getString(R.string.edit_save_success))
+        } else {
+            showReadError(result)
+        }
+    }
+
+    private fun stopEditMode(refresh: Boolean) {
+        editModeEnabled = false
+        viewModel.disableEditMode()
+        binaryViewModel.cancelEditMode()
+        requireActivity().invalidateOptionsMenu()
+        if (refresh) binaryViewModel.refresh()
+    }
+
+    private suspend fun confirm(messageResId: Int): Boolean =
+        suspendCancellableCoroutine { continuation ->
+            val dialog = MaterialAlertDialogBuilder(requireContext())
+                .setMessage(messageResId)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    if (continuation.isActive) continuation.resume(true)
+                }
+                .setNegativeButton(android.R.string.cancel) { _, _ ->
+                    if (continuation.isActive) continuation.resume(false)
+                }
+                .setOnCancelListener {
+                    if (continuation.isActive) continuation.resume(false)
+                }
+                .show()
+
+            continuation.invokeOnCancellation { dialog.dismiss() }
+        }
 
     private fun handleReadError(result: Result) {
         if (shouldAttemptReadAccessRecovery(result, readAccessRecoveryInProgress)) {

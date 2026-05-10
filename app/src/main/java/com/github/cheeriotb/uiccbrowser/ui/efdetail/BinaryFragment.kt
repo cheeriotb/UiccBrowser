@@ -58,6 +58,7 @@ class BinaryFragment : Fragment() {
 
         setupHeaderRecyclerView()
         setupDataRecyclerView()
+        setupKeyboard()
         observeViewModel()
     }
 
@@ -78,12 +79,49 @@ class BinaryFragment : Fragment() {
         val spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int) = if (position % 9 == 0) 2 else 1
         }
-        gridAdapter = BinaryGridAdapter()
+        gridAdapter = BinaryGridAdapter { byteIndex ->
+            viewModel.moveCursor(byteIndex)
+        }
         binding.dataRecyclerView.apply {
             layoutManager = GridLayoutManager(requireContext(), 10).apply {
                 this.spanSizeLookup = spanSizeLookup
             }
             adapter = gridAdapter
+        }
+    }
+
+    private fun setupKeyboard() {
+        mapOf(
+            binding.keyboardButton0 to '0',
+            binding.keyboardButton1 to '1',
+            binding.keyboardButton2 to '2',
+            binding.keyboardButton3 to '3',
+            binding.keyboardButton4 to '4',
+            binding.keyboardButton5 to '5',
+            binding.keyboardButton6 to '6',
+            binding.keyboardButton7 to '7',
+            binding.keyboardButton8 to '8',
+            binding.keyboardButton9 to '9',
+            binding.keyboardButtonA to 'A',
+            binding.keyboardButtonB to 'B',
+            binding.keyboardButtonC to 'C',
+            binding.keyboardButtonD to 'D',
+            binding.keyboardButtonE to 'E',
+            binding.keyboardButtonF to 'F'
+        ).forEach { (button, digit) ->
+            button.setOnClickListener { viewModel.inputHexDigit(digit) }
+        }
+        binding.keyboardButtonIns.setOnClickListener { viewModel.insertByte() }
+        binding.keyboardButtonDel.setOnClickListener { viewModel.deleteByte() }
+        binding.keyboardButtonCancel.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                efDetailViewModel.requestQuitEditMode()
+            }
+        }
+        binding.keyboardButtonSave.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                efDetailViewModel.requestSaveEditMode()
+            }
         }
     }
 
@@ -100,12 +138,32 @@ class BinaryFragment : Fragment() {
                 }
                 launch {
                     viewModel.data.collect { data ->
-                        if (data != null) gridAdapter.updateData(data)
+                        if (data != null) {
+                            gridAdapter.updateData(data)
+                            if (efDetailViewModel.isEditModeEnabled.value) {
+                                viewModel.startEditMode()
+                            }
+                        }
+                    }
+                }
+                launch {
+                    viewModel.editState.collect { state ->
+                        gridAdapter.updateEditState(state)
+                        if (state.enabled && state.cursorIndex >= 0) {
+                            binding.dataRecyclerView.scrollToPosition(
+                                BinaryViewModel.gridPositionForByteIndex(state.cursorIndex)
+                            )
+                        }
                     }
                 }
                 launch {
                     efDetailViewModel.isEditModeEnabled.collect { enabled ->
                         binding.editKeyboardLayout.isVisible = enabled
+                        if (enabled) {
+                            viewModel.startEditMode()
+                        } else {
+                            viewModel.cancelEditMode()
+                        }
                     }
                 }
             }

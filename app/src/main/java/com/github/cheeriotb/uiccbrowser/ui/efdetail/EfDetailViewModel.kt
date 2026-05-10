@@ -12,8 +12,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.github.cheeriotb.uiccbrowser.element.EfDecoderRegistry
 import com.github.cheeriotb.uiccbrowser.repository.FileId
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class EfDetailViewModel(
@@ -26,12 +29,33 @@ class EfDetailViewModel(
     val hasDecoder: Boolean = EfDecoderRegistry.has(fileId.aid, fileId.path + fileId.fileId)
 
     private val _isEditModeEnabled = MutableStateFlow(false)
+    private val _keyboardEvent = MutableSharedFlow<KeyboardEvent>()
 
     /** Indicates whether write editing controls should be visible for this EF. */
     val isEditModeEnabled: StateFlow<Boolean> = _isEditModeEnabled.asStateFlow()
 
+    /** Emits one-shot software keyboard events that need parent-fragment handling. */
+    val keyboardEvent: SharedFlow<KeyboardEvent> = _keyboardEvent.asSharedFlow()
+
     fun enableEditMode() {
         _isEditModeEnabled.value = true
+    }
+
+    fun disableEditMode() {
+        _isEditModeEnabled.value = false
+    }
+
+    suspend fun requestQuitEditMode() {
+        _keyboardEvent.emit(KeyboardEvent.QUIT)
+    }
+
+    suspend fun requestSaveEditMode() {
+        _keyboardEvent.emit(KeyboardEvent.SAVE)
+    }
+
+    enum class KeyboardEvent {
+        QUIT,
+        SAVE
     }
 
     class Factory(

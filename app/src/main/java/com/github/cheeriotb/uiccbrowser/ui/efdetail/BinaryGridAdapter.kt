@@ -8,7 +8,6 @@
 
 package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
-import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -16,11 +15,14 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.databinding.ItemBinaryCellBinding
+import com.google.android.material.color.MaterialColors
 
-class BinaryGridAdapter : RecyclerView.Adapter<BinaryGridAdapter.ViewHolder>() {
+class BinaryGridAdapter(
+    private val onByteClick: (Int) -> Unit = {}
+) : RecyclerView.Adapter<BinaryGridAdapter.ViewHolder>() {
 
     private var data: ByteArray = ByteArray(0)
-    private lateinit var context: Context
+    private var editState = BinaryViewModel.EditState()
 
     companion object {
         private const val VIEW_TYPE_OFFSET = 0
@@ -45,7 +47,6 @@ class BinaryGridAdapter : RecyclerView.Adapter<BinaryGridAdapter.ViewHolder>() {
         if (position % 9 == 0) VIEW_TYPE_OFFSET else VIEW_TYPE_BYTE
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        context = parent.context
         return ViewHolder(
             ItemBinaryCellBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         )
@@ -54,20 +55,60 @@ class BinaryGridAdapter : RecyclerView.Adapter<BinaryGridAdapter.ViewHolder>() {
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val row = position / 9
         val col = position % 9
+        val byteIndex = if (col == 0) null else row * 8 + col - 1
+        val isByteCell = byteIndex != null && byteIndex < data.size
         holder.binding.text.text = if (col == 0) {
             formatOffset(row)
         } else {
-            val byteIndex = row * 8 + col - 1
-            if (byteIndex < data.size) formatByte(data[byteIndex]) else ""
+            if (isByteCell) displayByte(byteIndex) else ""
         }
-        holder.binding.root.setBackgroundColor(
-            if (col == 0 || holder.binding.text.text.isEmpty()) Color.TRANSPARENT
-            else ContextCompat.getColor(holder.binding.root.context, R.color.binary_cell_background)
-        )
+        holder.binding.root.isClickable = editState.enabled && isByteCell
+        holder.binding.root.setOnClickListener {
+            if (byteIndex != null && byteIndex < data.size) onByteClick(byteIndex)
+        }
+        bindCellColors(holder, isByteCell, byteIndex)
     }
 
     fun updateData(newData: ByteArray) {
         data = newData
         notifyDataSetChanged()
+    }
+
+    fun updateEditState(newState: BinaryViewModel.EditState) {
+        editState = newState
+        notifyDataSetChanged()
+    }
+
+    private fun displayByte(byteIndex: Int): String {
+        val pending = editState.pendingNibble
+        return if (editState.enabled && editState.cursorIndex == byteIndex && pending != null) {
+            pending.toString()
+        } else {
+            formatByte(data[byteIndex])
+        }
+    }
+
+    private fun bindCellColors(
+        holder: ViewHolder,
+        isByteCell: Boolean,
+        byteIndex: Int?
+    ) {
+        val background = if (isByteCell) {
+            ContextCompat.getColor(holder.binding.root.context, R.color.binary_cell_background)
+        } else {
+            Color.TRANSPARENT
+        }
+        val textColor = MaterialColors.getColor(
+            holder.binding.root,
+            com.google.android.material.R.attr.colorOnSurface
+        )
+        val isCursor = editState.enabled && byteIndex == editState.cursorIndex
+        if (isCursor) {
+            holder.binding.root.setBackgroundColor(textColor)
+            holder.binding.text.setTextColor(background)
+        } else {
+            holder.binding.root.setBackgroundColor(background)
+            holder.binding.text.setTextColor(textColor)
+        }
     }
 }

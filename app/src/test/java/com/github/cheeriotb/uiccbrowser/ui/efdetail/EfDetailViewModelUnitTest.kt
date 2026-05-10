@@ -29,4 +29,14 @@ class EfDetailViewModelUnitTest {
 
         assertThat(viewModel.isEditModeEnabled.value).isTrue()
     }
+
+    @Test
+    fun disableEditMode_clearsIsEditModeEnabled() {
+        val viewModel = EfDetailViewModel("EF", "6FAD", FileId(FileId.AID_NONE, "", "6FAD"))
+
+        viewModel.enableEditMode()
+        viewModel.disableEditMode()
+
+        assertThat(viewModel.isEditModeEnabled.value).isFalse()
+    }
 }
