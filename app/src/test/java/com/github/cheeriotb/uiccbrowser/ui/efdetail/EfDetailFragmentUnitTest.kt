@@ -190,6 +190,10 @@ class EfDetailFragmentUnitTest {
             VerifyPinQualifier.LOCAL_PIN8
         ))
             .isEqualTo("Local PIN8")
+        assertThat(EfDetailFragment.verifyPinQualifierDisplayName(
+            VerifyPinQualifier.UNIVERSAL_PIN
+        ))
+            .isEqualTo("Universal PIN")
         assertThat(EfDetailFragment.verifyPinQualifierDisplayName(VerifyPinQualifier.ADM10))
             .isEqualTo("ADM10")
     }

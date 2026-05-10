@@ -126,6 +126,7 @@ class CardRepositoryUnitTest {
         assertThat(VerifyPinQualifier.GLOBAL_PIN8.value).isEqualTo(0x08)
         assertThat(VerifyPinQualifier.ADM1.value).isEqualTo(0x0A)
         assertThat(VerifyPinQualifier.ADM5.value).isEqualTo(0x0E)
+        assertThat(VerifyPinQualifier.UNIVERSAL_PIN.value).isEqualTo(0x11)
         assertThat(VerifyPinQualifier.LOCAL_PIN1.value).isEqualTo(0x81)
         assertThat(VerifyPinQualifier.LOCAL_PIN8.value).isEqualTo(0x88)
         assertThat(VerifyPinQualifier.ADM6.value).isEqualTo(0x8A)

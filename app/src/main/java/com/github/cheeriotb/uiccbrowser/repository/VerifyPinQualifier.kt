@@ -24,6 +24,8 @@ enum class VerifyPinQualifier(val value: Int) {
     ADM4(0x0D),
     ADM5(0x0E),
 
+    UNIVERSAL_PIN(0x11),
+
     LOCAL_PIN1(0x81),
     LOCAL_PIN2(0x82),
     LOCAL_PIN3(0x83),

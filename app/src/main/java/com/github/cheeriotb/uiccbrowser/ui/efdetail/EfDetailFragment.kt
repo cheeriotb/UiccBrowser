@@ -609,6 +609,7 @@ class EfDetailFragment : Fragment() {
                 VerifyPinQualifier.ADM3 -> "ADM3"
                 VerifyPinQualifier.ADM4 -> "ADM4"
                 VerifyPinQualifier.ADM5 -> "ADM5"
+                VerifyPinQualifier.UNIVERSAL_PIN -> "Universal PIN"
                 VerifyPinQualifier.LOCAL_PIN1 -> "Local PIN1"
                 VerifyPinQualifier.LOCAL_PIN2 -> "Local PIN2"
                 VerifyPinQualifier.LOCAL_PIN3 -> "Local PIN3"

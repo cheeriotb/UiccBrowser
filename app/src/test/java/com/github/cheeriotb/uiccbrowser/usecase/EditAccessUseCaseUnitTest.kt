@@ -57,7 +57,10 @@ class EditAccessUseCaseUnitTest {
                 "6212AB10800101A403830101800102A40383010A"
         private const val FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS =
                 "6211AB0F800103A00AA403830101A40383010A"
+        private const val FCP_EXPANDED_ADM1_OR_UNIVERSAL_PIN_UPDATE_READ_ALWAYS =
+                "6211AB0F800103A00AA40383010AA403830111"
         private const val FCP_ARR_REF_RECORD4 = "62058B032F0604"
+        private const val FCP_ARR_REF_SE_RECORDS = "62088B062F0601040205"
         private const val FCP_ADF_PIN_STATUS_ADM1_ADM2_LOCAL_PIN1 =
                 "62238410A0000000871001FFFFFFFFFFFFFFFFFFC60F90017083010183010A83010B830181"
         private const val FCP_ADF_NO_PIN_STATUS =
@@ -162,6 +165,21 @@ class EditAccessUseCaseUnitTest {
     }
 
     @Test
+    fun execute_expandedOrSecurityAttributes_returnsUniversalPinOption() {
+        runBlocking {
+            cacheFcp(FCP_EXPANDED_ADM1_OR_UNIVERSAL_PIN_UPDATE_READ_ALWAYS)
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.qualifierOptions).containsExactly(
+                    listOf(VerifyPinQualifier.ADM1),
+                    listOf(VerifyPinQualifier.UNIVERSAL_PIN)
+            ).inOrder()
+        }
+    }
+
+    @Test
     fun execute_arrReference_readsArrRecord() {
         runBlocking {
             cacheFcp(FCP_ARR_REF_RECORD4)
@@ -193,6 +211,18 @@ class EditAccessUseCaseUnitTest {
 
             assertThat(outcome.failure).isNull()
             assertThat(outcome.qualifiers).containsExactly(VerifyPinQualifier.ADM1)
+        }
+    }
+
+    @Test
+    fun execute_arrReferenceWithMultipleSeRecords_returnsUnsupported() {
+        runBlocking {
+            cacheFcp(FCP_ARR_REF_SE_RECORDS)
+
+            val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure)
+                    .isEqualTo(EditAccessUseCase.Failure.SECURITY_CONDITION_UNSUPPORTED)
         }
     }
 

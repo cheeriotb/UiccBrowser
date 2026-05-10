@@ -15,7 +15,7 @@ import com.github.cheeriotb.uiccbrowser.element.Element
 import com.github.cheeriotb.uiccbrowser.element.fcp.SecurityAttrExpanded
 import com.github.cheeriotb.uiccbrowser.util.BerTlv
 
-// ETSI TS 102 221 Clause 13.1 and ISO/IEC 7816-4 security attributes.
+// UICC EF ARR follows ETSI TS 102 221; ISO/IEC 7816-4 is used only where referenced.
 // EF ARR - Access Rule Reference record.
 class EfArrRecord {
     companion object {

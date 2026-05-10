@@ -85,12 +85,12 @@ class SecurityAttrExpandedUnitTest {
 
     @Test
     fun decoder_keyReference_interpretsGlobalPinAndAdmKeys() {
-        val tlvs = BerTlv.listFrom(hexStringToByteArray("A40683010183010A"))
+        val tlvs = BerTlv.listFrom(hexStringToByteArray("A40983010183010A830111"))
         val element = SecurityAttrExpanded.decoder(resources, tlvs, null)[0]
         val children = element.subElements.filterIsInstance<BerTlvElement>()
 
         assertThat(children.map { it.toString() })
-                .containsExactly("01 (Global PIN1)", "0A (ADM1)")
+                .containsExactly("01 (Global PIN1)", "0A (ADM1)", "11 (Universal PIN)")
                 .inOrder()
     }
 
