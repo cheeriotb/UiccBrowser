@@ -15,14 +15,14 @@
             "id": "6F07"
         },
         {
-            "name": "KeysPS",
+            "name": "Keys",
             "description": "Ciphering and Integrity Keys",
             "id": "6F08"
         },
         {
-            "name": "Keys",
+            "name": "KeysPS",
             "description": "Ciphering and Integrity Keys for Packet Switched domain",
-            "id": "6F08"
+            "id": "6F09"
         },
         {
             "name": "HPPLMN",
