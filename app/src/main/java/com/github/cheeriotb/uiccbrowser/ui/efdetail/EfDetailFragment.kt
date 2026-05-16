@@ -8,12 +8,13 @@
 
 package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
-import android.os.Bundle
 import android.graphics.Typeface
+import android.os.Bundle
 import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
 import android.text.TextWatcher
+import android.text.method.PasswordTransformationMethod
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -21,9 +22,9 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
@@ -44,6 +45,8 @@ import com.github.cheeriotb.uiccbrowser.usecase.EditAccessUseCase
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayoutMediator
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.launch
 import kotlin.coroutines.resume
@@ -272,7 +275,7 @@ class EfDetailFragment : Fragment() {
                 )
                 return true
             }
-            if (optionUsable && requirements.isNotEmpty()) {
+            if (optionUsable /* && requirements.isNotEmpty() */) {
                 candidates.add(VerifyCandidate(requirements, trustedKeyReferences))
             }
         }
@@ -355,13 +358,12 @@ class EfDetailFragment : Fragment() {
     }
 
     private fun verifyStatus(sw: Int, keyReference: KeyReference): VerifyStatus {
-        return when {
-            sw == Result.SW_NORMAL -> VerifyStatus.Verified
-            sw == Result.SW_AUTH_METHOD_BLOCKED ->
-                VerifyStatus.Unavailable(keyReference, VerifyUnavailableReason.BLOCKED)
-            sw == 0x63C1 ->
-                VerifyStatus.Unavailable(keyReference, VerifyUnavailableReason.LAST_ATTEMPT)
-            sw in 0x63C2..0x63CF -> VerifyStatus.Available(sw and 0x0F, keyReference)
+        return when (sw) {
+            Result.SW_NORMAL -> VerifyStatus.Verified
+            Result.SW_AUTH_METHOD_BLOCKED -> VerifyStatus.Unavailable(keyReference,
+                VerifyUnavailableReason.BLOCKED)
+            0x63C1 -> VerifyStatus.Unavailable(keyReference, VerifyUnavailableReason.LAST_ATTEMPT)
+            in 0x63C2..0x63CF -> VerifyStatus.Available(sw and 0x0F, keyReference)
             else -> VerifyStatus.Unavailable(keyReference, VerifyUnavailableReason.UNKNOWN)
         }
     }
@@ -447,28 +449,45 @@ class EfDetailFragment : Fragment() {
         keyReference: KeyReference,
         retries: Int
     ): String? = suspendCancellableCoroutine { continuation ->
-        val input = EditText(requireContext()).apply {
+        val input = TextInputEditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD or
+                    InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
             typeface = Typeface.MONOSPACE
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
             filters = arrayOf(hexInputFilter(), InputFilter.LengthFilter(MAX_VERIFY_CODE_DIGITS))
             isSingleLine = true
         }
         val message = TextView(requireContext()).apply {
             text = getString(R.string.edit_mode_verify_message, retries)
         }
+        val inputLayout = TextInputLayout(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            hint = getString(R.string.edit_mode_verify_hint)
+            isHelperTextEnabled = true
+            helperText = getString(
+                R.string.edit_mode_verify_remaining_digits,
+                remainingVerifyCodeDigits(0)
+            )
+            addView(input, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ))
+            endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
+            input.transformationMethod = PasswordTransformationMethod.getInstance()
+        }
         val layout = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             val padding = resources.getDimensionPixelSize(R.dimen.activity_horizontal_margin)
             setPadding(padding, padding, padding, 0)
             addView(message)
-            addView(input)
+            addView(inputLayout)
         }
 
+        val keyReferenceName = getString(keyReferenceDisplayNameResId(keyReference))
         val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(getString(
-                R.string.edit_mode_verify_title,
-                getString(keyReferenceDisplayNameResId(keyReference))
-            ))
+            .setTitle(getString(R.string.edit_mode_verify_title, keyReferenceName))
             .setView(layout)
             .setPositiveButton(android.R.string.ok, null)
             .setNegativeButton(android.R.string.cancel) { _, _ ->
@@ -493,8 +512,11 @@ class EfDetailFragment : Fragment() {
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val length = s?.length ?: 0
-                positiveButton.isEnabled = length in MIN_VERIFY_CODE_DIGITS..MAX_VERIFY_CODE_DIGITS
-                        && length % 2 == 0
+                positiveButton.isEnabled = isVerifyCodeInputAcceptable(length)
+                inputLayout.helperText = getString(
+                    R.string.edit_mode_verify_remaining_digits,
+                    remainingVerifyCodeDigits(length)
+                )
             }
 
             override fun afterTextChanged(s: Editable?) {
@@ -752,6 +774,15 @@ class EfDetailFragment : Fragment() {
                 else -> null
             }
 
+        /** Returns true when the VERIFY code has a valid byte-aligned HEX length. */
+        internal fun isVerifyCodeInputAcceptable(length: Int): Boolean =
+            length in MIN_VERIFY_CODE_DIGITS..MAX_VERIFY_CODE_DIGITS && length % 2 == 0
+
+        /** Returns the number of additional HEX digits accepted by the VERIFY input field. */
+        internal fun remainingVerifyCodeDigits(length: Int): Int =
+            (MAX_VERIFY_CODE_DIGITS - length).coerceAtLeast(0)
+
+        @StringRes
         internal fun keyReferenceDisplayNameResId(keyReference: KeyReference): Int =
             when (keyReference) {
                 KeyReference.APPLICATION_PIN1 -> R.string.key_reference_application_pin1

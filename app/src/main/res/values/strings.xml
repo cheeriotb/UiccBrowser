@@ -84,7 +84,9 @@
     <string name="edit_mode_verify_title">Verify %1$s</string>
     <string name="edit_mode_verify_option_title">Select verification method</string>
     <string name="edit_mode_arr_verify_option_title">Select EF ARR verification key</string>
-    <string name="edit_mode_verify_message">Remaining attempts: %1$d</string>
+    <string name="edit_mode_verify_message">Enter the code in hexadecimal string format. Remaining attempts: %1$d</string>
+    <string name="edit_mode_verify_hint">e.g. \'38383838\'</string>
+    <string name="edit_mode_verify_remaining_digits">Remaining characters: %1$d</string>
     <string name="edit_mode_verify_failed">Verification failed. Remaining attempts: %1$d</string>
     <string name="edit_mode_enabled">Edit mode is enabled.</string>
     <string name="edit_mode_card_unavailable">The selected SIM is unavailable.</string>

@@ -205,6 +205,24 @@ class EfDetailFragmentUnitTest {
     }
 
     @Test
+    fun isVerifyCodeInputAcceptable_acceptsEvenLengthWithinRange() {
+        assertThat(EfDetailFragment.isVerifyCodeInputAcceptable(0)).isFalse()
+        assertThat(EfDetailFragment.isVerifyCodeInputAcceptable(1)).isFalse()
+        assertThat(EfDetailFragment.isVerifyCodeInputAcceptable(2)).isTrue()
+        assertThat(EfDetailFragment.isVerifyCodeInputAcceptable(16)).isTrue()
+        assertThat(EfDetailFragment.isVerifyCodeInputAcceptable(17)).isFalse()
+    }
+
+    @Test
+    fun remainingVerifyCodeDigits_returnsRemainingHexDigits() {
+        assertThat(EfDetailFragment.remainingVerifyCodeDigits(0)).isEqualTo(16)
+        assertThat(EfDetailFragment.remainingVerifyCodeDigits(1)).isEqualTo(15)
+        assertThat(EfDetailFragment.remainingVerifyCodeDigits(2)).isEqualTo(14)
+        assertThat(EfDetailFragment.remainingVerifyCodeDigits(16)).isEqualTo(0)
+        assertThat(EfDetailFragment.remainingVerifyCodeDigits(17)).isEqualTo(0)
+    }
+
+    @Test
     fun displayName_formatsKeyReferenceNames() {
         assertThat(EfDetailFragment.keyReferenceDisplayNameResId(
             KeyReference.APPLICATION_PIN1
