@@ -910,6 +910,25 @@ class CardRepositoryUnitTest {
     }
 
     @Test
+    fun verifyPin_refDataInvalidated_remembersVerifiedPin() = runBlocking {
+        coEvery {
+            cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+        } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        repository.initialize()
+
+        val paddedPin = hexStringToByteArray(PIN_4_BYTES + "FFFFFFFF")
+        every { cardIoMock.transmit(Command(Iso7816.INS_VERIFY_PIN, 0x00,
+                KeyReference.APPLICATION_PIN1.value, paddedPin)) } returns
+                Response(hexStringToByteArray("6984"))
+
+        val response = repository.verifyPin(KeyReference.APPLICATION_PIN1, PIN_4_BYTES)
+
+        assertThat(response.sw).isEqualTo(Result.SW_REF_DATA_INVALIDATED)
+        assertThat(repository.isPinVerified(KeyReference.APPLICATION_PIN1)).isTrue()
+    }
+
+    @Test
     fun queryVerifyPinRetries_success_doesNotRememberVerifiedPin() = runBlocking {
         coEvery {
             cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)

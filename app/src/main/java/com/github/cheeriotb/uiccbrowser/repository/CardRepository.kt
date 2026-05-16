@@ -373,7 +373,7 @@ class CardRepository private constructor (
         }
 
         val response = verifyPin(keyReference, paddedCode)
-        if (response.isOk) {
+        if (response.isVerifyAccepted()) {
             rememberVerifiedPin(keyReference, fileId)
             if (keyReference.isAdm()) {
                 retainLogicalChannel()
@@ -501,6 +501,9 @@ class CardRepository private constructor (
                 .build()
         return cardIo.transmit(command)
     }
+
+    private fun Response.isVerifyAccepted(): Boolean =
+        isOk || sw == Result.SW_REF_DATA_INVALIDATED
 
     private fun padVerifyPinCode(code: String): ByteArray {
         require(code.length % 2 == 0) { "PIN/ADM code must contain an even number of hex digits" }

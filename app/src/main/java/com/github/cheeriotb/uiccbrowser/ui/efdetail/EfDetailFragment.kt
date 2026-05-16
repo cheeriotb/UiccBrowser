@@ -360,6 +360,7 @@ class EfDetailFragment : Fragment() {
     private fun verifyStatus(sw: Int, keyReference: KeyReference): VerifyStatus {
         return when (sw) {
             Result.SW_NORMAL -> VerifyStatus.Verified
+            Result.SW_REF_DATA_INVALIDATED -> VerifyStatus.Verified
             Result.SW_AUTH_METHOD_BLOCKED -> VerifyStatus.Unavailable(keyReference,
                 VerifyUnavailableReason.BLOCKED)
             0x63C1 -> VerifyStatus.Unavailable(keyReference, VerifyUnavailableReason.LAST_ATTEMPT)
