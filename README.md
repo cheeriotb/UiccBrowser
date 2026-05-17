@@ -52,7 +52,7 @@ The following screen shows Edit Mode for a selected EF.
 
 The following screen shows an EF update operation after editing its contents.
 
-![update](https://github.com/user-attachments/assets/e02cce39-5375-460a-a505-40973e6c6841)
+![update](https://github.com/user-attachments/assets/86d41776-e3a2-445a-b8e1-2c66f0e49986)
 
 ## Warning
 
