@@ -9,10 +9,14 @@
 package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
 import android.content.Context
+import android.content.res.Configuration
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.HorizontalScrollView
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import com.github.cheeriotb.uiccbrowser.R
 import com.google.android.material.button.MaterialButton
@@ -46,10 +50,130 @@ class BinaryKeyboardLayoutUnitTest {
         ).inOrder()
     }
 
-    private fun inflateBinaryLayout(): View {
+    @Test
+    fun editKeyboardLayout_usesFixedTextSize() {
+        val normalButton = inflateBinaryLayout(fontScale = 1.0f)
+            .findViewById<MaterialButton>(R.id.keyboardButtonSave)
+        val largeButton = inflateBinaryLayout(fontScale = 2.0f)
+            .findViewById<MaterialButton>(R.id.keyboardButtonSave)
+        val expectedSize = normalButton.resources.getDimension(R.dimen.binary_keyboard_text_size)
+
+        assertThat(normalButton.textSize).isWithin(0.01f).of(expectedSize)
+        assertThat(largeButton.textSize).isWithin(0.01f).of(expectedSize)
+    }
+
+    @Test
+    fun editKeyboardLayout_keepsButtonTextVisible() {
+        val root = inflateBinaryLayout()
+        val keyboard = root.findViewById<ViewGroup>(R.id.editKeyboardLayout)
+        val button = root.findViewById<MaterialButton>(R.id.keyboardButtonSave)
+
+        assertThat(keyboard.paddingBottom)
+            .isEqualTo(root.resources.getDimensionPixelSize(
+                R.dimen.binary_keyboard_padding_bottom
+            ))
+        assertThat(button.includeFontPadding).isFalse()
+        assertThat(button.maxLines).isEqualTo(1)
+        assertThat(button.layoutParams.height)
+            .isEqualTo(button.resources.getDimensionPixelSize(
+                R.dimen.binary_keyboard_button_height
+            ))
+        assertThat(button.minimumHeight)
+            .isEqualTo(button.resources.getDimensionPixelSize(
+                R.dimen.binary_keyboard_button_min_height
+            ))
+        assertThat(button.elevation).isEqualTo(0f)
+        assertThat(button.stateListAnimator).isNull()
+    }
+
+    @Test
+    fun binaryGrid_usesMinimumWidthInsideHorizontalScrollViews() {
+        val root = inflateBinaryLayout()
+        val headerScrollView = root.findViewById<HorizontalScrollView>(R.id.headerScrollView)
+        val dataScrollView = root.findViewById<HorizontalScrollView>(R.id.dataScrollView)
+        val expectedWidth = root.resources.getDimensionPixelSize(R.dimen.binary_grid_min_width)
+
+        assertThat(headerScrollView.getChildAt(0).layoutParams.width).isEqualTo(expectedWidth)
+        assertThat(dataScrollView.getChildAt(0).layoutParams.width).isEqualTo(expectedWidth)
+    }
+
+    @Test
+    fun binaryGrid_stretchesToViewportWhenWiderThanMinimum() {
+        val root = inflateBinaryLayout()
+        val headerScrollView = root.findViewById<HorizontalScrollView>(R.id.headerScrollView)
+        val dataScrollView = root.findViewById<HorizontalScrollView>(R.id.dataScrollView)
+
+        assertThat(headerScrollView.isFillViewport).isTrue()
+        assertThat(dataScrollView.isFillViewport).isTrue()
+    }
+
+    @Test
+    fun editKeyboardLayout_keepsRowGap() {
+        val keyboard = inflateBinaryLayout().findViewById<LinearLayout>(R.id.editKeyboardLayout)
+        val expectedGap = keyboard.resources.getDimensionPixelSize(R.dimen.binary_keyboard_row_gap)
+        val buttonRows = (0 until keyboard.childCount)
+            .map { keyboard.getChildAt(it) }
+            .filterIsInstance<LinearLayout>()
+
+        assertThat(buttonRows).hasSize(4)
+        buttonRows.forEach { row ->
+            val params = row.layoutParams as ViewGroup.MarginLayoutParams
+            assertThat(params.bottomMargin).isEqualTo(expectedGap)
+        }
+    }
+
+    @Test
+    fun binaryGridContentWidth_usesLargerWidth() {
+        assertThat(BinaryFragment.gridContentWidth(minWidth = 360, availableWidth = 320))
+            .isEqualTo(360)
+        assertThat(BinaryFragment.gridContentWidth(minWidth = 360, availableWidth = 480))
+            .isEqualTo(480)
+    }
+
+    @Test
+    fun binaryGridText_usesFixedTextSize() {
+        val normalCell = inflateTextView(R.layout.item_binary_cell, fontScale = 1.0f)
+        val largeCell = inflateTextView(R.layout.item_binary_cell, fontScale = 2.0f)
+        val normalHeader = inflateTextView(R.layout.item_binary_header, fontScale = 1.0f)
+        val largeHeader = inflateTextView(R.layout.item_binary_header, fontScale = 2.0f)
+        val expectedSize = normalCell.resources.getDimension(R.dimen.binary_grid_text_size)
+
+        assertThat(normalCell.textSize).isWithin(0.01f).of(expectedSize)
+        assertThat(largeCell.textSize).isWithin(0.01f).of(expectedSize)
+        assertThat(normalHeader.textSize).isWithin(0.01f).of(expectedSize)
+        assertThat(largeHeader.textSize).isWithin(0.01f).of(expectedSize)
+    }
+
+    @Test
+    fun binaryGridText_doesNotWrap() {
+        val cell = inflateTextView(R.layout.item_binary_cell, fontScale = 2.0f)
+        val header = inflateTextView(R.layout.item_binary_header, fontScale = 2.0f)
+
+        assertThat(cell.includeFontPadding).isFalse()
+        assertThat(cell.maxLines).isEqualTo(1)
+        assertThat(header.includeFontPadding).isFalse()
+        assertThat(header.maxLines).isEqualTo(1)
+    }
+
+    private fun inflateBinaryLayout(fontScale: Float = 1.0f): View {
+        return LayoutInflater.from(themedContext(fontScale))
+            .inflate(R.layout.fragment_binary, null, false)
+    }
+
+    private fun inflateTextView(layoutId: Int, fontScale: Float): TextView {
+        return LayoutInflater.from(themedContext(fontScale)).inflate(layoutId, null, false)
+            as TextView
+    }
+
+    private fun themedContext(fontScale: Float): Context {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val themedContext = ContextThemeWrapper(context, R.style.Theme_UiccBrowser)
-        return LayoutInflater.from(themedContext).inflate(R.layout.fragment_binary, null, false)
+        val configuration = Configuration(context.resources.configuration).apply {
+            this.fontScale = fontScale
+        }
+        return ContextThemeWrapper(
+            context.createConfigurationContext(configuration),
+            R.style.Theme_UiccBrowser
+        )
     }
 
     private fun ViewGroup.materialButtonLabels(): List<String> {

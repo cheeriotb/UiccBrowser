@@ -12,18 +12,34 @@
         android:layout_gravity="center"
         android:visibility="gone" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/headerRecyclerView"
+    <HorizontalScrollView
+        android:id="@+id/headerScrollView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:nestedScrollingEnabled="false" />
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        android:scrollbars="none">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/headerRecyclerView"
+            android:layout_width="@dimen/binary_grid_min_width"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false" />
+    </HorizontalScrollView>
 
     <!-- Pane B: scrollable data grid -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/dataRecyclerView"
+    <HorizontalScrollView
+        android:id="@+id/dataScrollView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/dataRecyclerView"
+            android:layout_width="@dimen/binary_grid_min_width"
+            android:layout_height="match_parent" />
+    </HorizontalScrollView>
 
     <!-- Pane C: edit keyboard pinned below the scrollable data grid. -->
     <LinearLayout
@@ -35,7 +51,7 @@
         android:paddingStart="8dp"
         android:paddingTop="8dp"
         android:paddingEnd="8dp"
-        android:paddingBottom="8dp"
+        android:paddingBottom="@dimen/binary_keyboard_padding_bottom"
         android:visibility="gone"
         tools:visibility="visible">
 
@@ -48,14 +64,15 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/binary_keyboard_row_gap"
             android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton0"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -63,9 +80,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton1"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -73,9 +90,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton2"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -83,9 +100,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton3"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -97,9 +114,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonIns"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_weight="2"
                 android:minWidth="0dp"
                 android:text="@string/keyboard_insert" />
@@ -108,14 +125,15 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/binary_keyboard_row_gap"
             android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton4"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -123,9 +141,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton5"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -133,9 +151,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton6"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -143,9 +161,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton7"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -157,9 +175,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonDel"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_weight="2"
                 android:minWidth="0dp"
                 android:text="@string/keyboard_delete" />
@@ -168,14 +186,15 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/binary_keyboard_row_gap"
             android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton8"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -183,9 +202,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButton9"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -193,9 +212,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonA"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -203,9 +222,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonB"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -217,9 +236,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonCancel"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_weight="2"
                 android:minWidth="0dp"
                 android:text="@string/keyboard_quit" />
@@ -228,14 +247,15 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/binary_keyboard_row_gap"
             android:baselineAligned="false"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonC"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -243,9 +263,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonD"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -253,9 +273,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonE"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -263,9 +283,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonF"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:minWidth="0dp"
@@ -277,9 +297,9 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyboardButtonSave"
-                style="@style/Widget.Material3.Button.ElevatedButton"
+                style="@style/Widget.UiccBrowser.BinaryKeyboardButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="@dimen/binary_keyboard_button_height"
                 android:layout_weight="2"
                 android:minWidth="0dp"
                 android:text="@string/keyboard_save" />

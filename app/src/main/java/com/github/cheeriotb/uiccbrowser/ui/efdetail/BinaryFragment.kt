@@ -12,6 +12,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.HorizontalScrollView
+import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -20,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
+import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.databinding.FragmentBinaryBinding
 import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
 import kotlinx.coroutines.launch
@@ -33,6 +36,12 @@ class BinaryFragment : Fragment() {
     private lateinit var efDetailViewModel: EfDetailViewModel
     private lateinit var viewModel: BinaryViewModel
     private lateinit var gridAdapter: BinaryGridAdapter
+
+    companion object {
+        /** Returns a grid width that fills [availableWidth] without shrinking below [minWidth]. */
+        internal fun gridContentWidth(minWidth: Int, availableWidth: Int): Int =
+            maxOf(minWidth, availableWidth)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -58,6 +67,8 @@ class BinaryFragment : Fragment() {
 
         setupHeaderRecyclerView()
         setupDataRecyclerView()
+        setupGridWidth()
+        setupGridHorizontalScrollSync()
         setupKeyboard()
         observeViewModel()
     }
@@ -87,6 +98,67 @@ class BinaryFragment : Fragment() {
                 this.spanSizeLookup = spanSizeLookup
             }
             adapter = gridAdapter
+        }
+    }
+
+    /**
+     * Expands the binary grid to the viewport while preserving a minimum width for two hex digits.
+     */
+    private fun setupGridWidth() {
+        binding.root.doOnLayout {
+            applyGridContentWidth()
+        }
+        binding.dataScrollView.doOnLayout { view ->
+            applyGridContentWidth(view.width)
+        }
+        binding.dataScrollView.addOnLayoutChangeListener { view, left, _, right, _,
+            oldLeft, _, oldRight, _ ->
+            val width = right - left
+            val oldWidth = oldRight - oldLeft
+            if (width != oldWidth) {
+                applyGridContentWidth(view.width)
+            }
+        }
+    }
+
+    private fun applyGridContentWidth(availableWidth: Int) {
+        if (availableWidth <= 0) return
+
+        val minWidth = resources.getDimensionPixelSize(R.dimen.binary_grid_min_width)
+        val width = gridContentWidth(minWidth, availableWidth)
+        setViewWidth(binding.headerRecyclerView, width)
+        setViewWidth(binding.dataRecyclerView, width)
+    }
+
+    private fun applyGridContentWidth() {
+        val availableWidth = maxOf(binding.headerScrollView.width, binding.dataScrollView.width)
+        applyGridContentWidth(availableWidth)
+    }
+
+    private fun setViewWidth(view: View, width: Int) {
+        if (view.layoutParams.width != width) {
+            view.layoutParams = view.layoutParams.apply {
+                this.width = width
+            }
+        }
+    }
+
+    /**
+     * Keeps the binary header aligned with the horizontally scrollable data grid.
+     */
+    private fun setupGridHorizontalScrollSync() {
+        syncHorizontalScrollViews(binding.headerScrollView, binding.dataScrollView)
+        syncHorizontalScrollViews(binding.dataScrollView, binding.headerScrollView)
+    }
+
+    private fun syncHorizontalScrollViews(
+        source: HorizontalScrollView,
+        target: HorizontalScrollView
+    ) {
+        source.setOnScrollChangeListener { _, scrollX, _, _, _ ->
+            if (target.scrollX != scrollX) {
+                target.scrollTo(scrollX, 0)
+            }
         }
     }
 
@@ -131,9 +203,10 @@ class BinaryFragment : Fragment() {
                 launch {
                     viewModel.isLoading.collect { loading ->
                         binding.progressIndicator.isVisible = loading
-                        binding.headerRecyclerView.isVisible =
+                        binding.headerScrollView.isVisible =
                             !loading && viewModel.data.value?.isNotEmpty() == true
-                        binding.dataRecyclerView.isVisible = !loading
+                        binding.dataScrollView.isVisible = !loading
+                        binding.root.post { applyGridContentWidth() }
                     }
                 }
                 launch {
