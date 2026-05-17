@@ -44,6 +44,13 @@ class FileBrowserViewModel(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     init {
+        refresh()
+    }
+
+    /**
+     * Reloads the current directory and updates the visible file list.
+     */
+    fun refresh() {
         viewModelScope.launch {
             _isLoading.value = true
             if (aid != FileId.AID_NONE && parentPath == FileId.PATH_ADF) {

@@ -22,7 +22,7 @@ import org.robolectric.RobolectricTestRunner
 class FileBrowserMenuUnitTest {
 
     @Test
-    fun fileBrowserMenu_containsShowFcpTemplate() {
+    fun fileBrowserMenu_containsRefreshAndShowFcpTemplate() {
         val context = ContextThemeWrapper(
             ApplicationProvider.getApplicationContext<Context>(),
             R.style.Theme_UiccBrowser
@@ -31,6 +31,8 @@ class FileBrowserMenuUnitTest {
 
         android.view.MenuInflater(context).inflate(R.menu.file_browser, menu)
 
+        assertThat(menu.findItem(R.id.action_refresh).title.toString())
+            .isEqualTo("Refresh")
         assertThat(menu.findItem(R.id.action_show_fcp_template).title.toString())
             .isEqualTo("Show FCP Template")
     }

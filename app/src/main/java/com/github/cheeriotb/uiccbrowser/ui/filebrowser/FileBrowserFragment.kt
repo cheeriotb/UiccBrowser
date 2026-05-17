@@ -202,6 +202,10 @@ class FileBrowserFragment : Fragment() {
 
                 override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                     return when (menuItem.itemId) {
+                        R.id.action_refresh -> {
+                            viewModel.refresh()
+                            true
+                        }
                         R.id.action_show_fcp_template -> {
                             showCurrentDirectoryFcp()
                             true
