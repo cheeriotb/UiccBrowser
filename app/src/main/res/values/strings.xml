@@ -77,7 +77,17 @@
     <string name="ef_plmn_w_act_label">EF PLMNwAcT</string>
     <string name="ef_hpplmn_label">EF HPPLMN</string>
     <string name="ef_acm_max_label">EF ACMmax</string>
-    <string name="language_code_label">Language code</string>
+    <string name="ef_ust_label">EF UST</string>
+    <string name="ef_gid1_label">EF GID1</string>
+    <string name="ef_gid2_label">EF GID2</string>
+    <string name="ef_spn_label">EF SPN</string>
+    <string name="ef_puct_label">EF PUCT</string>
+    <string name="ef_cbmi_label">EF CBMI</string>
+    <string name="ef_acc_label">EF ACC</string>
+    <string name="ef_fplmn_label">EF FPLMN</string>
+    <string name="ef_loci_label">EF LOCI</string>
+    <string name="ef_ad_label">EF AD</string>
+    <string name="language_code_label">Language code %1$d</string>
     <string name="length_of_imsi_label">Length of IMSI</string>
     <string name="imsi_label">IMSI</string>
     <string name="key_set_identifier_label">Key set identifier KSI</string>
@@ -86,14 +96,234 @@
     <string name="ciphering_key_ps_label">Ciphering key CKPS</string>
     <string name="integrity_key_label">Integrity key IK</string>
     <string name="integrity_key_ps_label">Integrity key IKPS</string>
-    <string name="plmn_w_act_entry_label">PLMN with Access Technology entry</string>
+    <string name="plmn_w_act_entry_label">PLMN with Access Technology %1$d</string>
     <string name="plmn_label">PLMN</string>
+    <string name="plmn_number_label">PLMN %1$d</string>
     <string name="access_technology_identifier_label">Access Technology Identifier</string>
     <string name="time_interval_label">Time interval</string>
     <string name="maximum_value_label">Maximum value</string>
+    <string name="byte_number_label">Byte %1$d</string>
+    <string name="service_number_label">n°%1$d: %2$s</string>
+    <string name="usim_group_identifiers_label">USIM group identifier(s)</string>
+    <string name="display_condition_label">Display condition</string>
+    <string name="service_provider_name_label">Service Provider Name</string>
+    <string name="currency_code_label">Currency code</string>
+    <string name="price_per_unit_label">Price per unit</string>
+    <string name="cb_message_identifier_label">CB Message Identifier</string>
+    <string name="access_control_classes_label">Access control classes</string>
+    <string name="tmsi_label">TMSI</string>
+    <string name="location_area_information_label">Location Area Information</string>
+    <string name="rfu_label">RFU</string>
+    <string name="location_update_status_label">Location update status</string>
+    <string name="ue_operation_mode_label">UE operation mode</string>
+    <string name="additional_information_label">Additional information</string>
+    <string name="length_of_mnc_in_imsi_label">Length of MNC in the IMSI</string>
     <string name="unused_label">Unused</string>
+    <string name="available_label">Available</string>
+    <string name="not_available_label">Not available</string>
+    <string name="reserved_label">Reserved</string>
+    <string name="hex_with_description">%1$s (%2$s)</string>
+    <string name="semicolon_joined_descriptions">%1$s; %2$s</string>
+    <string name="plmn_interpretation">MCC %1$s, MNC %2$s</string>
+    <string name="plmn_entry_interpretation">PLMN %1$d: %2$s</string>
+    <string name="location_area_interpretation">%1$s, LAC %2$s</string>
+    <string name="hpplmn_interval_interpretation">%1$dn minutes; %2$s</string>
+    <string name="hpplmn_iot_hours">%1$d hours for NB-IoT, EC-GSM-IoT, or Category M1</string>
+    <string name="hpplmn_iot_default_period">default period for NB-IoT, EC-GSM-IoT, or Category M1</string>
+    <string name="spn_registered_plmn_name_not_required">Registered PLMN name not required for HPLMN or SPDI PLMN</string>
+    <string name="spn_registered_plmn_name_required">Registered PLMN name required for HPLMN or SPDI PLMN</string>
+    <string name="spn_required_outside_hplmn_or_spdi_plmn">SPN required outside HPLMN or SPDI PLMN</string>
+    <string name="spn_not_required_outside_hplmn_or_spdi_plmn">SPN not required outside HPLMN or SPDI PLMN</string>
+    <string name="price_per_unit_interpretation">EPPU %1$d, EX %2$d, price %3$s</string>
+    <string name="location_update_status_updated">Updated</string>
+    <string name="location_update_status_not_updated">Not updated</string>
+    <string name="location_update_status_plmn_not_allowed">PLMN not allowed</string>
+    <string name="location_update_status_lai_not_allowed">Location Area not allowed</string>
+    <string name="ue_operation_mode_normal">Normal operation</string>
+    <string name="ue_operation_mode_type_approval">Type approval operations</string>
+    <string name="ue_operation_mode_normal_specific">Normal operation + specific facilities</string>
+    <string name="ue_operation_mode_type_approval_specific">Type approval operations + specific facilities</string>
+    <string name="ue_operation_mode_maintenance_off_line">Maintenance (off line)</string>
+    <string name="ue_operation_mode_cell_test">Cell test operation</string>
+    <string name="additional_info_ciphering_indicator">Ciphering indicator</string>
+    <string name="additional_info_csg_display_control">CSG Display Control</string>
+    <string name="additional_info_prose_public_safety">ProSe services for Public Safety</string>
+    <string name="additional_info_extended_drx_cycle">Extended DRX cycle</string>
+    <string name="additional_info_5g_prose">5G ProSe</string>
+    <string name="mnc_length_zero_digits_service_130_available">0 digits (service n°130 available)</string>
+    <string name="mnc_length_digits">%1$d digits</string>
+    <string name="access_tech_satellite_e_utran_nb_s1">Satellite E-UTRAN in NB-S1 mode</string>
+    <string name="access_tech_satellite_e_utran_wb_s1">Satellite E-UTRAN in WB-S1 mode</string>
+    <string name="access_tech_satellite_ng_ran">Satellite NG-RAN</string>
+    <string name="access_tech_ng_ran">NG-RAN</string>
+    <string name="access_tech_e_utran_nb_s1">E-UTRAN in NB-S1 mode</string>
+    <string name="access_tech_e_utran_wb_s1">E-UTRAN in WB-S1 mode</string>
+    <string name="access_tech_e_utran">E-UTRAN</string>
+    <string name="access_tech_utran">UTRAN</string>
+    <string name="access_tech_gsm">GSM</string>
+    <string name="access_tech_ec_gsm_iot">EC-GSM-IoT</string>
+    <string name="access_tech_cdma2000_1xrtt">cdma2000 1xRTT</string>
+    <string name="access_tech_cdma2000_hrpd">cdma2000 HRPD</string>
+    <string name="access_tech_gsm_compact">GSM COMPACT</string>
     <string name="no_access_technology_selected">No access technology selected</string>
     <string name="no_hpplmn_search_attempts">No higher priority PLMN search attempts</string>
+    <string name="no_access_control_class_allocated">No access control class allocated</string>
+    <string name="no_additional_information_enabled">No additional information enabled</string>
+
+    <string-array name="usim_service_names">
+        <item>Local Phone Book</item>
+        <item>Fixed Dialling Numbers (FDN)</item>
+        <item>Extension 2</item>
+        <item>Service Dialling Numbers (SDN)</item>
+        <item>Extension 3</item>
+        <item>Barred Dialling Numbers (BDN)</item>
+        <item>Extension 4</item>
+        <item>Outgoing Call Information (OCI and OCT)</item>
+        <item>Incoming Call Information (ICI and ICT)</item>
+        <item>Short Message Storage (SMS)</item>
+        <item>Short Message Status Reports (SMSR)</item>
+        <item>Short Message Service Parameters (SMSP)</item>
+        <item>Advice of Charge (AoC)</item>
+        <item>Capability Configuration Parameters 2 (CCP2)</item>
+        <item>Cell Broadcast Message Identifier</item>
+        <item>Cell Broadcast Message Identifier Ranges</item>
+        <item>Group Identifier Level 1</item>
+        <item>Group Identifier Level 2</item>
+        <item>Service Provider Name</item>
+        <item>User controlled PLMN selector with Access Technology</item>
+        <item>MSISDN</item>
+        <item>Image (IMG)</item>
+        <item>Support of Localised Service Areas (SoLSA)</item>
+        <item>Enhanced Multi-Level Precedence and Pre-emption Service</item>
+        <item>Automatic Answer for eMLPP</item>
+        <item>RFU</item>
+        <item>GSM Access</item>
+        <item>Data download via SMS-PP</item>
+        <item>Data download via SMS-CB</item>
+        <item>Call Control by USIM</item>
+        <item>MO-SMS Control by USIM</item>
+        <item>RUN AT COMMAND command</item>
+        <item>Shall be set to \u00271\u0027</item>
+        <item>Enabled Services Table</item>
+        <item>APN Control List (ACL)</item>
+        <item>Depersonalisation Control Keys</item>
+        <item>Co-operative Network List</item>
+        <item>GSM security context</item>
+        <item>CPBCCH Information</item>
+        <item>Investigation Scan</item>
+        <item>MexE</item>
+        <item>Operator controlled PLMN selector with Access Technology</item>
+        <item>HPLMN selector with Access Technology</item>
+        <item>Extension 5</item>
+        <item>PLMN Network Name</item>
+        <item>Operator PLMN List</item>
+        <item>Mailbox Dialling Numbers</item>
+        <item>Message Waiting Indication Status</item>
+        <item>Call Forwarding Indication Status</item>
+        <item>Reserved and shall be ignored</item>
+        <item>Service Provider Display Information</item>
+        <item>Multimedia Messaging Service (MMS)</item>
+        <item>Extension 8</item>
+        <item>Call control on GPRS by USIM</item>
+        <item>MMS User Connectivity Parameters</item>
+        <item>Network\u0027s indication of alerting in the MS (NIA)</item>
+        <item>VGCS Group Identifier List (EFVGCS and EFVGCSS)</item>
+        <item>VBS Group Identifier List (EFVBS and EFVBSS)</item>
+        <item>Pseudonym</item>
+        <item>User Controlled PLMN selector for I-WLAN access</item>
+        <item>Operator Controlled PLMN selector for I-WLAN access</item>
+        <item>User controlled WSID list</item>
+        <item>Operator controlled WSID list</item>
+        <item>VGCS security</item>
+        <item>VBS security</item>
+        <item>WLAN Reauthentication Identity</item>
+        <item>Multimedia Messages Storage</item>
+        <item>Generic Bootstrapping Architecture (GBA)</item>
+        <item>MBMS security</item>
+        <item>Data download via USSD and USSD application mode</item>
+        <item>Equivalent HPLMN</item>
+        <item>Additional TERMINAL PROFILE after UICC activation</item>
+        <item>Equivalent HPLMN Presentation Indication</item>
+        <item>Last RPLMN Selection Indication</item>
+        <item>OMA BCAST Smart Card Profile</item>
+        <item>GBA-based Local Key Establishment Mechanism</item>
+        <item>Terminal Applications</item>
+        <item>Service Provider Name Icon</item>
+        <item>PLMN Network Name Icon</item>
+        <item>Connectivity Parameters for USIM IP connections</item>
+        <item>Home I-WLAN Specific Identifier List</item>
+        <item>I-WLAN Equivalent HPLMN Presentation Indication</item>
+        <item>I-WLAN HPLMN Priority Indication</item>
+        <item>I-WLAN Last Registered PLMN</item>
+        <item>EPS Mobility Management Information</item>
+        <item>Allowed CSG Lists and corresponding indications</item>
+        <item>Call control on EPS PDN connection by USIM</item>
+        <item>HPLMN Direct Access</item>
+        <item>eCall Data</item>
+        <item>Operator CSG Lists and corresponding indications</item>
+        <item>Support for SM-over-IP</item>
+        <item>Support of CSG Display Control</item>
+        <item>Communication Control for IMS by USIM</item>
+        <item>Extended Terminal Applications</item>
+        <item>Support of UICC access to IMS</item>
+        <item>Non-Access Stratum configuration by USIM</item>
+        <item>PWS configuration by USIM</item>
+        <item>RFU</item>
+        <item>URI support by UICC</item>
+        <item>Extended EARFCN support</item>
+        <item>ProSe</item>
+        <item>USAT Application Pairing</item>
+        <item>Media Type support</item>
+        <item>IMS call disconnection cause</item>
+        <item>URI support for MO SHORT MESSAGE CONTROL</item>
+        <item>ePDG configuration Information support</item>
+        <item>ePDG configuration Information configured</item>
+        <item>ACDC support</item>
+        <item>Mission Critical Services</item>
+        <item>ePDG configuration Information for Emergency Service support</item>
+        <item>ePDG configuration Information for Emergency Service configured</item>
+        <item>eCall Data over IMS</item>
+        <item>URI support for SMS-PP DOWNLOAD as defined in 3GPP TS 31.111</item>
+        <item>From Preferred</item>
+        <item>IMS configuration data</item>
+        <item>TV configuration</item>
+        <item>3GPP PS Data Off</item>
+        <item>3GPP PS Data Off Service List</item>
+        <item>V2X</item>
+        <item>XCAP Configuration Data</item>
+        <item>EARFCN list for MTC/NB-IOT UEs</item>
+        <item>5GS Mobility Management Information</item>
+        <item>5G Security Parameters</item>
+        <item>Subscription identifier privacy support</item>
+        <item>SUCI calculation by the USIM</item>
+        <item>UAC Access Identities support</item>
+        <item>Control plane-based steering of UE in VPLMN</item>
+        <item>Call control on PDU Session by USIM</item>
+        <item>5GS Operator PLMN List</item>
+        <item>Support for SUPI of type NSI or GLI or GCI</item>
+        <item>3GPP PS Data Off separate Home and Roaming lists</item>
+        <item>Support for URSP by USIM</item>
+        <item>5G Security Parameters extended</item>
+        <item>MuD and MiD configuration data</item>
+        <item>Support for Trusted non-3GPP access networks by USIM</item>
+        <item>Support for multiple records of NAS security context storage for multiple registration</item>
+        <item>Pre-configured CAG information list</item>
+        <item>SOR-CMCI storage in USIM</item>
+        <item>5G ProSe</item>
+        <item>Storage of disaster roaming information in USIM</item>
+        <item>Pre-configured eDRX parameters</item>
+        <item>5G NSWO support</item>
+        <item>PWS configuration for SNPN in USIM</item>
+        <item>Multiplier Coefficient for Higher Priority PLMN search via NG-RAN satellite access</item>
+        <item>KAUSF derivation configuration</item>
+        <item>Network Identifier for SNPN (NID)</item>
+        <item>5MBS UE pre-configuration</item>
+        <item>UE configured for using operator controlled signal threshold per access technology</item>
+        <item>A2X</item>
+        <item>IMS Data Channel Indication</item>
+        <item>Operator-controlled-LSP-PLMN</item>
+        <item>PeriodicSearchTimerNonLSP</item>
+    </string-array>
 
     <string name="nav_header_no_sim">No SIM available</string>
     <string name="nav_header_no_slot">No logical slot selected</string>

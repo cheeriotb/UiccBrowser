@@ -19,6 +19,7 @@ class BerTlvElement private constructor(
     tlv: Tlv,
     override val editable: Boolean,
     labelId: Int,
+    labelArgs: Array<out Any>,
     private val parent: Element?,
     private val decoder: (Resources, List<Tlv>, Element?) -> List<Element>,
     private val separator: (Resources, ByteArray, Element?) -> List<Element>,
@@ -27,12 +28,17 @@ class BerTlvElement private constructor(
 ) : Element {
     val tag: Int = tlv.tag
 
+    private val baseLabel = if (labelArgs.isEmpty()) {
+        resources.getString(labelId)
+    } else {
+        resources.getString(labelId, *labelArgs)
+    }
     override val primitive: Boolean = !tlv.isConstructed
     override val label: String = when (BerTlv.numberOfTagBytes(tag)) {
-        1 -> resources.getString(R.string.one_byte_tag_label, resources.getString(labelId), tag)
-        2 -> resources.getString(R.string.two_bytes_tag_label, resources.getString(labelId), tag)
-        3 -> resources.getString(R.string.three_bytes_tag_label, resources.getString(labelId), tag)
-        else -> resources.getString(labelId)
+        1 -> resources.getString(R.string.one_byte_tag_label, baseLabel, tag)
+        2 -> resources.getString(R.string.two_bytes_tag_label, baseLabel, tag)
+        3 -> resources.getString(R.string.three_bytes_tag_label, baseLabel, tag)
+        else -> baseLabel
     }
 
     private var primitiveData =
@@ -85,6 +91,7 @@ class BerTlvElement private constructor(
         private var tlv: Tlv,
         private var editable: Boolean = false,
         private var labelId: Int = R.string.unknown_label,
+        private var labelArgs: Array<out Any> = emptyArray(),
         private var parent: Element? = null,
         private var decoder: (Resources, List<Tlv>, Element?) -> List<Element> =
                 ::defaultDecoder,
@@ -97,6 +104,7 @@ class BerTlvElement private constructor(
     ) {
         fun editable(editable: Boolean) = also { it.editable = editable }
         fun labelId(labelId: Int) = also { it.labelId = labelId }
+        fun labelArgs(vararg labelArgs: Any) = also { it.labelArgs = labelArgs }
         fun parent(parent: Element?) = also { it.parent = parent }
 
         fun decoder(decoder: (Resources, List<Tlv>, Element?) -> List<Element>) =
@@ -108,7 +116,7 @@ class BerTlvElement private constructor(
         fun interpreter(interpreter: (Resources, ByteArray) -> String) =
                 also { it.interpreter = interpreter }
         fun build(resources: Resources) = BerTlvElement(
-                resources, tlv, editable, labelId, parent, decoder, separator, validator,
+                resources, tlv, editable, labelId, labelArgs, parent, decoder, separator, validator,
                 interpreter)
     }
 

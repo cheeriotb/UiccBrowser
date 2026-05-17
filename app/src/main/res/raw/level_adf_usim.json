@@ -55,9 +55,34 @@
             "id": "6F46"
         },
         {
+            "name": "PUCT",
+            "description": "Price per Unit and Currency Table",
+            "id": "6F41"
+        },
+        {
+            "name": "CBMI",
+            "description": "Cell Broadcast Message identifier selection",
+            "id": "6F45"
+        },
+        {
             "name": "PLMNwAcT",
             "description": "User controlled PLMN selector with Access Technology",
             "id": "6F60"
+        },
+        {
+            "name": "ACC",
+            "description": "Access Control Class",
+            "id": "6F78"
+        },
+        {
+            "name": "FPLMN",
+            "description": "Forbidden PLMNs",
+            "id": "6F7B"
+        },
+        {
+            "name": "LOCI",
+            "description": "Location Information",
+            "id": "6F7E"
         },
         {
             "name": "AD",

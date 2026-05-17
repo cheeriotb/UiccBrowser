@@ -32,7 +32,17 @@ data class FileId(
         const val EF_USIM_KEYS_PS = "6F09"
         const val EF_USIM_HPPLMN = "6F31"
         const val EF_USIM_ACM_MAX = "6F37"
+        const val EF_USIM_UST = "6F38"
+        const val EF_USIM_GID1 = "6F3E"
+        const val EF_USIM_GID2 = "6F3F"
+        const val EF_USIM_PUCT = "6F41"
+        const val EF_USIM_CBMI = "6F45"
+        const val EF_USIM_SPN = "6F46"
         const val EF_USIM_PLMN_W_ACT = "6F60"
+        const val EF_USIM_ACC = "6F78"
+        const val EF_USIM_FPLMN = "6F7B"
+        const val EF_USIM_LOCI = "6F7E"
+        const val EF_USIM_AD = "6FAD"
     }
 
     class Builder(

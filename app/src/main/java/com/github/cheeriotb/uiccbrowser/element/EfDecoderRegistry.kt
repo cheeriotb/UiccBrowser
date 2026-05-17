@@ -35,7 +35,17 @@ object EfDecoderRegistry {
             FileId.EF_USIM_KEYS_PS to UsimEfDecoders::decodeKeysPs,
             FileId.EF_USIM_HPPLMN to UsimEfDecoders::decodeHpplmn,
             FileId.EF_USIM_ACM_MAX to UsimEfDecoders::decodeAcmMax,
-            FileId.EF_USIM_PLMN_W_ACT to UsimEfDecoders::decodePlmnWAct
+            FileId.EF_USIM_UST to UsimEfDecoders::decodeUst,
+            FileId.EF_USIM_GID1 to UsimEfDecoders::decodeGid1,
+            FileId.EF_USIM_GID2 to UsimEfDecoders::decodeGid2,
+            FileId.EF_USIM_PUCT to UsimEfDecoders::decodePuct,
+            FileId.EF_USIM_CBMI to UsimEfDecoders::decodeCbmi,
+            FileId.EF_USIM_SPN to UsimEfDecoders::decodeSpn,
+            FileId.EF_USIM_PLMN_W_ACT to UsimEfDecoders::decodePlmnWAct,
+            FileId.EF_USIM_ACC to UsimEfDecoders::decodeAcc,
+            FileId.EF_USIM_FPLMN to UsimEfDecoders::decodeFplmn,
+            FileId.EF_USIM_LOCI to UsimEfDecoders::decodeLoci,
+            FileId.EF_USIM_AD to UsimEfDecoders::decodeAd
         ),
         EfContext.ISIM to emptyMap()
     )

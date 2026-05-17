@@ -18,6 +18,7 @@ class PrimitiveElement private constructor(
     private var primitiveData: ByteArray,
     override val editable: Boolean,
     labelId: Int,
+    labelArgs: Array<out Any>,
     private val parent: Element?,
     private val validator: (ByteArray) -> Boolean,
     private val interpreter: (Resources, ByteArray) -> String
@@ -25,7 +26,11 @@ class PrimitiveElement private constructor(
 
     override val primitive: Boolean = true
     override val subElements: List<Element> = listOf()
-    override val label: String = resources.getString(labelId)
+    override val label: String = if (labelArgs.isEmpty()) {
+        resources.getString(labelId)
+    } else {
+        resources.getString(labelId, *labelArgs)
+    }
 
     private var interpretation = interpreter(resources, primitiveData)
 
@@ -41,7 +46,13 @@ class PrimitiveElement private constructor(
             resources: Resources,
             rawData: ByteArray
         ): String {
-            return byteArrayToHexString(rawData) + " (" + StringUtils.decode(rawData) + ")"
+            val decoded = StringUtils.decode(rawData)
+            val hasDisplayableText = decoded.any { it != '\uFFFD' && !it.isISOControl() }
+            return if (!hasDisplayableText) {
+                byteArrayToHexString(rawData)
+            } else {
+                byteArrayToHexString(rawData) + " ($decoded)"
+            }
         }
     }
 
@@ -49,12 +60,14 @@ class PrimitiveElement private constructor(
         private var primitiveData: ByteArray,
         private var editable: Boolean = false,
         private var labelId: Int = R.string.unknown_label,
+        private var labelArgs: Array<out Any> = emptyArray(),
         private var parent: Element? = null,
         private var validator: (ByteArray) -> Boolean = { true },
         private var interpreter: (Resources, ByteArray) -> String = ::defaultInterpreter
     ) {
         fun editable(editable: Boolean) = also { it.editable = editable }
         fun labelId(labelId: Int) = also { it.labelId = labelId }
+        fun labelArgs(vararg labelArgs: Any) = also { it.labelArgs = labelArgs }
         fun parent(parent: Element?) = also { it.parent = parent }
 
         fun validator(validator: (ByteArray) -> Boolean) =
@@ -63,7 +76,8 @@ class PrimitiveElement private constructor(
                 also { it.interpreter = interpreter }
 
         fun build(resources: Resources) = PrimitiveElement(
-                resources, primitiveData, editable, labelId, parent, validator, interpreter)
+                resources, primitiveData, editable, labelId, labelArgs, parent, validator,
+                interpreter)
     }
 
     override val data: ByteArray

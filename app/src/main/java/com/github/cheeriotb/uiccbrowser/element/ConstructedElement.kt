@@ -17,14 +17,20 @@ class ConstructedElement private constructor(
     rawData: ByteArray,
     override val editable: Boolean,
     labelId: Int,
+    labelArgs: Array<out Any>,
     private val parent: Element?,
     private val decoder: (Resources, ByteArray, Element?) -> List<Element>,
+    private val dataComposer: (List<Element>) -> ByteArray,
     private val validator: (ByteArray) -> Boolean,
     private val interpreter: (Resources, ByteArray) -> String
 ) : Element {
 
     override val primitive: Boolean = false
-    override val label: String = resources.getString(labelId)
+    override val label: String = if (labelArgs.isEmpty()) {
+        resources.getString(labelId)
+    } else {
+        resources.getString(labelId, *labelArgs)
+    }
 
     private var elementList: List<Element> = decoder(resources, rawData, this)
     private var interpretation = interpreter(resources, rawData)
@@ -48,38 +54,48 @@ class ConstructedElement private constructor(
         ): String {
             return byteArrayToHexString(rawData)
         }
+
+        fun defaultDataComposer(
+            elements: List<Element>
+        ): ByteArray {
+            var array = byteArrayOf()
+            elements.forEach { array += it.data }
+            return array
+        }
     }
 
     class Builder(
         private var rawData: ByteArray,
         private var editable: Boolean = false,
         private var labelId: Int = R.string.unknown_label,
+        private var labelArgs: Array<out Any> = emptyArray(),
         private var parent: Element? = null,
         private var decoder: (Resources, ByteArray, Element?) -> List<Element> = ::defaultDecoder,
+        private var dataComposer: (List<Element>) -> ByteArray = ::defaultDataComposer,
         private var validator: (ByteArray) -> Boolean = { true },
         private var interpreter: (Resources, ByteArray) -> String = ::defaultInterpreter
     ) {
         fun editable(editable: Boolean) = also { it.editable = editable }
         fun labelId(labelId: Int) = also { it.labelId = labelId }
+        fun labelArgs(vararg labelArgs: Any) = also { it.labelArgs = labelArgs }
         fun parent(parent: Element?) = also { it.parent = parent }
 
         fun decoder(decoder: (Resources, ByteArray, Element?) -> List<Element>) =
                 also { it.decoder = decoder }
+        fun dataComposer(dataComposer: (List<Element>) -> ByteArray) =
+                also { it.dataComposer = dataComposer }
         fun validator(validator: (ByteArray) -> Boolean) =
                 also { it.validator = validator }
         fun interpreter(interpreter: (Resources, ByteArray) -> String) =
                 also { it.interpreter = interpreter }
 
         fun build(resources: Resources) = ConstructedElement(
-                resources, rawData, editable, labelId, parent, decoder, validator, interpreter)
+                resources, rawData, editable, labelId, labelArgs, parent, decoder, dataComposer,
+                validator, interpreter)
     }
 
     override val data: ByteArray
-        get() {
-            var array = byteArrayOf()
-            elementList.forEach { array += it.data }
-            return array
-        }
+        get() = dataComposer(elementList)
 
     override val subElements: List<Element>
         get() = elementList
