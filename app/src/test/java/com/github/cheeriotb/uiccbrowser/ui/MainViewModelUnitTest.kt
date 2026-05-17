@@ -202,6 +202,97 @@ class MainViewModelUnitTest {
     }
 
     @Test
+    fun buildSlotRefreshDecision_sameSlotAndIccid_retainsSelection() {
+        val selected = CardInfo(0, "iccid0")
+        val slots = listOf(selected, CardInfo(1, "iccid1"))
+
+        val decision = MainViewModel.buildSlotRefreshDecision(selected, slots)
+
+        assertThat(decision.selectedSlot).isEqualTo(selected)
+        assertThat(decision.selectedSimUnavailable).isFalse()
+    }
+
+    @Test
+    fun buildSlotRefreshDecision_sameSlotDifferentIccid_selectsFirstAndReportsUnavailable() {
+        val selected = CardInfo(0, "iccid0")
+        val newProfile = CardInfo(0, "iccid0-new")
+
+        val decision = MainViewModel.buildSlotRefreshDecision(selected, listOf(newProfile))
+
+        assertThat(decision.selectedSlot).isEqualTo(newProfile)
+        assertThat(decision.selectedSimUnavailable).isTrue()
+    }
+
+    @Test
+    fun buildSlotRefreshDecision_selectedSlotRemoved_selectsFirstRemainingSlot() {
+        val selected = CardInfo(1, "iccid1")
+        val remaining = CardInfo(0, "iccid0")
+
+        val decision = MainViewModel.buildSlotRefreshDecision(selected, listOf(remaining))
+
+        assertThat(decision.selectedSlot).isEqualTo(remaining)
+        assertThat(decision.selectedSimUnavailable).isTrue()
+    }
+
+    @Test
+    fun buildSlotRefreshDecision_selectedSlotRemovedAndNoSlots_clearsSelection() {
+        val decision = MainViewModel.buildSlotRefreshDecision(CardInfo(0, "iccid0"), emptyList())
+
+        assertThat(decision.selectedSlot).isNull()
+        assertThat(decision.selectedSimUnavailable).isTrue()
+    }
+
+    @Test
+    fun buildSlotRefreshDecision_noPreviousSelection_selectsFirstAvailableSlot() {
+        val first = CardInfo(0, "iccid0")
+
+        val decision = MainViewModel.buildSlotRefreshDecision(null, listOf(first))
+
+        assertThat(decision.selectedSlot).isEqualTo(first)
+        assertThat(decision.selectedSimUnavailable).isFalse()
+    }
+
+    @Test
+    fun shouldRetrySubscriptionRefresh_missingExpectedSlot_returnsTrue() {
+        val expected = listOf(
+            SubscriptionSnapshot(slotId = 0, subscriptionId = 10, iccId = "iccid0"),
+            SubscriptionSnapshot(slotId = 1, subscriptionId = 11, iccId = "iccid1")
+        )
+
+        val shouldRetry = MainViewModel.shouldRetrySubscriptionRefresh(
+            expected,
+            availableSlots = listOf(CardInfo(1, "iccid1"))
+        )
+
+        assertThat(shouldRetry).isTrue()
+    }
+
+    @Test
+    fun shouldRetrySubscriptionRefresh_allExpectedSlotsAvailable_returnsFalse() {
+        val expected = listOf(
+            SubscriptionSnapshot(slotId = 0, subscriptionId = 10, iccId = "iccid0"),
+            SubscriptionSnapshot(slotId = 1, subscriptionId = 11, iccId = "iccid1")
+        )
+
+        val shouldRetry = MainViewModel.shouldRetrySubscriptionRefresh(
+            expected,
+            availableSlots = listOf(CardInfo(0, "iccid0"), CardInfo(1, "iccid1"))
+        )
+
+        assertThat(shouldRetry).isFalse()
+    }
+
+    @Test
+    fun shouldRetrySubscriptionRefresh_noExpectedSlots_returnsFalse() {
+        val shouldRetry = MainViewModel.shouldRetrySubscriptionRefresh(
+            emptyList(),
+            availableSlots = emptyList()
+        )
+
+        assertThat(shouldRetry).isFalse()
+    }
+
+    @Test
     fun selectNavItem_updatesSelectedNavItem() {
         val app = ApplicationProvider.getApplicationContext<Application>()
         val viewModel = MainViewModel(app)

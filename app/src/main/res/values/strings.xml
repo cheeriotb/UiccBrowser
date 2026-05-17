@@ -73,6 +73,8 @@
 
     <string name="nav_header_no_sim">No SIM available</string>
     <string name="nav_header_no_slot">No logical slot selected</string>
+    <string name="sim_status_changed_title">SIM status changed</string>
+    <string name="sim_status_changed_message">The selected SIM is no longer available. The app will return to the initial state.</string>
     <string name="iccid_label">ICCID: %1$s</string>
     <string name="slot_label">Logical slot %1$d</string>
     <string name="slot_dialog_title">Select SIM</string>

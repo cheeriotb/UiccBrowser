@@ -161,6 +161,5 @@ class TelephonyInterface private constructor (
 
     override fun dispose() {
         closeRemainingChannel()
-        Log.d(tag, "Disposed")
     }
 }

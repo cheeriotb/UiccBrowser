@@ -84,6 +84,18 @@ class CardRepository private constructor (
             }
         }
 
+        /**
+         * Disposes all cached repository instances and clears their retained card state.
+         */
+        suspend fun resetAll() {
+            val repositories = synchronized(this) {
+                val current = instances?.toList().orEmpty()
+                instances = null
+                current
+            }
+            repositories.forEach { it.dispose() }
+        }
+
         const val SIZE_MAX = 0x100
 
         const val SW_INTERNAL_EXCEPTION = Iso7816.SW1_INTERNAL_EXCEPTION shl 8

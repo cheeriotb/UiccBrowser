@@ -18,7 +18,11 @@ class GetAvailableCardsUseCase(private val context: Context) {
      * Enumerates slots by incrementing slotId until CardRepository.from() returns null,
      * then calls initialize() on each to confirm a SIM card is present and readable.
      */
-    suspend fun execute(): List<CardInfo> {
+    suspend fun execute(forceRefresh: Boolean = false): List<CardInfo> {
+        if (forceRefresh) {
+            CardRepository.resetAll()
+        }
+
         val available = mutableListOf<CardInfo>()
         var slotId = 0
         while (true) {

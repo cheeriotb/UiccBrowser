@@ -121,6 +121,15 @@ class CardRepositoryUnitTest {
     }
 
     @Test
+    fun resetAll_disposesCachedRepositoryAndAllowsRecreation() = runBlocking {
+        CardRepository.resetAll()
+
+        verify { cardIoMock.dispose() }
+        assertThat(CardRepository.from(ApplicationProvider.getApplicationContext(), 0))
+            .isNotSameInstanceAs(repository)
+    }
+
+    @Test
     fun verifyPinKeyReference_values() {
         assertThat(KeyReference.APPLICATION_PIN1.value).isEqualTo(0x01)
         assertThat(KeyReference.APPLICATION_PIN8.value).isEqualTo(0x08)

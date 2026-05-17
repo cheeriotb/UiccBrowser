@@ -34,6 +34,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.github.cheeriotb.uiccbrowser.databinding.ActivityMainBinding
+import com.github.cheeriotb.uiccbrowser.ui.MainEvent
 import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
 import com.github.cheeriotb.uiccbrowser.ui.NavLevel
 import com.github.cheeriotb.uiccbrowser.ui.efdetail.EfDetailFragment
@@ -41,6 +42,7 @@ import com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserFragment
 import com.github.cheeriotb.uiccbrowser.ui.filebrowser.FileBrowserViewModel
 import com.github.cheeriotb.uiccbrowser.usecase.GetFileListUseCase
 import com.google.android.material.color.DynamicColors
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -54,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
                 viewModel.loadAvailableSlots()
+                viewModel.startSubscriptionMonitoring()
             } else {
                 MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.permission_denied_title)
@@ -272,6 +275,31 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        MainEvent.SELECTED_SIM_UNAVAILABLE -> {
+                            val dialog = MaterialAlertDialogBuilder(this@MainActivity)
+                                .setTitle(R.string.sim_status_changed_title)
+                                .setMessage(R.string.sim_status_changed_message)
+                                .setCancelable(false)
+                                .show()
+                            delay(SIM_STATUS_DIALOG_MILLIS)
+                            dialog.dismiss()
+                            navController.navigate(
+                                R.id.nav_file_browser,
+                                null,
+                                NavOptions.Builder()
+                                    .setPopUpTo(R.id.nav_file_browser, true)
+                                    .build()
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -285,6 +313,7 @@ class MainActivity : AppCompatActivity() {
                 this, Manifest.permission.READ_PHONE_STATE
             ) == PackageManager.PERMISSION_GRANTED -> {
                 viewModel.loadAvailableSlots()
+                viewModel.startSubscriptionMonitoring()
             }
             shouldShowRequestPermissionRationale(Manifest.permission.READ_PHONE_STATE) -> {
                 MaterialAlertDialogBuilder(this)
@@ -313,5 +342,9 @@ class MainActivity : AppCompatActivity() {
             insets
         }
         ViewCompat.requestApplyInsets(binding.navDrawerContainer)
+    }
+
+    companion object {
+        private const val SIM_STATUS_DIALOG_MILLIS = 2_000L
     }
 }
