@@ -25,7 +25,14 @@ data class FileId(
         const val EF_ARR = "2F06"
         const val EF_ICCID = "2FE2"
 
-    const val EF_USIM_ARR = "6F06"
+        const val EF_USIM_LI = "6F05"
+        const val EF_USIM_ARR = "6F06"
+        const val EF_USIM_IMSI = "6F07"
+        const val EF_USIM_KEYS = "6F08"
+        const val EF_USIM_KEYS_PS = "6F09"
+        const val EF_USIM_HPPLMN = "6F31"
+        const val EF_USIM_ACM_MAX = "6F37"
+        const val EF_USIM_PLMN_W_ACT = "6F60"
     }
 
     class Builder(

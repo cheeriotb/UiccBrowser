@@ -11,6 +11,7 @@ package com.github.cheeriotb.uiccbrowser.element
 import android.content.res.Resources
 import com.github.cheeriotb.uiccbrowser.element.ef.AppTemplate
 import com.github.cheeriotb.uiccbrowser.element.ef.EfArrRecord
+import com.github.cheeriotb.uiccbrowser.element.ef.UsimEfDecoders
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 
 typealias EfDecoder = (Resources, ByteArray) -> Element?
@@ -27,7 +28,14 @@ object EfDecoderRegistry {
             FileId.EF_ARR to EfArrRecord::decode
         ),
         EfContext.USIM to mapOf(
-            FileId.EF_USIM_ARR to EfArrRecord::decode
+            FileId.EF_USIM_LI to UsimEfDecoders::decodeLi,
+            FileId.EF_USIM_ARR to EfArrRecord::decode,
+            FileId.EF_USIM_IMSI to UsimEfDecoders::decodeImsi,
+            FileId.EF_USIM_KEYS to UsimEfDecoders::decodeKeys,
+            FileId.EF_USIM_KEYS_PS to UsimEfDecoders::decodeKeysPs,
+            FileId.EF_USIM_HPPLMN to UsimEfDecoders::decodeHpplmn,
+            FileId.EF_USIM_ACM_MAX to UsimEfDecoders::decodeAcmMax,
+            FileId.EF_USIM_PLMN_W_ACT to UsimEfDecoders::decodePlmnWAct
         ),
         EfContext.ISIM to emptyMap()
     )

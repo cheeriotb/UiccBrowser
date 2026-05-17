@@ -27,6 +27,8 @@ class InfoViewModelUnitTest {
         hexStringToByteArray("61124F10A0000000871002FFFFFFFFFFFFFFFFFF")
     private val efArrRecord =
         hexStringToByteArray("8001019000")
+    private val usimAid = "A0000000871002FFFFFFFFFFFFFFFFFF"
+    private val efImsi = hexStringToByteArray("0899100700002028F1")
 
     @Test
     fun decode_efDir_setsElement() {
@@ -47,6 +49,16 @@ class InfoViewModelUnitTest {
     fun decode_efArr_setsElement() {
         val vm = InfoViewModel(application, FileId(FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ARR))
         vm.decode(efArrRecord)
+        assertThat(vm.element.value).isNotNull()
+    }
+
+    @Test
+    fun decode_usimEfImsi_setsElement() {
+        val fileId = FileId(usimAid, FileId.PATH_ADF, FileId.EF_USIM_IMSI)
+        val vm = InfoViewModel(application, fileId)
+
+        vm.decode(efImsi)
+
         assertThat(vm.element.value).isNotNull()
     }
 
