@@ -607,7 +607,7 @@ class UsimEfDecoders {
             rawData.forEachIndexed { index, byte ->
                 val value = byte.toInt() and 0xFF
                 if (index == 0) {
-                    digits.add(nibbleToDigit(value and 0x0F))
+                    digits.add(nibbleToDigit((value ushr 4) and 0x0F))
                 } else {
                     digits.add(nibbleToDigit(value and 0x0F))
                     digits.add(nibbleToDigit((value ushr 4) and 0x0F))

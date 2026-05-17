@@ -28,7 +28,7 @@ class UsimEfDecodersUnitTest {
 
     companion object {
         private const val AID_USIM = AppTemplate.RID + AppTemplate.APP_USIM
-        private const val IMSI = "0899100700002028F1"
+        private const val IMSI = "0819100700002028F1"
         private const val KEYS =
                 "07" +
                 "00112233445566778899AABBCCDDEEFF" +
@@ -91,7 +91,7 @@ class UsimEfDecodersUnitTest {
         assertThat(element.subElements[0].toString()).isEqualTo("08")
         assertThat(element.subElements[1].label).isEqualTo(resources.getString(R.string.imsi_label))
         assertThat(element.subElements[1].toString())
-                .isEqualTo("99100700002028F1 (90170000002821)")
+                .isEqualTo("19100700002028F1 (10170000002821)")
     }
 
     @Test

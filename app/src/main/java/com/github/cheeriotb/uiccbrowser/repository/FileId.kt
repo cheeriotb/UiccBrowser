@@ -22,7 +22,9 @@ data class FileId(
         const val MF = ""
 
         const val EF_DIR = "2F00"
+        const val EF_PL = "2F05"
         const val EF_ARR = "2F06"
+        const val EF_UMPC = "2F08"
         const val EF_ICCID = "2FE2"
 
         const val EF_USIM_LI = "6F05"
@@ -43,6 +45,13 @@ data class FileId(
         const val EF_USIM_FPLMN = "6F7B"
         const val EF_USIM_LOCI = "6F7E"
         const val EF_USIM_AD = "6FAD"
+        const val DF_USIM_5GS = "5FC0"
+        const val EF_USIM_5GS_SUCI_CALC_INFO = "4F07"
+        const val EF_USIM_5GS_OPL5G = "4F08"
+
+        const val EF_ISIM_IMPI = "6F02"
+        const val EF_ISIM_DOMAIN = "6F03"
+        const val EF_ISIM_IMPU = "6F04"
     }
 
     class Builder(

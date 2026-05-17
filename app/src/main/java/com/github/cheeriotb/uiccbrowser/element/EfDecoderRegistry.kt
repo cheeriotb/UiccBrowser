@@ -11,6 +11,9 @@ package com.github.cheeriotb.uiccbrowser.element
 import android.content.res.Resources
 import com.github.cheeriotb.uiccbrowser.element.ef.AppTemplate
 import com.github.cheeriotb.uiccbrowser.element.ef.EfArrRecord
+import com.github.cheeriotb.uiccbrowser.element.ef.IsimEfDecoders
+import com.github.cheeriotb.uiccbrowser.element.ef.MfEfDecoders
+import com.github.cheeriotb.uiccbrowser.element.ef.Usim5gsEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimEfDecoders
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 
@@ -25,7 +28,10 @@ object EfDecoderRegistry {
     private val maps: Map<EfContext, Map<String, EfDecoder>> = mapOf(
         EfContext.MF   to mapOf(
             FileId.EF_DIR to AppTemplate::decode,
-            FileId.EF_ARR to EfArrRecord::decode
+            FileId.EF_PL to MfEfDecoders::decodePl,
+            FileId.EF_ARR to EfArrRecord::decode,
+            FileId.EF_UMPC to MfEfDecoders::decodeUmpc,
+            FileId.EF_ICCID to MfEfDecoders::decodeIccid
         ),
         EfContext.USIM to mapOf(
             FileId.EF_USIM_LI to UsimEfDecoders::decodeLi,
@@ -45,9 +51,16 @@ object EfDecoderRegistry {
             FileId.EF_USIM_ACC to UsimEfDecoders::decodeAcc,
             FileId.EF_USIM_FPLMN to UsimEfDecoders::decodeFplmn,
             FileId.EF_USIM_LOCI to UsimEfDecoders::decodeLoci,
-            FileId.EF_USIM_AD to UsimEfDecoders::decodeAd
+            FileId.EF_USIM_AD to UsimEfDecoders::decodeAd,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_SUCI_CALC_INFO to
+                    Usim5gsEfDecoders::decodeSuciCalcInfo,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_OPL5G to Usim5gsEfDecoders::decodeOpl5g
         ),
-        EfContext.ISIM to emptyMap()
+        EfContext.ISIM to mapOf(
+            FileId.EF_ISIM_IMPI to IsimEfDecoders::decodeImpi,
+            FileId.EF_ISIM_DOMAIN to IsimEfDecoders::decodeDomain,
+            FileId.EF_ISIM_IMPU to IsimEfDecoders::decodeImpu
+        )
     )
 
     private fun contextFrom(aid: String): EfContext? = when {
