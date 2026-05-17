@@ -58,6 +58,42 @@ class SecurityAttrExpandedUnitTest {
     }
 
     @Test
+    fun decoder_commandDescriptionAmDo_interpretsInsByte() {
+        val tlvs = BerTlv.listFrom(hexStringToByteArray("8401D4"))
+        val element = SecurityAttrExpanded.decoder(resources, tlvs, null)[0]
+
+        assertThat(element.toString()).isEqualTo("D4 (INS D4)")
+    }
+
+    @Test
+    fun decoder_commandDescriptionAmDo_interpretsFullHeader() {
+        val tlvs = BerTlv.listFrom(hexStringToByteArray("8F0400A40000"))
+        val element = SecurityAttrExpanded.decoder(resources, tlvs, null)[0]
+
+        assertThat(element.toString()).isEqualTo(
+                "00A40000 (CLA 00, INS A4, P1 00, P2 00)"
+        )
+    }
+
+    @Test
+    fun decoder_commandDescriptionAmDoWithInvalidLength_keepsHex() {
+        val tlvs = BerTlv.listFrom(hexStringToByteArray("8F0100"))
+        val element = SecurityAttrExpanded.decoder(resources, tlvs, null)[0]
+
+        assertThat(element.toString()).isEqualTo("00")
+    }
+
+    @Test
+    fun decoder_proprietaryStateMachineDescription_usesSpecificLabel() {
+        val tlvs = BerTlv.listFrom(hexStringToByteArray("9C0100"))
+        val element = SecurityAttrExpanded.decoder(resources, tlvs, null)[0]
+
+        assertThat(element.label).contains(
+                resources.getString(R.string.proprietary_state_machine_label)
+        )
+    }
+
+    @Test
     fun decoder_alwaysAndNeverScDo_useSpecificLabels() {
         val tlvs = BerTlv.listFrom(hexStringToByteArray("90009700"))
         val elements = SecurityAttrExpanded.decoder(resources, tlvs, null)

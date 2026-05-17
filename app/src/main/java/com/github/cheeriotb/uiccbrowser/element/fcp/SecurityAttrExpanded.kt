@@ -31,6 +31,7 @@ class SecurityAttrExpanded {
         const val TAG_NOT_DO = 0xA7
         const val TAG_KEY_REFERENCE = 0x83
         const val TAG_USAGE_QUALIFIER = 0x95
+        const val TAG_PROPRIETARY_STATE_MACHINE_DESCRIPTION = 0x9C
 
         private fun decoderImpl(
             resources: Resources,
@@ -60,6 +61,8 @@ class SecurityAttrExpanded {
 
         private fun labelIdFor(tag: Int, topLevel: Boolean): Int = when {
             topLevel && tag in 0x80..0x8F -> R.string.am_do_label
+            topLevel && tag == TAG_PROPRIETARY_STATE_MACHINE_DESCRIPTION ->
+                R.string.proprietary_state_machine_label
             tag == TAG_SC_ALWAYS_DO -> R.string.sc_do_always_label
             tag == TAG_SC_NEVER_DO -> R.string.sc_do_never_label
             tag == TAG_CONTROL_DO -> R.string.control_do_label
@@ -75,7 +78,8 @@ class SecurityAttrExpanded {
             tag: Int,
             topLevel: Boolean
         ): (Resources, ByteArray) -> String = when {
-            topLevel && tag in 0x80..0x8F -> ::accessModeInterpreter
+            topLevel && tag == 0x80 -> ::accessModeInterpreter
+            topLevel && tag in 0x81..0x8F -> commandDescriptionInterpreter(tag)
             tag == TAG_KEY_REFERENCE -> ::keyReferenceInterpreter
             else -> BerTlvElement::defaultInterpreter
         }
@@ -93,6 +97,32 @@ class SecurityAttrExpanded {
                     .joinToString(", ") { (_, name) -> name }
 
             return if (modes.isEmpty()) hex else "$hex ($modes)"
+        }
+
+        /**
+         * ISO/IEC 7816-4 command description AM_DO.
+         *
+         * For tags 81..8F, bits b4..b1 show whether CLA, INS, P1 and P2 are present.
+         * CLA zero is independent from logical channels; even INS is independent from
+         * data field format indications.
+         */
+        private fun commandDescriptionInterpreter(
+            tag: Int
+        ): (Resources, ByteArray) -> String = { _, rawData ->
+            val hex = byteArrayToHexString(rawData)
+            val fields = COMMAND_HEADER_FIELDS
+                    .filter { (mask, _) -> tag and mask != 0 }
+
+            if (fields.isEmpty() || rawData.size != fields.size) {
+                hex
+            } else {
+                val description = fields
+                        .mapIndexed { index, (_, name) ->
+                            "$name ${byteArrayToHexString(byteArrayOf(rawData[index]))}"
+                        }
+                        .joinToString(", ")
+                "$hex ($description)"
+            }
         }
 
         internal fun keyReferenceInterpreter(
@@ -131,6 +161,13 @@ class SecurityAttrExpanded {
                 0x04 to "ACTIVATE",
                 0x02 to "UPDATE",
                 0x01 to "READ"
+        )
+
+        private val COMMAND_HEADER_FIELDS = listOf(
+                0x08 to "CLA",
+                0x04 to "INS",
+                0x02 to "P1",
+                0x01 to "P2"
         )
     }
 }

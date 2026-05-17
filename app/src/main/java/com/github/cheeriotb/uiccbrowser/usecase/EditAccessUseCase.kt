@@ -232,7 +232,11 @@ class EditAccessUseCase(private val context: Context) {
         while (index < tlvs.size - 1) {
             val am = tlvs[index]
             val sc = tlvs[index + 1]
-            if (am.tag in ACCESS_MODE_TAGS && am.data.size == 1) {
+            /*
+             * Tag 80 is an access mode byte. Tags 81..8F are ISO/IEC 7816-4 command
+             * descriptions and require command-aware access checks, which are not resolved here.
+             */
+            if (am.tag == ACCESS_MODE_BYTE_TAG && am.data.size == 1) {
                 result.add(am.data[0].toInt() and 0xFF, conditionFor(sc))
                 index += 2
             } else {
@@ -572,6 +576,6 @@ class EditAccessUseCase(private val context: Context) {
         private const val SE_ID_01 = 0x01
         private const val USE_UNIVERSAL_PIN = "08"
         private const val DO_NOT_USE_UNIVERSAL_PIN = "00"
-        private val ACCESS_MODE_TAGS = 0x80..0x8F
+        private const val ACCESS_MODE_BYTE_TAG = 0x80
     }
 }
