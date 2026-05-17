@@ -48,11 +48,11 @@ UICC Browser currently provides the following features:
 
 The following screen shows Edit Mode for a selected EF.
 
-![edit mode](https://github.com/user-attachments/assets/04513e02-b8de-4d01-bdfc-0025b290797d)
+![edit mode](https://github.com/user-attachments/assets/759b29a7-c9ad-4ba6-916a-43e41a029f5f)
 
 The following screen shows an EF update operation after editing its contents.
 
-![update](https://github.com/user-attachments/assets/c5ef15b1-ad87-458d-8cd7-897c1ce3f0ac)
+![update](https://github.com/user-attachments/assets/e02cce39-5375-460a-a505-40973e6c6841)
 
 ## Warning
 
