@@ -18,10 +18,12 @@ import com.github.cheeriotb.uiccbrowser.usecase.CurrentDirectoryFcpUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.FileEntry
 import com.github.cheeriotb.uiccbrowser.usecase.GetFileListUseCase
 import com.github.cheeriotb.uiccbrowser.repository.FileId
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class FileBrowserViewModel(
     application: Application,
@@ -53,12 +55,18 @@ class FileBrowserViewModel(
     fun refresh() {
         viewModelScope.launch {
             _isLoading.value = true
-            if (aid != FileId.AID_NONE && parentPath == FileId.PATH_ADF) {
-                cacheFiles.execute(rawResId, slotId, aid)
+            try {
+                val entries = withContext(Dispatchers.IO) {
+                    if (aid != FileId.AID_NONE && parentPath == FileId.PATH_ADF) {
+                        cacheFiles.execute(rawResId, slotId, aid)
+                    }
+                    currentDirectoryFcp.prepareForDirectory(slotId, aid, parentPath)
+                    getFileList.execute(rawResId, slotId, aid, parentPath)
+                }
+                _entries.value = entries
+            } finally {
+                _isLoading.value = false
             }
-            currentDirectoryFcp.prepareForDirectory(slotId, aid, parentPath)
-            _entries.value = getFileList.execute(rawResId, slotId, aid, parentPath)
-            _isLoading.value = false
         }
     }
 

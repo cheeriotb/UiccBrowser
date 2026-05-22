@@ -22,6 +22,7 @@ import com.github.cheeriotb.uiccbrowser.usecase.CacheFileControlParametersUseCas
 import com.github.cheeriotb.uiccbrowser.usecase.GetAvailableCardsUseCase
 import com.github.cheeriotb.uiccbrowser.usecase.CardInfo
 import com.github.cheeriotb.uiccbrowser.usecase.ReadApplicationsUseCase
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class SlotIconState(val visible: Boolean, val selected: Boolean)
 
@@ -51,7 +53,8 @@ internal data class SubscriptionSnapshot(
 )
 
 internal enum class MainEvent {
-    SELECTED_SIM_UNAVAILABLE
+    SELECTED_SIM_UNAVAILABLE,
+    PHONE_STATE_PRIVILEGE_UNAVAILABLE
 }
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -134,22 +137,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
-            var retriesLeft = SUBSCRIPTION_REFRESH_RETRY_COUNT
-            var delayMillis = SUBSCRIPTION_REFRESH_DELAY_MILLIS
-            do {
-                if (delayMillis > 0L) delay(delayMillis)
-                val result = refreshSlotsInProgress(forceRefresh = true)
-                val shouldRetry = retriesLeft > 0
-                    && shouldRetrySubscriptionRefresh(expectedSubscriptions, result.slots)
-                if (!shouldRetry) {
-                    if (result.selectedSimUnavailable) {
-                        _events.emit(MainEvent.SELECTED_SIM_UNAVAILABLE)
+            try {
+                var retriesLeft = SUBSCRIPTION_REFRESH_RETRY_COUNT
+                var delayMillis = SUBSCRIPTION_REFRESH_DELAY_MILLIS
+                do {
+                    if (delayMillis > 0L) delay(delayMillis)
+                    val result = refreshSlotsInProgress(forceRefresh = true)
+                    val shouldRetry = retriesLeft > 0
+                        && shouldRetrySubscriptionRefresh(expectedSubscriptions, result.slots)
+                    if (!shouldRetry) {
+                        if (result.selectedSimUnavailable) {
+                            _events.emit(MainEvent.SELECTED_SIM_UNAVAILABLE)
+                        }
+                        return@launch
                     }
-                    return@launch
-                }
-                retriesLeft--
-                delayMillis = SUBSCRIPTION_REFRESH_RETRY_MILLIS
-            } while (true)
+                    retriesLeft--
+                    delayMillis = SUBSCRIPTION_REFRESH_RETRY_MILLIS
+                } while (true)
+            } catch (ex: SecurityException) {
+                notifyPhoneStatePrivilegeUnavailable()
+            }
         }
     }
 
@@ -159,9 +166,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
-            val result = refreshSlotsInProgress(forceRefresh)
-            if (result.selectedSimUnavailable && notifySelectedUnavailable) {
-                _events.emit(MainEvent.SELECTED_SIM_UNAVAILABLE)
+            try {
+                val result = refreshSlotsInProgress(forceRefresh)
+                if (result.selectedSimUnavailable && notifySelectedUnavailable) {
+                    _events.emit(MainEvent.SELECTED_SIM_UNAVAILABLE)
+                }
+            } catch (ex: SecurityException) {
+                notifyPhoneStatePrivilegeUnavailable()
             }
         }
     }
@@ -223,7 +234,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private suspend fun refreshSlotsInProgress(forceRefresh: Boolean): SlotRefreshResult {
         val previousSlot = _selectedSlot.value
         val previousProMode = _isProModeEnabled.value
-        val slots = getAvailableSlots.execute(forceRefresh)
+        val slots = withContext(Dispatchers.IO) {
+            getAvailableSlots.execute(forceRefresh)
+        }
         val decision = buildSlotRefreshDecision(previousSlot, slots)
 
         _availableSlots.value = slots
@@ -251,12 +264,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _isCachingMf.value = true
             _navItems.value = emptyList()
             try {
-                cacheFiles.execute(R.raw.level_mf, cardInfo.slotId)
-                val aids = readApplications.execute(cardInfo.slotId)
+                val aids = withContext(Dispatchers.IO) {
+                    cacheFiles.execute(R.raw.level_mf, cardInfo.slotId)
+                    readApplications.execute(cardInfo.slotId)
+                }
                 if (_selectedSlot.value == cardInfo) {
                     _navItems.value = buildNavItems(getApplication<Application>().resources, aids)
                     _selectedNavItem.value = _navItems.value.firstOrNull()
                 }
+            } catch (ex: SecurityException) {
+                notifyPhoneStatePrivilegeUnavailable(cancelCachingJob = false)
             } finally {
                 if (_selectedSlot.value == cardInfo) {
                     _isCachingMf.value = false
@@ -265,13 +282,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun clearSelectedState() {
-        cachingJob?.cancel()
+    private fun clearSelectedState(cancelCachingJob: Boolean = true) {
+        if (cancelCachingJob) {
+            cachingJob?.cancel()
+        }
         _selectedSlot.value = null
         _isProModeEnabled.value = false
         _isCachingMf.value = false
         _navItems.value = emptyList()
         _selectedNavItem.value = null
+    }
+
+    private suspend fun notifyPhoneStatePrivilegeUnavailable(cancelCachingJob: Boolean = true) {
+        clearSelectedState(cancelCachingJob)
+        stopSubscriptionMonitoring()
+        _events.emit(MainEvent.PHONE_STATE_PRIVILEGE_UNAVAILABLE)
     }
 
     override fun onCleared() {

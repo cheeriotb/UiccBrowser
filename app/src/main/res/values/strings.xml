@@ -453,6 +453,8 @@
     <string name="permission_rationale_message">Access to the phone\'s status is required to read the UICC information.</string>
     <string name="permission_denied_title">Permission denied</string>
     <string name="permission_denied_message">UICC information is unavailable because access to the phone\'s status was not permitted.</string>
+    <string name="privileged_permission_unavailable_title">Required privilege unavailable</string>
+    <string name="privileged_permission_unavailable_message">This app cannot access the UICC because privileged phone permissions are unavailable. The app will close.</string>
 
     <string name="test0">Label 0</string>
     <string name="test1">Label 1</string>

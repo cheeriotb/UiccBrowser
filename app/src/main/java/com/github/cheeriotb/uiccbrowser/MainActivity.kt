@@ -132,8 +132,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        requestReadPhoneStatePermissionIfNeeded()
-
         val headerView = navView.getHeaderView(0)
         val slotIconViews = listOf(
             headerView.findViewById<ImageView>(R.id.imageView0),
@@ -296,10 +294,20 @@ class MainActivity : AppCompatActivity() {
                                     .build()
                             )
                         }
+                        MainEvent.PHONE_STATE_PRIVILEGE_UNAVAILABLE -> {
+                            MaterialAlertDialogBuilder(this@MainActivity)
+                                .setTitle(R.string.privileged_permission_unavailable_title)
+                                .setMessage(R.string.privileged_permission_unavailable_message)
+                                .setPositiveButton(android.R.string.ok) { _, _ -> finish() }
+                                .setCancelable(false)
+                                .show()
+                        }
                     }
                 }
             }
         }
+
+        requestReadPhoneStatePermissionIfNeeded()
     }
 
     override fun onSupportNavigateUp(): Boolean {
