@@ -315,6 +315,19 @@ class CardRepositoryUnitTest {
     }
 
     @Test
+    fun deleteFileControlParametersInDirectory_success() = runBlocking {
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
+                } returns null
+        coEvery { cacheIoMock.insert(any()) } answers { nothing }
+        coEvery { cacheIoMock.deleteAllInDirectory(ICCID, AID, PATH_ADF) } answers { nothing }
+        repository.initialize()
+
+        assertThat(repository.deleteFileControlParametersInDirectory(AID, PATH_ADF)).isTrue()
+
+        coVerify { cacheIoMock.deleteAllInDirectory(ICCID, AID, PATH_ADF) }
+    }
+
+    @Test
     fun readDirectoryFileControlParameters_adfSelectsDirectoryOnly() = runBlocking {
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_ICCID)
                 } returns null

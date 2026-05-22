@@ -23,6 +23,7 @@ import com.github.cheeriotb.uiccbrowser.repository.Result
 import com.github.cheeriotb.uiccbrowser.util.hexStringToByteArray
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -46,6 +47,7 @@ class GetFileListUseCaseUnitTest {
 
     private lateinit var repository: CardRepository
     private lateinit var useCase: GetFileListUseCase
+    private lateinit var cacheUseCase: CacheFileControlParametersUseCase
 
     companion object {
         private const val FCP_ICCID =
@@ -83,6 +85,9 @@ class GetFileListUseCaseUnitTest {
         ReflectionHelpers.setField(repository, "cacheIo", cacheIoMock)
 
         useCase = GetFileListUseCase(ApplicationProvider.getApplicationContext())
+        cacheUseCase = CacheFileControlParametersUseCase(
+            ApplicationProvider.getApplicationContext()
+        )
     }
 
     @After
@@ -101,6 +106,9 @@ class GetFileListUseCaseUnitTest {
     private fun okResponse(aid: String, path: String, fileId: String) =
         SelectResponse(ICCID, aid, path, fileId, FCP_OK, Result.SW_NORMAL)
 
+    private fun insertedOkResponse(aid: String, path: String, fileId: String) =
+        SelectResponse(ICCID, aid, path, fileId, hexStringToByteArray("6200"), Result.SW_NORMAL)
+
     private fun notFoundResponse(aid: String, path: String, fileId: String) =
         SelectResponse(ICCID, aid, path, fileId, FCP_NOT_FOUND, Result.SW_NOT_FOUND)
 
@@ -109,6 +117,8 @@ class GetFileListUseCaseUnitTest {
         initializeRepo()
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, "2F00") } returns
                 okResponse(FileId.AID_NONE, FileId.PATH_MF, "2F00")
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, "2F01") } returns
+                okResponse(FileId.AID_NONE, FileId.PATH_MF, "2F01")
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, "2F05") } returns
                 notFoundResponse(FileId.AID_NONE, FileId.PATH_MF, "2F05")
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, "2F06") } returns
@@ -120,9 +130,10 @@ class GetFileListUseCaseUnitTest {
 
         val entries = useCase.execute(R.raw.level_mf, 0, FileId.AID_NONE, FileId.PATH_MF)
 
-        assertThat(entries).hasSize(2)
+        assertThat(entries).hasSize(3)
         assertThat(entries[0].id).isEqualTo("2F00")
-        assertThat(entries[1].id).isEqualTo("2F06")
+        assertThat(entries[1].id).isEqualTo("2F01")
+        assertThat(entries[2].id).isEqualTo("2F06")
     }
 
     @Test
@@ -194,6 +205,45 @@ class GetFileListUseCaseUnitTest {
         assertThat(entries).hasSize(1)
         assertThat(entries[0].id).isEqualTo("4F07")
         assertThat(entries[0].name).isEqualTo("SUCI_Calc_Info")
+    }
+
+    @Test
+    fun refreshDirectory_mfRootDeletesCacheAndSelectsDirectChildren() = runBlocking {
+        initializeRepo()
+        coEvery {
+            cacheIoMock.deleteAllInDirectory(ICCID, FileId.AID_NONE, FileId.PATH_MF)
+        } answers { nothing }
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, any()) } returns null
+        listOf("2F00", "2F01", "2F05", "2F06", "2F08", "2FE2").forEach { fileId ->
+            every {
+                cardIoMock.transmit(Command(
+                    Iso7816.INS_SELECT_FILE,
+                    0x08,
+                    0x04,
+                    hexStringToByteArray(fileId)
+                ))
+            } returns Response(FCP_OK)
+        }
+
+        val result = cacheUseCase.refreshDirectory(
+            R.raw.level_mf,
+            0,
+            FileId.AID_NONE,
+            FileId.PATH_MF
+        )
+
+        assertThat(result).isTrue()
+        coVerify {
+            cacheIoMock.deleteAllInDirectory(ICCID, FileId.AID_NONE, FileId.PATH_MF)
+        }
+        coVerify {
+            cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "2F00"))
+            cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "2F01"))
+            cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "2F05"))
+            cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "2F06"))
+            cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "2F08"))
+            cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "2FE2"))
+        }
     }
 
     @Test

@@ -48,6 +48,36 @@ class CacheFileControlParametersUseCase(private val context: Context) {
         return true
     }
 
+    /**
+     * Refreshes FCP cache for files directly under [parentPath].
+     *
+     * Existing SELECT responses for that directory are deleted first so that failed or stale
+     * entries are probed again. Nested child directories are not refreshed here.
+     */
+    suspend fun refreshDirectory(
+        @RawRes rawResId: Int,
+        slotId: Int,
+        aid: String,
+        parentPath: String
+    ): Boolean {
+        val repo = CardRepository.from(context, slotId) ?: return false
+        if (!repo.deleteFileControlParametersInDirectory(aid, parentPath)) return false
+
+        val rootPath = if (aid == FileId.AID_NONE) FileId.PATH_MF else FileId.PATH_ADF
+        val nodes = findNodesAt(parseJson(rawResId), rootPath, parentPath) ?: return false
+        for (i in 0 until nodes.length()) {
+            val node = nodes.getJSONObject(i)
+            val fileId = FileId.Builder()
+                .aid(aid)
+                .path(parentPath)
+                .fileId(node.getString("id"))
+                .build()
+            if (!repo.cacheFileControlParameters(fileId)) return false
+        }
+
+        return true
+    }
+
     private fun collectFileIds(
         filesArray: JSONArray,
         aid: String,
@@ -69,6 +99,23 @@ class CacheFileControlParametersUseCase(private val context: Context) {
                 )
             }
         }
+    }
+
+    private fun findNodesAt(
+        filesArray: JSONArray,
+        currentPath: String,
+        targetPath: String
+    ): JSONArray? {
+        if (currentPath == targetPath) return filesArray
+        for (i in 0 until filesArray.length()) {
+            val item = filesArray.getJSONObject(i)
+            if (item.has("files")) {
+                val childPath = currentPath + item.getString("id")
+                val result = findNodesAt(item.getJSONArray("files"), childPath, targetPath)
+                if (result != null) return result
+            }
+        }
+        return null
     }
 
     private fun parseJson(@RawRes rawResId: Int): JSONArray =

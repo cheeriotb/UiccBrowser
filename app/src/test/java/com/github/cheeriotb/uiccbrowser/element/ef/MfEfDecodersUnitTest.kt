@@ -31,6 +31,48 @@ class MfEfDecodersUnitTest {
     }
 
     @Test
+    fun decodeAtr_berTlvDataObjects_returnsElement() {
+        val element = MfEfDecoders.decodeAtr(
+                resources,
+                hexStringToByteArray("4F07A000000087100250045553494D")
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_atr_label))
+        assertThat(element.subElements).hasSize(2)
+        assertThat(element.subElements[0].label).isEqualTo("Application identifier '4F'")
+        assertThat(element.subElements[1].label).isEqualTo("Application label '50'")
+        assertThat(element.subElements[1].toString()).isEqualTo("5553494D (USIM)")
+    }
+
+    @Test
+    fun decodeAtr_applicationTemplate_returnsNestedElements() {
+        val element = MfEfDecoders.decodeAtr(
+                resources,
+                hexStringToByteArray("610D4F07A000000087100250025533")
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.subElements[0].label).isEqualTo("Application Template '61'")
+        assertThat(element.subElements[0].subElements).hasSize(2)
+        assertThat(element.subElements[0].subElements[0].label)
+                .isEqualTo("Application identifier '4F'")
+        assertThat(element.subElements[0].subElements[1].toString()).isEqualTo("5533 (U3)")
+    }
+
+    @Test
+    fun decodeAtr_withPadding_returnsOnlyDataObjects() {
+        val element = MfEfDecoders.decodeAtr(
+                resources,
+                hexStringToByteArray("4F07A0000000871002FFFFFFFF")
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.subElements).hasSize(1)
+        assertThat(element.subElements[0].label).isEqualTo("Application identifier '4F'")
+    }
+
+    @Test
     fun decodePl_languageEntries_returnsElement() {
         val element = MfEfDecoders.decodePl(resources, hexStringToByteArray("656EFFFF"))
 
@@ -79,6 +121,8 @@ class MfEfDecodersUnitTest {
 
     @Test
     fun decodeInvalidData_returnsNull() {
+        assertThat(MfEfDecoders.decodeAtr(resources, byteArrayOf())).isNull()
+        assertThat(MfEfDecoders.decodeAtr(resources, hexStringToByteArray("FFFFFFFF"))).isNull()
         assertThat(MfEfDecoders.decodePl(resources, hexStringToByteArray("65"))).isNull()
         assertThat(MfEfDecoders.decodeUmpc(resources, hexStringToByteArray("0A"))).isNull()
         assertThat(MfEfDecoders.decodeIccid(resources, hexStringToByteArray("2143"))).isNull()
@@ -87,6 +131,7 @@ class MfEfDecodersUnitTest {
     @Test
     fun efDecoderRegistry_mfEfDecodersAreRegistered() {
         val registered = listOf(
+                FileId.EF_ATR,
                 FileId.EF_PL,
                 FileId.EF_UMPC,
                 FileId.EF_ICCID

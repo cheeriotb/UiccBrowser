@@ -70,6 +70,7 @@
     <string name="discretionary_template_label">Discretionary template</string>
     <string name="url_label">URL</string>
     <string name="ef_arr_record_label">EF ARR record</string>
+    <string name="ef_atr_label">EF ATR</string>
     <string name="ef_pl_label">EF PL</string>
     <string name="ef_umpc_label">EF UMPC</string>
     <string name="ef_iccid_label">EF ICCID</string>

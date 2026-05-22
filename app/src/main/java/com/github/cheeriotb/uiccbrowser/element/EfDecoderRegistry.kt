@@ -28,6 +28,7 @@ object EfDecoderRegistry {
     private val maps: Map<EfContext, Map<String, EfDecoder>> = mapOf(
         EfContext.MF   to mapOf(
             FileId.EF_DIR to AppTemplate::decode,
+            FileId.EF_ATR to MfEfDecoders::decodeAtr,
             FileId.EF_PL to MfEfDecoders::decodePl,
             FileId.EF_ARR to EfArrRecord::decode,
             FileId.EF_UMPC to MfEfDecoders::decodeUmpc,

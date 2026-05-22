@@ -10,18 +10,35 @@ package com.github.cheeriotb.uiccbrowser.element.ef
 
 import android.content.res.Resources
 import com.github.cheeriotb.uiccbrowser.R
+import com.github.cheeriotb.uiccbrowser.element.BerTlvElement
 import com.github.cheeriotb.uiccbrowser.element.ConstructedElement
 import com.github.cheeriotb.uiccbrowser.element.Element
 import com.github.cheeriotb.uiccbrowser.element.PrimitiveElement
+import com.github.cheeriotb.uiccbrowser.util.BerTlv
+import com.github.cheeriotb.uiccbrowser.util.Tlv
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import java.util.Locale
 
 // ETSI TS 102 221, clauses 13.2, 13.3, and 13.6.
+// ISO/IEC 7816-4:2005, clause 8.2.1.1 for EF ATR.
 class MfEfDecoders {
     companion object {
         private const val ICCID_LENGTH = 10
         private const val PL_ENTRY_LENGTH = 2
         private const val UMPC_LENGTH = 5
+
+        /**
+         * Decodes EF ATR into interindustry BER-TLV data objects.
+         */
+        fun decodeAtr(resources: Resources, bytes: ByteArray): Element? {
+            if (BerTlv.listFrom(bytes).isEmpty()) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_atr_label)
+                    .decoder(::atrDecoder)
+                    .dataComposer(::tlvDataComposer)
+                    .build(resources)
+        }
 
         /**
          * Decodes EF PL into ordered two-byte ISO 639 preferred language entries.
@@ -57,6 +74,51 @@ class MfEfDecoders {
                     .labelId(R.string.ef_iccid_label)
                     .decoder(::iccidDecoder)
                     .build(resources)
+        }
+
+        private fun atrDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return atrTlvDecoder(resources, BerTlv.listFrom(rawData), parent)
+        }
+
+        private fun atrTlvDecoder(
+            resources: Resources,
+            tlvs: List<Tlv>,
+            parent: Element?
+        ): List<Element> {
+            return tlvs.map { tlv ->
+                when (tlv.tag) {
+                    AppTemplate.TAG_APPLICATION_TEMPLATE -> BerTlvElement.Builder(tlv)
+                            .labelId(R.string.app_template_label)
+                            .decoder(::atrTlvDecoder)
+                    AppTemplate.TAG_APPLICATION_ID -> BerTlvElement.Builder(tlv)
+                            .labelId(R.string.app_id_label)
+                    AppTemplate.TAG_APPLICATION_LABEL -> BerTlvElement.Builder(tlv)
+                            .labelId(R.string.app_label_label)
+                            .interpreter(PrimitiveElement::defaultStringInterpreter)
+                    AppTemplate.TAG_PATH -> BerTlvElement.Builder(tlv)
+                            .labelId(R.string.app_path_label)
+                    AppTemplate.TAG_COMMAND_APDU -> BerTlvElement.Builder(tlv)
+                            .labelId(R.string.command_apdu_label)
+                    AppTemplate.TAG_DISCRETIONARY_DATA -> BerTlvElement.Builder(tlv)
+                            .labelId(R.string.discretionary_data_label)
+                    AppTemplate.TAG_DISCRETIONARY_TEMPLATE -> BerTlvElement.Builder(tlv)
+                            .labelId(R.string.discretionary_template_label)
+                            .decoder(::atrTlvDecoder)
+                    AppTemplate.TAG_URL -> BerTlvElement.Builder(tlv)
+                            .labelId(R.string.url_label)
+                    else -> BerTlvElement.Builder(tlv)
+                }.parent(parent).build(resources)
+            }
+        }
+
+        private fun tlvDataComposer(elements: List<Element>): ByteArray {
+            var array = byteArrayOf()
+            elements.forEach { array += it.byteArray }
+            return array
         }
 
         private fun plDecoder(

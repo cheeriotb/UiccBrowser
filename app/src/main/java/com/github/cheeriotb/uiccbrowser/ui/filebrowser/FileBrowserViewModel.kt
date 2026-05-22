@@ -46,21 +46,35 @@ class FileBrowserViewModel(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     init {
-        refresh()
+        load()
     }
 
     /**
-     * Reloads the current directory and updates the visible file list.
+     * Re-selects files in the current directory and updates the visible file list.
      */
     fun refresh() {
+        load(forceRefresh = true)
+    }
+
+    private fun load(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 val entries = withContext(Dispatchers.IO) {
-                    if (aid != FileId.AID_NONE && parentPath == FileId.PATH_ADF) {
+                    if (forceRefresh) {
+                        currentDirectoryFcp.prepareForDirectory(
+                            slotId,
+                            aid,
+                            parentPath,
+                            forceRefresh = true
+                        )
+                        cacheFiles.refreshDirectory(rawResId, slotId, aid, parentPath)
+                    } else if (aid != FileId.AID_NONE && parentPath == FileId.PATH_ADF) {
                         cacheFiles.execute(rawResId, slotId, aid)
+                        currentDirectoryFcp.prepareForDirectory(slotId, aid, parentPath)
+                    } else {
+                        currentDirectoryFcp.prepareForDirectory(slotId, aid, parentPath)
                     }
-                    currentDirectoryFcp.prepareForDirectory(slotId, aid, parentPath)
                     getFileList.execute(rawResId, slotId, aid, parentPath)
                 }
                 _entries.value = entries

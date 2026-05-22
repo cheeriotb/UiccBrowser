@@ -185,6 +185,13 @@ class CardRepository private constructor (
         }
     }
 
+    /** Deletes cached SELECT responses for files directly under the given directory. */
+    suspend fun deleteFileControlParametersInDirectory(aid: String, path: String): Boolean {
+        if (!isAccessible) return false
+        cacheIo.deleteAllInDirectory(_iccId!!, aid, path)
+        return true
+    }
+
     /**
      * Selects an MF, DF, or ADF by MF-relative path and returns its FCP template.
      *

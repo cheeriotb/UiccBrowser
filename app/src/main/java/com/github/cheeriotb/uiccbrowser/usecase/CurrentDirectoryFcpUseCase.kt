@@ -24,11 +24,20 @@ import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
  */
 class CurrentDirectoryFcpUseCase(private val context: Context) {
 
-    /** Selects the directory identified by [aid] and [path] when it is not already cached. */
-    suspend fun prepareForDirectory(slotId: Int, aid: String, path: String) {
+    /**
+     * Selects the directory identified by [aid] and [path].
+     *
+     * When [forceRefresh] is false, a matching in-memory FCP is reused.
+     */
+    suspend fun prepareForDirectory(
+        slotId: Int,
+        aid: String,
+        path: String,
+        forceRefresh: Boolean = false
+    ) {
         val key = DirectoryKey(aid, path)
         synchronized(lock) {
-            if (cachedKey == key && cachedResult != null) return
+            if (!forceRefresh && cachedKey == key && cachedResult != null) return
             cachedKey = null
             cachedResult = null
         }

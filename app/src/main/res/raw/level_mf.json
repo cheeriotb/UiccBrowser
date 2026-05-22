@@ -9,6 +9,11 @@
             "id": "2F00"
         },
         {
+            "name": "ATR",
+            "description": "Answer To Reset",
+            "id": "2F01"
+        },
+        {
             "name": "PL",
             "description": "Preferred Language",
             "id": "2F05"

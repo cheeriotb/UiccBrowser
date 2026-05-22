@@ -41,6 +41,10 @@ class SelectResponseDataSourceImpl private constructor(
         return dao.getAll(iccId, aid, path)
     }
 
+    override suspend fun deleteAllInDirectory(iccId: String, aid: String, path: String) {
+        dao.deleteAllInDirectory(iccId, aid, path)
+    }
+
     override suspend fun delete(iccId: String) {
         dao.delete(iccId)
     }

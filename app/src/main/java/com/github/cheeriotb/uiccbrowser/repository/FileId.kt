@@ -22,6 +22,7 @@ data class FileId(
         const val MF = ""
 
         const val EF_DIR = "2F00"
+        const val EF_ATR = "2F01"
         const val EF_PL = "2F05"
         const val EF_ARR = "2F06"
         const val EF_UMPC = "2F08"
