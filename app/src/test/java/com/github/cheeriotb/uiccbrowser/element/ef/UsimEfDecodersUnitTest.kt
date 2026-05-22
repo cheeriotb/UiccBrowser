@@ -43,6 +43,23 @@ class UsimEfDecodersUnitTest {
                 "FFFFFF0000" +
                 "FFFFFF0000" +
                 "FFFFFF0000"
+        private const val DIALING_RECORD =
+                "54657374FFFFFFFFFFFF" +
+                "05" +
+                "81" +
+                "2143FFFFFFFFFFFFFFFF" +
+                "02" +
+                "03"
+        private const val SMSP_RECORD =
+                "54657374FFFFFFFFFFFF" +
+                "FF" +
+                "FFFFFFFFFFFFFFFFFFFFFFFF" +
+                "FFFFFFFFFFFFFFFFFFFFFFFF" +
+                "00" +
+                "00" +
+                "AA"
+        private val smsRecord = "01" + "00".repeat(175)
+        private val smsrRecord = "02" + "00".repeat(29)
     }
 
     @Before
@@ -344,12 +361,179 @@ class UsimEfDecodersUnitTest {
     }
 
     @Test
+    fun decodeCbmid_validData_returnsMessageIdentifiers() {
+        val element = UsimEfDecoders.decodeCbmid(resources, hexStringToByteArray("1000FFFF"))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_cbmid_label))
+        assertThat(element.subElements).hasSize(2)
+        assertThat(element.subElements[0].toString()).isEqualTo("1000 (4096)")
+        assertThat(element.subElements[1].toString()).isEqualTo("FFFF (Unused)")
+    }
+
+    @Test
+    fun decodeEcc_validData_returnsEmergencyCallCodeAlphaIdentifierAndServiceCategory() {
+        val element = UsimEfDecoders.decodeEcc(
+                resources,
+                hexStringToByteArray("112FFF54657374FFFF01")
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_ecc_label))
+        assertThat(element.subElements).hasSize(3)
+        assertThat(element.subElements[0].toString()).isEqualTo("112FFF (112)")
+        assertThat(element.subElements[1].label).isEqualTo("Alpha Identifier")
+        assertThat(element.subElements[1].toString()).isEqualTo("54657374FFFF (Test)")
+        assertThat(element.subElements[2].label).isEqualTo("Service Category")
+    }
+
+    @Test
+    fun decodeEcc_emptyAlternativeRepresentations_omitParentheses() {
+        val element = UsimEfDecoders.decodeEcc(
+                resources,
+                hexStringToByteArray("FFFFFFFFFFFFFFFFFFFF01")
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.subElements[0].toString()).isEqualTo("FFFFFF")
+        assertThat(element.subElements[1].toString()).isEqualTo("FFFFFFFFFFFFFF")
+    }
+
+    @Test
+    fun decodeCbmir_validData_returnsIdentifierRanges() {
+        val element = UsimEfDecoders.decodeCbmir(resources, hexStringToByteArray("100010FF"))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_cbmir_label))
+        assertThat(element.subElements).hasSize(1)
+        assertThat(element.subElements[0].label).isEqualTo("CB Message Identifier range 1")
+        assertThat(element.subElements[0].subElements[0].toString()).isEqualTo("1000 (4096)")
+        assertThat(element.subElements[0].subElements[1].toString()).isEqualTo("10FF (4351)")
+    }
+
+    @Test
+    fun decodePsloci_validData_returnsPacketSwitchedLocation() {
+        val element = UsimEfDecoders.decodePsloci(
+                resources,
+                hexStringToByteArray("0102030405060713006200010201")
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_psloci_label))
+        assertThat(element.subElements.map { it.label }).containsExactly(
+                resources.getString(R.string.p_tmsi_label),
+                resources.getString(R.string.p_tmsi_signature_value_label),
+                resources.getString(R.string.routing_area_information_label),
+                resources.getString(R.string.routing_area_update_status_label)
+        ).inOrder()
+        assertThat(element.subElements[3].toString()).isEqualTo("01 (Not updated)")
+    }
+
+    @Test
+    fun decodeDiallingNumberFiles_validData_returnCommonFields() {
+        val fdn = UsimEfDecoders.decodeFdn(resources, hexStringToByteArray(DIALING_RECORD))
+        val msisdn = UsimEfDecoders.decodeMsisdn(resources, hexStringToByteArray(DIALING_RECORD))
+        val sdn = UsimEfDecoders.decodeSdn(resources, hexStringToByteArray(DIALING_RECORD))
+
+        listOf(fdn, msisdn, sdn).forEach { element ->
+            assertThat(element).isNotNull()
+            assertThat(element!!.subElements).hasSize(6)
+            assertThat(element.subElements[0].toString()).isEqualTo("54657374FFFFFFFFFFFF (Test)")
+            assertThat(element.subElements[3].toString()).isEqualTo("2143FFFFFFFFFFFFFFFF (1234)")
+        }
+        assertThat(fdn!!.subElements[5].label).isEqualTo("Extension2 Record Identifier")
+        assertThat(msisdn!!.subElements[5].label).isEqualTo("Identifier")
+        assertThat(sdn!!.subElements[5].label).isEqualTo("Extension3 Record Identifier")
+    }
+
+    @Test
+    fun decodeSms_validData_returnsStatusAndTpdu() {
+        val element = UsimEfDecoders.decodeSms(resources, hexStringToByteArray(smsRecord))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_sms_label))
+        assertThat(element.subElements).hasSize(2)
+        assertThat(element.subElements[0].toString()).isEqualTo("01 (Received message, read)")
+        assertThat(element.subElements[1].data).hasLength(175)
+    }
+
+    @Test
+    fun decodeSmsp_validData_returnsSmsParameters() {
+        val element = UsimEfDecoders.decodeSmsp(resources, hexStringToByteArray(SMSP_RECORD))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_smsp_label))
+        assertThat(element.subElements).hasSize(7)
+        assertThat(element.subElements[0].toString()).isEqualTo("54657374FFFFFFFFFFFF (Test)")
+        assertThat(element.subElements[6].label).isEqualTo("Validity period")
+    }
+
+    @Test
+    fun decodeSmss_validData_returnsMessageReferenceAndMemoryFlag() {
+        val element = UsimEfDecoders.decodeSmss(resources, hexStringToByteArray("0501"))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_smss_label))
+        assertThat(element.subElements[0].toString()).isEqualTo("05 (5)")
+        assertThat(element.subElements[1].toString()).isEqualTo("01 (Memory capacity exceeded)")
+    }
+
+    @Test
+    fun decodeExtensionRecords_validData_returnRecordFields() {
+        val bytes = hexStringToByteArray("020102030405060708090A0B0C")
+
+        listOf(
+                UsimEfDecoders.decodeExt2(resources, bytes),
+                UsimEfDecoders.decodeExt3(resources, bytes),
+                UsimEfDecoders.decodeExt5(resources, bytes)
+        ).forEach { element ->
+            assertThat(element).isNotNull()
+            assertThat(element!!.subElements.map { it.label }).containsExactly(
+                    resources.getString(R.string.record_type_label),
+                    resources.getString(R.string.extension_data_label),
+                    resources.getString(R.string.identifier_label)
+            ).inOrder()
+        }
+    }
+
+    @Test
+    fun decodeSmsr_validData_returnsRecordIdentifierAndStatusReport() {
+        val element = UsimEfDecoders.decodeSmsr(resources, hexStringToByteArray(smsrRecord))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_smsr_label))
+        assertThat(element.subElements[0].toString()).isEqualTo("02 (Record #2)")
+        assertThat(element.subElements[1].data).hasLength(29)
+    }
+
+    @Test
+    fun decodeCcp2_singleInformationElement_wrapsPrimitiveInConstructedElement() {
+        val element = UsimEfDecoders.decodeCcp2(resources, hexStringToByteArray("00".repeat(15)))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.primitive).isFalse()
+        assertThat(element.label).isEqualTo(resources.getString(R.string.ef_ccp2_label))
+        assertThat(element.subElements).hasSize(1)
+        assertThat(element.subElements[0].label)
+                .isEqualTo(
+                        resources.getString(R.string.bearer_capability_information_element_label))
+    }
+
+    @Test
     fun decodeFixedLengthFiles_invalidSize_returnsNull() {
         assertThat(UsimEfDecoders.decodeSpn(resources, hexStringToByteArray("00"))).isNull()
         assertThat(UsimEfDecoders.decodePuct(resources, hexStringToByteArray("555344"))).isNull()
         assertThat(UsimEfDecoders.decodeAcc(resources, hexStringToByteArray("80"))).isNull()
         assertThat(UsimEfDecoders.decodeLoci(resources, hexStringToByteArray("0102"))).isNull()
         assertThat(UsimEfDecoders.decodeAd(resources, hexStringToByteArray("0102"))).isNull()
+        assertThat(UsimEfDecoders.decodeEcc(resources, hexStringToByteArray("112FFF"))).isNull()
+        assertThat(UsimEfDecoders.decodeCbmid(resources, hexStringToByteArray("10"))).isNull()
+        assertThat(UsimEfDecoders.decodeCbmir(resources, hexStringToByteArray("1000"))).isNull()
+        assertThat(UsimEfDecoders.decodePsloci(resources, hexStringToByteArray("0102"))).isNull()
+        assertThat(UsimEfDecoders.decodeSms(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeSmss(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeExt2(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeCcp2(resources, hexStringToByteArray("00"))).isNull()
     }
 
     @Test
@@ -362,6 +546,21 @@ class UsimEfDecodersUnitTest {
                 FileId.EF_USIM_HPPLMN,
                 FileId.EF_USIM_ACM_MAX,
                 FileId.EF_USIM_UST,
+                FileId.EF_USIM_CBMID,
+                FileId.EF_USIM_ECC,
+                FileId.EF_USIM_CBMIR,
+                FileId.EF_USIM_PSLOCI,
+                FileId.EF_USIM_FDN,
+                FileId.EF_USIM_SMS,
+                FileId.EF_USIM_MSISDN,
+                FileId.EF_USIM_SMSP,
+                FileId.EF_USIM_SMSS,
+                FileId.EF_USIM_SDN,
+                FileId.EF_USIM_EXT2,
+                FileId.EF_USIM_EXT3,
+                FileId.EF_USIM_SMSR,
+                FileId.EF_USIM_EXT5,
+                FileId.EF_USIM_CCP2,
                 FileId.EF_USIM_GID1,
                 FileId.EF_USIM_GID2,
                 FileId.EF_USIM_SPN,
@@ -377,6 +576,22 @@ class UsimEfDecodersUnitTest {
         registered.forEach { fileId ->
             assertThat(EfDecoderRegistry.has(AID_USIM, FileId.PATH_ADF + fileId)).isTrue()
             assertThat(EfDecoderRegistry.find(AID_USIM, FileId.PATH_ADF + fileId)).isNotNull()
+        }
+    }
+
+    @Test
+    fun efDecoderRegistry_cyclicUsimEfDecodersAreNotRegistered() {
+        val notRegistered = listOf(
+                FileId.EF_USIM_ACM,
+                FileId.EF_USIM_ICI,
+                FileId.EF_USIM_OCI,
+                FileId.EF_USIM_ICT,
+                FileId.EF_USIM_OCT
+        )
+
+        notRegistered.forEach { fileId ->
+            assertThat(EfDecoderRegistry.has(AID_USIM, FileId.PATH_ADF + fileId)).isFalse()
+            assertThat(EfDecoderRegistry.find(AID_USIM, FileId.PATH_ADF + fileId)).isNull()
         }
     }
 }

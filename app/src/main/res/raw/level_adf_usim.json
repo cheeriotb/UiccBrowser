@@ -40,6 +40,21 @@
             "id": "6F38"
         },
         {
+            "name": "ACM",
+            "description": "Accumulated Call Meter",
+            "id": "6F39"
+        },
+        {
+            "name": "FDN",
+            "description": "Fixed Dialling Numbers",
+            "id": "6F3B"
+        },
+        {
+            "name": "SMS",
+            "description": "Short messages",
+            "id": "6F3C"
+        },
+        {
             "name": "GID1",
             "description": "Group Identifier Level 1",
             "id": "6F3E"
@@ -48,6 +63,11 @@
             "name": "GID2",
             "description": "Group Identifier Level 2",
             "id": "6F3F"
+        },
+        {
+            "name": "MSISDN",
+            "description": "MSISDN",
+            "id": "6F40"
         },
         {
             "name": "SPN",
@@ -60,14 +80,69 @@
             "id": "6F41"
         },
         {
+            "name": "SMSP",
+            "description": "Short message service parameters",
+            "id": "6F42"
+        },
+        {
+            "name": "SMSS",
+            "description": "SMS status",
+            "id": "6F43"
+        },
+        {
             "name": "CBMI",
             "description": "Cell Broadcast Message identifier selection",
             "id": "6F45"
         },
         {
+            "name": "SMSR",
+            "description": "Short message status reports",
+            "id": "6F47"
+        },
+        {
+            "name": "CBMID",
+            "description": "Cell Broadcast Message Identifier for Data Download",
+            "id": "6F48"
+        },
+        {
+            "name": "SDN",
+            "description": "Service Dialling Numbers",
+            "id": "6F49"
+        },
+        {
+            "name": "EXT2",
+            "description": "Extension2",
+            "id": "6F4B"
+        },
+        {
+            "name": "EXT3",
+            "description": "Extension3",
+            "id": "6F4C"
+        },
+        {
+            "name": "EXT5",
+            "description": "Extension5",
+            "id": "6F4E"
+        },
+        {
+            "name": "CCP2",
+            "description": "Capability Configuration Parameters 2",
+            "id": "6F4F"
+        },
+        {
+            "name": "CBMIR",
+            "description": "Cell Broadcast Message Identifier Range selection",
+            "id": "6F50"
+        },
+        {
             "name": "PLMNwAcT",
             "description": "User controlled PLMN selector with Access Technology",
             "id": "6F60"
+        },
+        {
+            "name": "PSLOCI",
+            "description": "Packet Switched location information",
+            "id": "6F73"
         },
         {
             "name": "ACC",
@@ -85,9 +160,34 @@
             "id": "6F7E"
         },
         {
+            "name": "ICI",
+            "description": "Incoming Call Information",
+            "id": "6F80"
+        },
+        {
+            "name": "OCI",
+            "description": "Outgoing Call Information",
+            "id": "6F81"
+        },
+        {
+            "name": "ICT",
+            "description": "Incoming Call Timer",
+            "id": "6F82"
+        },
+        {
+            "name": "OCT",
+            "description": "Outgoing Call Timer",
+            "id": "6F83"
+        },
+        {
             "name": "AD",
             "description": "Administrative Data",
             "id": "6FAD"
+        },
+        {
+            "name": "ECC",
+            "description": "Emergency Call Codes",
+            "id": "6FB7"
         },
         {
             "name": "ARR",
