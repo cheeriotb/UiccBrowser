@@ -670,6 +670,149 @@ class UsimEfDecodersUnitTest {
     }
 
     @Test
+    fun decodeTask045Nasconfig_validData_labelsKnownTags() {
+        val element = UsimEfDecoders.decodeNasconfig(
+                resources,
+                hexStringToByteArray("8001018101008201019B0101")
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_nasconfig_label))
+        assertThat(element.subElements.map { it.label }).containsExactly(
+                "NAS signalling priority configuration '80'",
+                "NMO I Behaviour '81'",
+                "Attach with IMSI '82'",
+                "MUSIM paging restriction support '9B'"
+        ).inOrder()
+        assertThat(element.subElements[0].toString()).isEqualTo("01 (Enabled)")
+        assertThat(element.subElements[1].toString()).isEqualTo("00 (Disabled)")
+    }
+
+    @Test
+    fun decodeTask045UriAndIariFiles_validData_returnsDecodedStrings() {
+        val uicciari = UsimEfDecoders.decodeUicciari(
+                resources,
+                hexStringToByteArray("800D75726E3A746573743A69617269")
+        )
+        val fdnuri = UsimEfDecoders.decodeFdnuri(
+                resources,
+                hexStringToByteArray("800E7369703A6131406578616D706C65" + "54657374FFFF")
+        )
+
+        assertThat(uicciari).isNotNull()
+        assertThat(uicciari!!.subElements[0].label).isEqualTo("UICC IARI '80'")
+        assertThat(uicciari.subElements[0].toString()).contains("urn:test:iari")
+        assertThat(fdnuri).isNotNull()
+        assertThat(fdnuri!!.subElements[0].subElements[0].label).isEqualTo("URI '80'")
+        assertThat(fdnuri.subElements[1].toString()).isEqualTo("54657374FFFF (Test)")
+    }
+
+    @Test
+    fun decodeTask045StructuredFiles_validData_returnsFields() {
+        val pws = UsimEfDecoders.decodePws(resources, hexStringToByteArray("03FFFF"))
+        val ial = UsimEfDecoders.decodeIal(resources, hexStringToByteArray("3510203040506070"))
+        val epdgId = UsimEfDecoders.decodeEpdgid(
+                resources,
+                hexStringToByteArray("800D00657064672E6578616D706C65")
+        )
+        val epdgSelection = UsimEfDecoders.decodeEpdgselection(
+                resources,
+                hexStringToByteArray("44F00100010102")
+        )
+        val tvconfig = UsimEfDecoders.decodeTvconfig(
+                resources,
+                hexStringToByteArray("44F001A0090102030405066FAD01A1040000FC18")
+        )
+        val psDataOff = UsimEfDecoders.decodeThreeGppPsDataOff(
+                resources,
+                hexStringToByteArray("03010000")
+        )
+        val serviceList = UsimEfDecoders.decodeThreeGppPsDataOffServiceList(
+                resources,
+                hexStringToByteArray("800A75726E3A696373693A31")
+        )
+        val earfcn = UsimEfDecoders.decodeEarfcnList(
+                resources,
+                hexStringToByteArray(
+                        "A01A" +
+                        "80040000FC18" +
+                        "8112000001000002000003000004000005000006"
+                )
+        )
+        val eaka = UsimEfDecoders.decodeEaka(resources, hexStringToByteArray("01FFFF"))
+        val ocst = UsimEfDecoders.decodeOcst(resources, hexStringToByteArray("018003020169"))
+        val gba = UsimEfDecoders.decodeAcGbauapi(
+                resources,
+                hexStringToByteArray("800F05A000000087086E61662E74657374")
+        )
+        val imsdci = UsimEfDecoders.decodeImsdci(resources, hexStringToByteArray("02"))
+        val lsp = UsimEfDecoders.decodeOplmnWActLsp(
+                resources,
+                hexStringToByteArray("0144F001020101")
+        )
+
+        assertThat(pws).isNotNull()
+        assertThat(pws!!.subElements[0].label).isEqualTo("PWS configuration")
+        assertThat(pws.subElements[0].toString()).contains("HPLMN")
+        assertThat(ial).isNotNull()
+        assertThat(ial!!.subElements[0].label).isEqualTo("IMEI(SV) 1")
+        assertThat(epdgId).isNotNull()
+        assertThat(epdgId!!.subElements[0].label).isEqualTo("ePDG identifier '80'")
+        assertThat(epdgId.subElements[0].subElements[0].toString()).isEqualTo("00 (FQDN)")
+        assertThat(epdgId.subElements[0].subElements[1].toString())
+                .isEqualTo("657064672E6578616D706C65 (epdg.example)")
+        assertThat(epdgSelection).isNotNull()
+        assertThat(epdgSelection!!.subElements[0].subElements[0].toString())
+                .isEqualTo("44F001 (MCC 440, MNC 10)")
+        assertThat(epdgSelection.subElements[0].subElements[2].toString())
+                .isEqualTo("01 (Location based FQDN)")
+        assertThat(tvconfig).isNotNull()
+        assertThat(tvconfig!!.subElements[0].toString()).isEqualTo("44F001 (MCC 440, MNC 10)")
+        assertThat(tvconfig.subElements[1].label).isEqualTo("TMGI list 'A0'")
+        assertThat(tvconfig.subElements[1].subElements[0].subElements[1].toString())
+                .isEqualTo("6FAD (Record #111)")
+        assertThat(tvconfig.subElements[2].label).isEqualTo("TV EARFCN list 'A1'")
+        assertThat(tvconfig.subElements[2].subElements[0].toString()).isEqualTo("0000FC18 (64536)")
+        assertThat(psDataOff).isNotNull()
+        assertThat(psDataOff!!.subElements[0].toString()).contains("USSI")
+        assertThat(psDataOff.subElements[0].toString()).contains("MMTEL voice")
+        assertThat(psDataOff.subElements[1].toString()).contains("USSI")
+        assertThat(serviceList).isNotNull()
+        assertThat(serviceList!!.subElements[0].label).isEqualTo("3GPP PS Data Off service 1 '80'")
+        assertThat(serviceList.subElements[0].toString()).contains("urn:icsi:1")
+        assertThat(earfcn).isNotNull()
+        assertThat(earfcn!!.subElements[0].label).isEqualTo("EARFCN list entry 1 'A0'")
+        assertThat(earfcn.subElements[0].subElements[0].toString()).isEqualTo("0000FC18 (64536)")
+        assertThat(earfcn.subElements[0].subElements[1].label)
+                .isEqualTo("Geographical Area - Polygon '81'")
+        assertThat(earfcn.subElements[0].subElements[1].subElements[0].subElements[0].label)
+                .isEqualTo("Latitude")
+        assertThat(eaka).isNotNull()
+        assertThat(eaka!!.subElements[0].toString()).contains("Enhanced SQN calculation supported")
+        assertThat(eaka.subElements[1].label).isEqualTo(resources.getString(R.string.rfu_label))
+        assertThat(ocst).isNotNull()
+        assertThat(ocst!!.subElements[0].toString()).isEqualTo("01 (Enabled)")
+        assertThat(ocst.subElements[1].label)
+                .isEqualTo("Operator controlled signal threshold parameters '80'")
+        assertThat(ocst.subElements[1].subElements[0].subElements[0].toString())
+                .isEqualTo("0201 (E-UTRAN, GSM)")
+        assertThat(ocst.subElements[1].subElements[0].subElements[1].toString())
+                .isEqualTo("69 (-105 dBm)")
+        assertThat(gba).isNotNull()
+        assertThat(gba!!.subElements[0].label).isEqualTo("Applet NAF Access Control '80'")
+        assertThat(gba.subElements[0].subElements[1].toString()).isEqualTo("A000000087")
+        assertThat(gba.subElements[0].subElements[3].toString())
+                .isEqualTo("6E61662E74657374 (naf.test)")
+        assertThat(imsdci).isNotNull()
+        assertThat(imsdci!!.subElements[0].toString()).contains("simultaneous setup")
+        assertThat(lsp).isNotNull()
+        assertThat(lsp!!.subElements[0].label).isEqualTo("Priority")
+        assertThat(lsp.subElements[1].subElements[0].toString())
+                .isEqualTo("44F001 (MCC 440, MNC 10)")
+        assertThat(lsp.subElements[1].subElements[2].label).isEqualTo("SelectedSATFeature")
+    }
+
+    @Test
     fun decodeFixedLengthFiles_invalidSize_returnsNull() {
         assertThat(UsimEfDecoders.decodeSpn(resources, hexStringToByteArray("00"))).isNull()
         assertThat(UsimEfDecoders.decodePuct(resources, hexStringToByteArray("555344"))).isNull()
@@ -779,7 +922,30 @@ class UsimEfDecodersUnitTest {
                 FileId.EF_USIM_NCP_IP,
                 FileId.EF_USIM_EPSLOCI,
                 FileId.EF_USIM_EPSNSC,
-                FileId.EF_USIM_UFC
+                FileId.EF_USIM_UFC,
+                FileId.EF_USIM_UICCIARI,
+                FileId.EF_USIM_NASCONFIG,
+                FileId.EF_USIM_PWS,
+                FileId.EF_USIM_FDNURI,
+                FileId.EF_USIM_BDNURI,
+                FileId.EF_USIM_SDNURI,
+                FileId.EF_USIM_IAL,
+                FileId.EF_USIM_IPD,
+                FileId.EF_USIM_EPDGID,
+                FileId.EF_USIM_EPDGSELECTION,
+                FileId.EF_USIM_EPDGIDEM,
+                FileId.EF_USIM_EPDGSELECTIONEM,
+                FileId.EF_USIM_FROMPREFERRED,
+                FileId.EF_USIM_3GPPPSDATAOFF,
+                FileId.EF_USIM_3GPPPSDATAOFF_SERVICE_LIST,
+                FileId.EF_USIM_TVCONFIG,
+                FileId.EF_USIM_EARFCN_LIST,
+                FileId.EF_USIM_EAKA,
+                FileId.EF_USIM_OCST,
+                FileId.EF_USIM_AC_GBAUAPI,
+                FileId.EF_USIM_IMSDCI,
+                FileId.EF_USIM_OPLMN_W_ACT_LSP,
+                FileId.EF_USIM_LSPPLMN
         )
 
         registered.forEach { fileId ->
@@ -795,7 +961,11 @@ class UsimEfDecodersUnitTest {
                 FileId.EF_USIM_ICI,
                 FileId.EF_USIM_OCI,
                 FileId.EF_USIM_ICT,
-                FileId.EF_USIM_OCT
+                FileId.EF_USIM_OCT,
+                FileId.EF_USIM_IPS,
+                FileId.EF_USIM_IMS_CONFIG_DATA,
+                FileId.EF_USIM_XCAP_CONFIG_DATA,
+                FileId.EF_USIM_MUDMID_CONFIG_DATA
         )
 
         notRegistered.forEach { fileId ->

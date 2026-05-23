@@ -78,6 +78,19 @@ class UsimEfDecoders {
         private const val ONE_BYTE_FILE_LENGTH = 1
         private const val EPSLOCI_LENGTH = 18
         private const val EPSNSC_MIN_LENGTH = 54
+        private const val PWS_MIN_LENGTH = 1
+        private const val IAL_ENTRY_LENGTH = 8
+        private const val IPD_LENGTH = 8
+        private const val EPDG_SELECTION_ENTRY_LENGTH = 7
+        private const val THREE_GPP_PS_DATA_OFF_LENGTH = 4
+        private const val TVCONFIG_PLMN_LENGTH = 3
+        private const val TVCONFIG_TMGI_ENTRY_LENGTH = 9
+        private const val TVCONFIG_EARFCN_ENTRY_LENGTH = 4
+        private const val EARFCN_LENGTH = 4
+        private const val GEOGRAPHICAL_POINT_LENGTH = 6
+        private const val OCST_ENTRY_LENGTH = 3
+        private const val OPLMN_W_ACT_LSP_MIN_LENGTH = 7
+        private const val OPLMN_W_ACT_LSP_ENTRY_LENGTH = 6
         private const val TAG_PNN_FULL_NAME = 0x43
         private const val TAG_PNN_SHORT_NAME = 0x45
         private const val TAG_PNN_ADDITIONAL_INFORMATION = 0x80
@@ -116,6 +129,17 @@ class UsimEfDecoders {
         private const val TAG_UPLINK_NAS_COUNT = 0x82
         private const val TAG_DOWNLINK_NAS_COUNT = 0x83
         private const val TAG_NAS_SECURITY_ALGORITHMS = 0x84
+        private const val TAG_NAS_SIGNALLING_PRIORITY = 0x80
+        private const val TAG_URI = 0x80
+        private const val TAG_ICSI = 0x80
+        private const val TAG_EPDG_IDENTIFIER = 0x80
+        private const val TAG_TVCONFIG_TMGI_LIST = 0xA0
+        private const val TAG_TVCONFIG_EARFCN_LIST = 0xA1
+        private const val TAG_EARFCN_LIST = 0xA0
+        private const val TAG_EARFCN = 0x80
+        private const val TAG_GEOGRAPHICAL_AREA_POLYGON = 0x81
+        private const val TAG_OCST_PARAMETERS = 0x80
+        private const val TAG_APPLET_NAF_ACCESS_CONTROL = 0x80
 
         private val netparCellInformationTags = setOf(
                 TAG_NETPAR_GSM_CELL_INFORMATION,
@@ -986,6 +1010,211 @@ class UsimEfDecoders {
                         R.string.facility_list_label
                 )
 
+        /**
+         * Decodes EF NASCONFIG into NAS signalling priority configuration.
+         */
+        fun decodeNasconfig(resources: Resources, bytes: ByteArray): Element? =
+                decodeTlvFile(resources, bytes, R.string.ef_nasconfig_label, 1,
+                        ::nasconfigDecoder)
+
+        /**
+         * Decodes EF UICCIARI into the IARI TLV defined by ETSI TS 131 103.
+         */
+        fun decodeUicciari(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleStringTlvFile(resources, bytes, R.string.ef_uicciari_label,
+                        R.string.uicc_iari_label)
+
+        /**
+         * Decodes EF PWS into public warning system configuration.
+         */
+        fun decodePws(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < PWS_MIN_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_pws_label)
+                    .decoder(::pwsDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF FDNURI into URI and alpha identifier fields.
+         */
+        fun decodeFdnuri(resources: Resources, bytes: ByteArray): Element? =
+                decodeUriRecordFile(resources, bytes, R.string.ef_fdnuri_label)
+
+        /**
+         * Decodes EF BDNURI into URI and alpha identifier fields.
+         */
+        fun decodeBdnuri(resources: Resources, bytes: ByteArray): Element? =
+                decodeUriRecordFile(resources, bytes, R.string.ef_bdnuri_label)
+
+        /**
+         * Decodes EF SDNURI into URI and alpha identifier fields.
+         */
+        fun decodeSdnuri(resources: Resources, bytes: ByteArray): Element? =
+                decodeUriRecordFile(resources, bytes, R.string.ef_sdnuri_label)
+
+        /**
+         * Decodes EF IAL into IMEI(SV) entries.
+         */
+        fun decodeIal(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty() || bytes.size % IAL_ENTRY_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_ial_label)
+                    .decoder(::ialDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF IPD into the paired device IMEI(SV).
+         */
+        fun decodeIpd(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_ipd_label,
+                        R.string.pairing_device_imeisv_label,
+                        IPD_LENGTH,
+                        ::swappedBcdStringInterpreter
+                )
+
+        /**
+         * Decodes EF ePDGId into ePDG identifier TLVs.
+         */
+        fun decodeEpdgid(resources: Resources, bytes: ByteArray): Element? =
+                decodeEpdgIdentifierFile(resources, bytes, R.string.ef_epdgid_label)
+
+        /**
+         * Decodes EF ePDGSelection into PLMN and ePDG identifier configuration entries.
+         */
+        fun decodeEpdgselection(resources: Resources, bytes: ByteArray): Element? =
+                decodeEpdgSelectionFile(resources, bytes, R.string.ef_epdgselection_label)
+
+        /**
+         * Decodes EF ePDGIdEm into emergency ePDG identifier TLVs.
+         */
+        fun decodeEpdgidem(resources: Resources, bytes: ByteArray): Element? =
+                decodeEpdgIdentifierFile(resources, bytes, R.string.ef_epdgidem_label)
+
+        /**
+         * Decodes EF ePDGSelectionEm into emergency ePDG selection entries.
+         */
+        fun decodeEpdgselectionem(resources: Resources, bytes: ByteArray): Element? =
+                decodeEpdgSelectionFile(resources, bytes, R.string.ef_epdgselectionem_label)
+
+        /**
+         * Decodes EF FromPreferred into the IMS From header preference.
+         */
+        fun decodeFrompreferred(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_frompreferred_label,
+                        R.string.from_preferred_label,
+                        ONE_BYTE_FILE_LENGTH,
+                        ::activatedStateInterpreter
+                )
+
+        fun decodeTvconfig(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < TVCONFIG_PLMN_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_tvconfig_label)
+                    .decoder(::tvconfigDecoder)
+                    .build(resources)
+        }
+
+        fun decodeThreeGppPsDataOff(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size != THREE_GPP_PS_DATA_OFF_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_3gpppsdataoff_label)
+                    .decoder(::threeGppPsDataOffDecoder)
+                    .build(resources)
+        }
+
+        fun decodeThreeGppPsDataOffServiceList(
+            resources: Resources,
+            bytes: ByteArray
+        ): Element? {
+            if (bytes.isEmpty()) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_3gpppsdataoff_service_list_label)
+                    .decoder(::threeGppPsDataOffServiceListDecoder)
+                    .build(resources)
+        }
+
+        fun decodeEarfcnList(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty() || BerTlv.listFrom(bytes).none { it.tag == TAG_EARFCN_LIST }) {
+                return null
+            }
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_earfcn_list_label)
+                    .decoder(::earfcnListDecoder)
+                    .build(resources)
+        }
+
+        fun decodeEaka(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty()) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_eaka_label)
+                    .decoder(::eakaDecoder)
+                    .build(resources)
+        }
+
+        fun decodeOcst(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty()) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_ocst_label)
+                    .decoder(::ocstDecoder)
+                    .build(resources)
+        }
+
+        fun decodeAcGbauapi(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty()) return null
+            if (BerTlv.listFrom(bytes).none { it.tag == TAG_APPLET_NAF_ACCESS_CONTROL }) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_ac_gbauapi_label)
+                    .decoder(::acGbauapiDecoder)
+                    .build(resources)
+        }
+
+        fun decodeImsdci(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_imsdci_label,
+                        R.string.ims_data_channel_indication_label,
+                        ONE_BYTE_FILE_LENGTH,
+                        ::imsDataChannelIndicationInterpreter
+                )
+
+        fun decodeOplmnWActLsp(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < OPLMN_W_ACT_LSP_MIN_LENGTH) return null
+            if ((bytes.size - 1) % OPLMN_W_ACT_LSP_ENTRY_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_oplmn_w_act_lsp_label)
+                    .decoder(::oplmnWActLspDecoder)
+                    .build(resources)
+        }
+
+        fun decodeLspplmn(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_lspplmn_label,
+                        R.string.time_interval_label,
+                        HPPLMN_LENGTH,
+                        ::hpplmnInterpreter
+                )
+
         private fun liDecoder(
             resources: Resources,
             rawData: ByteArray,
@@ -1188,6 +1417,29 @@ class UsimEfDecoders {
                                 PrimitiveElement.Builder(rawData)
                                         .labelId(childLabelId)
                                         .parent(parent)
+                                        .build(innerResources)
+                        )
+                    }
+                    .build(resources)
+        }
+
+        private fun decodeSingleElementFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int,
+            childLabelId: Int,
+            interpreter: (Resources, ByteArray) -> String
+        ): Element? {
+            if (bytes.isEmpty()) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder { innerResources, rawData, parent ->
+                        listOf(
+                                PrimitiveElement.Builder(rawData)
+                                        .labelId(childLabelId)
+                                        .parent(parent)
+                                        .interpreter(interpreter)
                                         .build(innerResources)
                         )
                     }
@@ -2714,6 +2966,683 @@ class UsimEfDecoders {
             }.build(resources)
         }
 
+        private fun nasconfigDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                in 0x80..0x9B -> builder
+                        .labelId(nasconfigTagLabel(tlv.tag))
+                        .interpreter(::enabledInterpreter)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun nasconfigTagLabel(tag: Int): Int = when (tag) {
+            0x80 -> R.string.nas_signalling_priority_config_label
+            0x81 -> R.string.nmo_i_behaviour_label
+            0x82 -> R.string.attach_with_imsi_label
+            0x83 -> R.string.minimum_periodic_search_timer_label
+            0x84 -> R.string.extended_access_barring_label
+            0x85 -> R.string.timer_t3245_behaviour_label
+            0x86 -> R.string.override_nas_signalling_low_priority_label
+            0x87 -> R.string.override_extended_access_barring_label
+            0x88 -> R.string.fast_first_higher_priority_plmn_search_label
+            0x89 -> R.string.eab_override_other_rats_label
+            0x8A -> R.string.non_ip_data_delivery_mechanisms_label
+            0x8B -> R.string.eab_override_ciot_eps_optimizations_label
+            0x8C -> R.string.unavailability_period_support_label
+            0x8D -> R.string.release_assistance_indication_support_label
+            0x8E -> R.string.service_gap_control_label
+            0x8F -> R.string.control_plane_ciot_eps_optimization_label
+            0x90 -> R.string.user_plane_ciot_eps_optimization_label
+            0x91 -> R.string.sor_cmci_support_label
+            0x92 -> R.string.sor_transparent_container_support_label
+            0x93 -> R.string.paging_restriction_support_label
+            0x94 -> R.string.n3_data_delivery_support_label
+            0x95 -> R.string.aerial_ue_subscription_information_label
+            0x96 -> R.string.disaster_roaming_wait_range_label
+            0x97 -> R.string.disaster_return_wait_range_label
+            0x98 -> R.string.extended_rejected_nssai_indication_support_label
+            0x99 -> R.string.extended_n3_data_delivery_support_label
+            0x9A -> R.string.musim_assistance_support_label
+            0x9B -> R.string.musim_paging_restriction_support_label
+            else -> R.string.unknown_label
+        }
+
+        private fun decodeSingleStringTlvFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int,
+            valueLabelId: Int
+        ): Element? {
+            if (bytes.isEmpty()) return null
+            if (BerTlv.listFrom(bytes).none { it.tag == TAG_URI }) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder { innerResources, rawData, parent ->
+                        stringTlvDecoder(innerResources, rawData, parent, valueLabelId)
+                    }
+                    .build(resources)
+        }
+
+        private fun stringTlvDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?,
+            valueLabelId: Int
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_URI -> builder
+                        .labelId(valueLabelId)
+                        .interpreter(::utf8StringInterpreter)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun decodeUriRecordFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int
+        ): Element? {
+            if (bytes.isEmpty()) return null
+            val uriLength = firstBerTlvByteLength(bytes, TAG_URI) ?: return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder { innerResources, rawData, parent ->
+                        uriRecordDecoder(innerResources, rawData, parent, uriLength)
+                    }
+                    .build(resources)
+        }
+
+        private fun firstBerTlvByteLength(rawData: ByteArray, expectedTag: Int): Int? {
+            if (rawData.size < 2) return null
+            if ((rawData[0].toInt() and 0xFF) != expectedTag) return null
+
+            var lengthOffset = 1
+            var length = rawData[lengthOffset++].toInt() and 0xFF
+            if (length > 0x7F) {
+                val lengthBytes = length and 0x7F
+                if (lengthBytes !in 1..3 || rawData.size < lengthOffset + lengthBytes) {
+                    return null
+                }
+                length = rawData.copyOfRange(lengthOffset, lengthOffset + lengthBytes)
+                        .fold(0) { acc, byte -> (acc shl 8) or (byte.toInt() and 0xFF) }
+                lengthOffset += lengthBytes
+            }
+
+            val totalLength = lengthOffset + length
+            return if (rawData.size >= totalLength) totalLength else null
+        }
+
+        private fun uriRecordDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?,
+            uriLength: Int
+        ): List<Element> {
+            val uriPart = rawData.copyOfRange(0, uriLength)
+            val alphaPart = rawData.copyOfRange(uriLength, rawData.size)
+            return listOf(
+                    ConstructedElement.Builder(uriPart)
+                            .labelId(R.string.uri_record_label)
+                            .parent(parent)
+                            .decoder { innerResources, entryData, entryParent ->
+                                stringTlvDecoder(innerResources, entryData, entryParent,
+                                        R.string.uri_label)
+                            }
+                            .interpreter { _, _ -> "" }
+                            .build(resources),
+                    PrimitiveElement.Builder(alphaPart)
+                            .labelId(R.string.alpha_identifier_label)
+                            .parent(parent)
+                            .interpreter(::alphaIdentifierInterpreter)
+                            .build(resources)
+            )
+        }
+
+        private fun pwsDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val elements = mutableListOf<Element>()
+            elements += PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                    .labelId(R.string.pws_configuration_label)
+                    .parent(parent)
+                    .interpreter(::pwsConfigurationInterpreter)
+                    .build(resources)
+            if (rawData.size > 1) {
+                elements += PrimitiveElement.Builder(rawData.copyOfRange(1, rawData.size))
+                        .labelId(R.string.rfu_label)
+                        .parent(parent)
+                        .build(resources)
+            }
+            return elements
+        }
+
+        private fun ialDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return rawData.asIterable().chunked(IAL_ENTRY_LENGTH).mapIndexed { index, entry ->
+                PrimitiveElement.Builder(entry.toByteArray())
+                        .labelId(R.string.imeisv_label)
+                        .labelArgs(index + 1)
+                        .parent(parent)
+                        .interpreter(::swappedBcdStringInterpreter)
+                        .build(resources)
+            }
+        }
+
+        private fun decodeEpdgSelectionFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int
+        ): Element? {
+            if (bytes.isEmpty() || bytes.size % EPDG_SELECTION_ENTRY_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder(::epdgSelectionDecoder)
+                    .build(resources)
+        }
+
+        private fun epdgSelectionDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = rawData.asIterable().chunked(EPDG_SELECTION_ENTRY_LENGTH).mapIndexed {
+            index, entry ->
+                ConstructedElement.Builder(entry.toByteArray())
+                        .labelId(R.string.epdg_selection_entry_label)
+                        .labelArgs(index + 1)
+                        .parent(parent)
+                        .decoder(::epdgSelectionEntryDecoder)
+                        .interpreter { _, _ -> (index + 1).toString() }
+                        .build(resources)
+        }
+
+        private fun epdgSelectionEntryDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 3))
+                        .labelId(R.string.plmn_label)
+                        .parent(parent)
+                        .interpreter(::plmnInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(3, 5))
+                        .labelId(R.string.epdg_identifier_priority_label)
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(5, 6))
+                        .labelId(R.string.epdg_fqdn_format_label)
+                        .parent(parent)
+                        .interpreter(::epdgFqdnFormatInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(6, EPDG_SELECTION_ENTRY_LENGTH))
+                        .labelId(R.string.epdg_identifier_configuration_label)
+                        .parent(parent)
+                        .interpreter(::recordIdentifierInterpreter)
+                        .build(resources)
+        )
+
+        private fun decodeEpdgIdentifierFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int
+        ): Element? {
+            if (bytes.isEmpty()) return null
+            if (BerTlv.listFrom(bytes).none { it.tag == TAG_EPDG_IDENTIFIER }) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder(::epdgIdentifierDecoder)
+                    .build(resources)
+        }
+
+        private fun epdgIdentifierDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_EPDG_IDENTIFIER -> builder
+                        .labelId(R.string.epdg_identifier_label)
+                        .separator(::epdgIdentifierSeparator)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun epdgIdentifierSeparator(
+            resources: Resources,
+            value: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            if (value.isEmpty()) return emptyList()
+            val addressType = value[0].toInt() and 0xFF
+            return listOf(
+                    PrimitiveElement.Builder(value.copyOfRange(0, 1))
+                            .labelId(R.string.epdg_address_type_label)
+                            .parent(parent)
+                            .interpreter(::epdgAddressTypeInterpreter)
+                            .build(resources),
+                    PrimitiveElement.Builder(value.copyOfRange(1, value.size))
+                            .labelId(R.string.epdg_address_label)
+                            .parent(parent)
+                            .interpreter { innerResources, rawData ->
+                                epdgAddressInterpreter(innerResources, addressType, rawData)
+                            }
+                            .build(resources)
+            )
+        }
+
+        private fun tvconfigDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val elements = mutableListOf<Element>()
+            elements += PrimitiveElement.Builder(rawData.copyOfRange(0, TVCONFIG_PLMN_LENGTH))
+                    .labelId(R.string.plmn_label)
+                    .parent(parent)
+                    .interpreter(::plmnInterpreter)
+                    .build(resources)
+
+            var index = TVCONFIG_PLMN_LENGTH
+            while (index < rawData.size) {
+                val tag = rawData[index++].toInt() and 0xFF
+                val lengthInfo = readTlvLength(rawData, index) ?: break
+                index = lengthInfo.first
+                if (rawData.size < index + lengthInfo.second) break
+                val value = rawData.copyOfRange(index, index + lengthInfo.second)
+                index += lengthInfo.second
+                elements += when (tag) {
+                    TAG_TVCONFIG_TMGI_LIST -> ConstructedElement.Builder(value)
+                            .labelId(R.string.one_byte_tag_label)
+                            .labelArgs(resources.getString(R.string.tmgi_list_label), tag)
+                            .parent(parent)
+                            .decoder(::tvconfigTmgiListSeparator)
+                            .interpreter { _, _ -> "" }
+                            .build(resources)
+                    TAG_TVCONFIG_EARFCN_LIST -> ConstructedElement.Builder(value)
+                            .labelId(R.string.one_byte_tag_label)
+                            .labelArgs(resources.getString(R.string.tv_earfcn_list_label),
+                                    tag)
+                            .parent(parent)
+                            .decoder(::tvconfigEarfcnListSeparator)
+                            .interpreter { _, _ -> "" }
+                            .build(resources)
+                    else -> PrimitiveElement.Builder(value)
+                            .labelId(R.string.unknown_label)
+                            .parent(parent)
+                            .build(resources)
+                }
+            }
+            return elements
+        }
+
+        private fun readTlvLength(rawData: ByteArray, startIndex: Int): Pair<Int, Int>? {
+            if (startIndex >= rawData.size) return null
+            var index = startIndex
+            var length = rawData[index++].toInt() and 0xFF
+            if (length > 0x7F) {
+                val numberOfLengthBytes = length and 0x7F
+                if (numberOfLengthBytes !in 1..3 || rawData.size < index + numberOfLengthBytes) {
+                    return null
+                }
+                length = rawData.copyOfRange(index, index + numberOfLengthBytes)
+                        .fold(0) { acc, byte -> (acc shl 8) or (byte.toInt() and 0xFF) }
+                index += numberOfLengthBytes
+            }
+            return Pair(index, length)
+        }
+
+        private fun tvconfigTmgiListSeparator(
+            resources: Resources,
+            value: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            if (value.size % TVCONFIG_TMGI_ENTRY_LENGTH != 0) return emptyList()
+            return value.asIterable().chunked(TVCONFIG_TMGI_ENTRY_LENGTH).mapIndexed {
+                index, entry ->
+                    ConstructedElement.Builder(entry.toByteArray())
+                            .labelId(R.string.tmgi_entry_label)
+                            .labelArgs(index + 1)
+                            .parent(parent)
+                            .decoder(::tvconfigTmgiEntryDecoder)
+                            .interpreter { _, _ -> (index + 1).toString() }
+                            .build(resources)
+            }
+        }
+
+        private fun tvconfigTmgiEntryDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 6))
+                        .labelId(R.string.tmgi_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(6, 8))
+                        .labelId(R.string.usd_file_id_label)
+                        .parent(parent)
+                        .interpreter(::recordIdentifierInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(8, TVCONFIG_TMGI_ENTRY_LENGTH))
+                        .labelId(R.string.service_type_label)
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources)
+        )
+
+        private fun tvconfigEarfcnListSeparator(
+            resources: Resources,
+            value: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            if (value.size % TVCONFIG_EARFCN_ENTRY_LENGTH != 0) return emptyList()
+            return value.asIterable().chunked(TVCONFIG_EARFCN_ENTRY_LENGTH).mapIndexed {
+                index, entry ->
+                    PrimitiveElement.Builder(entry.toByteArray())
+                            .labelId(R.string.tv_earfcn_label)
+                            .labelArgs(index + 1)
+                            .parent(parent)
+                            .interpreter(::unsignedIntegerInterpreter)
+                            .build(resources)
+            }
+        }
+
+        private fun threeGppPsDataOffDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                        .labelId(R.string.ps_data_off_home_services_label)
+                        .parent(parent)
+                        .interpreter(::psDataOffServicesInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(1, 2))
+                        .labelId(R.string.ps_data_off_roaming_services_label)
+                        .parent(parent)
+                        .interpreter(::psDataOffServicesInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(2, THREE_GPP_PS_DATA_OFF_LENGTH))
+                        .labelId(R.string.rfu_label)
+                        .parent(parent)
+                        .build(resources)
+        )
+
+        private fun threeGppPsDataOffServiceListDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).mapIndexed { index, tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_ICSI -> builder
+                        .labelId(R.string.ps_data_off_service_label)
+                        .labelArgs(index + 1)
+                        .interpreter(::utf8StringInterpreter)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun earfcnListDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).mapIndexed { index, tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_EARFCN_LIST -> builder
+                        .labelId(R.string.earfcn_list_entry_label)
+                        .labelArgs(index + 1)
+                        .decoder(::earfcnListTlvDecoder)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun earfcnListTlvDecoder(
+            resources: Resources,
+            tlvs: List<Tlv>,
+            parent: Element?
+        ): List<Element> = tlvs.map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_EARFCN -> builder
+                        .labelId(R.string.earfcn_label)
+                        .interpreter(::unsignedIntegerInterpreter)
+                TAG_GEOGRAPHICAL_AREA_POLYGON -> builder
+                        .labelId(R.string.geographical_area_polygon_label)
+                        .separator(::geographicalAreaPolygonSeparator)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun geographicalAreaPolygonSeparator(
+            resources: Resources,
+            value: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            if (value.size < GEOGRAPHICAL_POINT_LENGTH * 3 ||
+                    value.size % GEOGRAPHICAL_POINT_LENGTH != 0) {
+                return emptyList()
+            }
+            return value.asIterable().chunked(GEOGRAPHICAL_POINT_LENGTH).mapIndexed {
+                index, point ->
+                    ConstructedElement.Builder(point.toByteArray())
+                            .labelId(R.string.geographical_point_label)
+                            .labelArgs(index + 1)
+                            .parent(parent)
+                            .decoder(::geographicalPointDecoder)
+                            .interpreter { _, _ -> (index + 1).toString() }
+                            .build(resources)
+            }
+        }
+
+        private fun geographicalPointDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 3))
+                        .labelId(R.string.latitude_label)
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(3, GEOGRAPHICAL_POINT_LENGTH))
+                        .labelId(R.string.longitude_label)
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources)
+        )
+
+        private fun eakaDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val elements = mutableListOf<Element>()
+            elements += PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                    .labelId(R.string.enhanced_aka_support_label)
+                    .parent(parent)
+                    .interpreter(::enhancedAkaSupportInterpreter)
+                    .build(resources)
+            if (rawData.size > 1) {
+                elements += PrimitiveElement.Builder(rawData.copyOfRange(1, rawData.size))
+                        .labelId(R.string.rfu_label)
+                        .parent(parent)
+                        .build(resources)
+            }
+            return elements
+        }
+
+        private fun ocstDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val elements = mutableListOf<Element>()
+            elements += PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                    .labelId(R.string.sense_enabled_by_operator_label)
+                    .parent(parent)
+                    .interpreter(::enabledInterpreter)
+                    .build(resources)
+            BerTlv.listFrom(rawData.copyOfRange(1, rawData.size)).forEach { tlv ->
+                val builder = BerTlvElement.Builder(tlv).parent(parent)
+                elements += when (tlv.tag) {
+                    TAG_OCST_PARAMETERS -> builder
+                            .labelId(R.string.ocst_parameters_label)
+                            .separator(::ocstParametersSeparator)
+                    else -> builder.decoder(::genericBerTlvDecoder)
+                }.build(resources)
+            }
+            return elements
+        }
+
+        private fun ocstParametersSeparator(
+            resources: Resources,
+            value: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            if (value.size % OCST_ENTRY_LENGTH != 0) return emptyList()
+            return value.asIterable().chunked(OCST_ENTRY_LENGTH).mapIndexed { index, entry ->
+                ConstructedElement.Builder(entry.toByteArray())
+                        .labelId(R.string.ocst_entry_label)
+                        .labelArgs(index + 1)
+                        .parent(parent)
+                        .decoder(::ocstEntryDecoder)
+                        .interpreter { _, _ -> (index + 1).toString() }
+                        .build(resources)
+            }
+        }
+
+        private fun ocstEntryDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 2))
+                        .labelId(R.string.access_technology_identifier_label)
+                        .parent(parent)
+                        .interpreter(::accessTechnologyInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(2, OCST_ENTRY_LENGTH))
+                        .labelId(R.string.operator_signal_threshold_label)
+                        .parent(parent)
+                        .interpreter(::signalThresholdInterpreter)
+                        .build(resources)
+        )
+
+        private fun acGbauapiDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_APPLET_NAF_ACCESS_CONTROL -> builder
+                        .labelId(R.string.applet_naf_access_control_label)
+                        .separator(::appletNafAccessControlSeparator)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun appletNafAccessControlSeparator(
+            resources: Resources,
+            value: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            var index = 0
+            val aidLength = value.getOrNull(index++)?.toInt()?.and(0xFF) ?: return emptyList()
+            if (aidLength !in 5..16 || value.size < index + aidLength + 1) return emptyList()
+            val aid = value.copyOfRange(index, index + aidLength)
+            index += aidLength
+            val nafIdLength = value.getOrNull(index++)?.toInt()?.and(0xFF) ?: return emptyList()
+            if (value.size < index + nafIdLength) return emptyList()
+            val nafId = value.copyOfRange(index, index + nafIdLength)
+            return listOf(
+                    PrimitiveElement.Builder(byteArrayOf(aidLength.toByte()))
+                            .labelId(R.string.length_of_aid_label)
+                            .parent(parent)
+                            .interpreter(::unsignedIntegerInterpreter)
+                            .build(resources),
+                    PrimitiveElement.Builder(aid)
+                            .labelId(R.string.applet_aid_label)
+                            .parent(parent)
+                            .build(resources),
+                    PrimitiveElement.Builder(byteArrayOf(nafIdLength.toByte()))
+                            .labelId(R.string.length_of_naf_id_label)
+                            .parent(parent)
+                            .interpreter(::unsignedIntegerInterpreter)
+                            .build(resources),
+                    PrimitiveElement.Builder(nafId)
+                            .labelId(R.string.naf_id_label)
+                            .parent(parent)
+                            .interpreter(PrimitiveElement::defaultStringInterpreter)
+                            .build(resources)
+            )
+        }
+
+        private fun oplmnWActLspDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val elements = mutableListOf<Element>()
+            elements += PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                    .labelId(R.string.priority_label)
+                    .parent(parent)
+                    .interpreter(::enabledInterpreter)
+                    .build(resources)
+            elements += rawData.copyOfRange(1, rawData.size).asIterable()
+                    .chunked(OPLMN_W_ACT_LSP_ENTRY_LENGTH).mapIndexed { index, entry ->
+                        ConstructedElement.Builder(entry.toByteArray())
+                                .labelId(R.string.oplmn_w_act_lsp_entry_label)
+                                .labelArgs(index + 1)
+                                .parent(parent)
+                                .decoder(::oplmnWActLspEntryDecoder)
+                                .interpreter { _, _ -> (index + 1).toString() }
+                                .build(resources)
+                    }
+            return elements
+        }
+
+        private fun oplmnWActLspEntryDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 3))
+                        .labelId(R.string.plmn_label)
+                        .parent(parent)
+                        .interpreter(::plmnInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(3, 5))
+                        .labelId(R.string.access_technology_identifier_label)
+                        .parent(parent)
+                        .interpreter(::accessTechnologyInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(5, OPLMN_W_ACT_LSP_ENTRY_LENGTH))
+                        .labelId(R.string.selected_sat_feature_label)
+                        .parent(parent)
+                        .interpreter(::enabledInterpreter)
+                        .build(resources)
+        )
+
         private fun languageCodeInterpreter(
             resources: Resources,
             rawData: ByteArray
@@ -2865,6 +3794,55 @@ class UsimEfDecoders {
             } else {
                 resources.getString(R.string.not_available_label)
             }
+        }
+
+        private fun enabledInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val enabled = rawData.firstOrNull()?.toInt()?.and(0x01) == 1
+            val label = if (enabled) {
+                resources.getString(R.string.enabled_label)
+            } else {
+                resources.getString(R.string.disabled_label)
+            }
+            return hexWithDescription(resources, rawData, label)
+        }
+
+        private fun enhancedAkaSupportInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val supported = rawData.firstOrNull()?.toInt()?.and(0x01) == 1
+            val label = if (supported) {
+                resources.getString(R.string.enhanced_sqn_calculation_supported)
+            } else {
+                resources.getString(R.string.enhanced_sqn_calculation_not_supported)
+            }
+            return hexWithDescription(resources, rawData, label)
+        }
+
+        private fun pwsConfigurationInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val hplmnState = if (value and 0x01 == 0) {
+                resources.getString(R.string.pws_messages_accepted)
+            } else {
+                resources.getString(R.string.pws_messages_ignored)
+            }
+            val vplmnState = if (value and 0x02 == 0) {
+                resources.getString(R.string.pws_messages_accepted)
+            } else {
+                resources.getString(R.string.pws_messages_ignored)
+            }
+            val description = resources.getString(
+                    R.string.pws_configuration_interpretation,
+                    hplmnState,
+                    vplmnState
+            )
+            return hexWithDescription(resources, rawData, description)
         }
 
         private fun estServiceName(
@@ -3092,6 +4070,109 @@ class UsimEfDecoders {
                 else -> resources.getString(R.string.rfu_label)
             }
             return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun epdgFqdnFormatInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val suffix = when (rawData.firstOrNull()?.toInt()?.and(0xFF)) {
+                0x00 -> resources.getString(R.string.fqdn_format_operator_identifier)
+                0x01 -> resources.getString(R.string.fqdn_format_location_based)
+                else -> resources.getString(R.string.rfu_label)
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun epdgAddressTypeInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val suffix = when (rawData.firstOrNull()?.toInt()?.and(0xFF)) {
+                0x00 -> resources.getString(R.string.epdg_address_type_fqdn)
+                0x01 -> resources.getString(R.string.epdg_address_type_ipv4)
+                0x02 -> resources.getString(R.string.epdg_address_type_ipv6)
+                else -> resources.getString(R.string.rfu_label)
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun epdgAddressInterpreter(
+            resources: Resources,
+            addressType: Int,
+            rawData: ByteArray
+        ): String {
+            val suffix = when (addressType) {
+                0x00 -> rawData.toString(Charsets.UTF_8)
+                0x01 -> if (rawData.size == 4) {
+                    rawData.joinToString(".") { (it.toInt() and 0xFF).toString() }
+                } else {
+                    resources.getString(R.string.invalid_length_label)
+                }
+                0x02 -> if (rawData.size == 16) {
+                    rawData.asIterable().chunked(2)
+                            .joinToString(":") { chunk ->
+                                chunk.joinToString("") { byte ->
+                                    "%02X".format(byte.toInt() and 0xFF)
+                                }
+                            }
+                } else {
+                    resources.getString(R.string.invalid_length_label)
+                }
+                else -> resources.getString(R.string.rfu_label)
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun psDataOffServicesInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val services = listOf(
+                    R.string.ps_data_off_service_ussi,
+                    R.string.ps_data_off_service_mmtel_voice,
+                    R.string.ps_data_off_service_mmtel_video,
+                    R.string.ps_data_off_service_ssp_xcap,
+                    R.string.ps_data_off_service_sms_over_ip,
+                    R.string.ps_data_off_service_bip,
+                    R.string.ps_data_off_service_device_management
+            ).mapIndexedNotNull { index, stringId ->
+                if (value and (1 shl index) != 0) resources.getString(stringId) else null
+            }
+            val suffix = if (services.isEmpty()) {
+                resources.getString(R.string.no_exempt_service_label)
+            } else {
+                services.joinToString(", ")
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun signalThresholdInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val label = if (value == 0xFF) {
+                resources.getString(R.string.unused_label)
+            } else {
+                resources.getString(R.string.dbm_label, -value)
+            }
+            return hexWithDescription(resources, rawData, label)
+        }
+
+        private fun imsDataChannelIndicationInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val label = when (value) {
+                0x00 -> resources.getString(R.string.ims_data_channel_not_allowed)
+                0x01 -> resources.getString(R.string.ims_data_channel_allowed_not_simultaneous)
+                0x02 -> resources.getString(R.string.ims_data_channel_allowed_simultaneous)
+                else -> resources.getString(R.string.rfu_label)
+            }
+            return hexWithDescription(resources, rawData, label)
         }
 
         private fun trackingAreaIdentityInterpreter(

@@ -23,6 +23,16 @@
             ]
         },
         {
+            "name": "eAKA",
+            "description": "enhanced AKA support",
+            "id": "6F01"
+        },
+        {
+            "name": "OCST",
+            "description": "Operator controlled signal threshold per access technology",
+            "id": "6F02"
+        },
+        {
             "name": "LI",
             "description": "Language Indication",
             "id": "6F05"
@@ -46,6 +56,26 @@
             "name": "KeysPS",
             "description": "Ciphering and Integrity Keys for Packet Switched domain",
             "id": "6F09"
+        },
+        {
+            "name": "AC_GBAUAPI",
+            "description": "Access Control to GBA_U_API",
+            "id": "6F0A"
+        },
+        {
+            "name": "IMSDCI",
+            "description": "IMS Data Channel Indication",
+            "id": "6F0B"
+        },
+        {
+            "name": "OPLMNwACT-LSP",
+            "description": "Operator-controlled-LSP-PLMN",
+            "id": "6F0C"
+        },
+        {
+            "name": "LSPPLMN",
+            "description": "PeriodicSearchTimerNonLSP",
+            "id": "6F0D"
         },
         {
             "name": "DCK",
@@ -461,6 +491,111 @@
             "name": "UFC",
             "description": "USAT Facility Control",
             "id": "6FE6"
+        },
+        {
+            "name": "UICCIARI",
+            "description": "UICC IARI",
+            "id": "6FE7"
+        },
+        {
+            "name": "NASCONFIG",
+            "description": "Non Access Stratum Configuration",
+            "id": "6FE8"
+        },
+        {
+            "name": "PWS",
+            "description": "Public Warning System",
+            "id": "6FEC"
+        },
+        {
+            "name": "FDNURI",
+            "description": "Fixed Dialling Numbers URI",
+            "id": "6FED"
+        },
+        {
+            "name": "BDNURI",
+            "description": "Barred Dialling Numbers URI",
+            "id": "6FEE"
+        },
+        {
+            "name": "SDNURI",
+            "description": "Service Dialling Numbers URI",
+            "id": "6FEF"
+        },
+        {
+            "name": "IAL",
+            "description": "IMEI(SV) Allowed Lists",
+            "id": "6FF0"
+        },
+        {
+            "name": "IPS",
+            "description": "IMEI(SV) Pairing Status",
+            "id": "6FF1"
+        },
+        {
+            "name": "IPD",
+            "description": "IMEI(SV) of Pairing Device",
+            "id": "6FF2"
+        },
+        {
+            "name": "ePDGId",
+            "description": "Home ePDG Identifier",
+            "id": "6FF3"
+        },
+        {
+            "name": "ePDGSelection",
+            "description": "ePDG Selection Information",
+            "id": "6FF4"
+        },
+        {
+            "name": "ePDGIdEm",
+            "description": "Emergency ePDG Identifier",
+            "id": "6FF5"
+        },
+        {
+            "name": "ePDGSelectionEm",
+            "description": "ePDG Selection Information for Emergency Services",
+            "id": "6FF6"
+        },
+        {
+            "name": "FromPreferred",
+            "description": "From Preferred",
+            "id": "6FF7"
+        },
+        {
+            "name": "IMSConfigData",
+            "description": "IMS Configuration Data",
+            "id": "6FF8"
+        },
+        {
+            "name": "3GPPPSDATAOFF",
+            "description": "3GPP PS Data Off",
+            "id": "6FF9"
+        },
+        {
+            "name": "3GPPPSDATAOFFservicelist",
+            "description": "3GPP PS Data Off Service List",
+            "id": "6FFA"
+        },
+        {
+            "name": "TVCONFIG",
+            "description": "TV Configuration",
+            "id": "6FFB"
+        },
+        {
+            "name": "XCAPConfigData",
+            "description": "XCAP Configuration Data",
+            "id": "6FFC"
+        },
+        {
+            "name": "EARFCNList",
+            "description": "EARFCN list for MTC/NB-IOT UEs",
+            "id": "6FFD"
+        },
+        {
+            "name": "MuDMiDConfigData",
+            "description": "MuD and MiD Configuration Data",
+            "id": "6FFE"
         }
     ]
 }

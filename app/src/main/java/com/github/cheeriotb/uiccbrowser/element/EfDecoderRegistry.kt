@@ -35,11 +35,17 @@ object EfDecoderRegistry {
             FileId.EF_ICCID to MfEfDecoders::decodeIccid
         ),
         EfContext.USIM to mapOf(
+            FileId.EF_USIM_EAKA to UsimEfDecoders::decodeEaka,
+            FileId.EF_USIM_OCST to UsimEfDecoders::decodeOcst,
             FileId.EF_USIM_LI to UsimEfDecoders::decodeLi,
             FileId.EF_USIM_ARR to EfArrRecord::decode,
             FileId.EF_USIM_IMSI to UsimEfDecoders::decodeImsi,
             FileId.EF_USIM_KEYS to UsimEfDecoders::decodeKeys,
             FileId.EF_USIM_KEYS_PS to UsimEfDecoders::decodeKeysPs,
+            FileId.EF_USIM_AC_GBAUAPI to UsimEfDecoders::decodeAcGbauapi,
+            FileId.EF_USIM_IMSDCI to UsimEfDecoders::decodeImsdci,
+            FileId.EF_USIM_OPLMN_W_ACT_LSP to UsimEfDecoders::decodeOplmnWActLsp,
+            FileId.EF_USIM_LSPPLMN to UsimEfDecoders::decodeLspplmn,
             FileId.EF_USIM_DCK to UsimEfDecoders::decodeDck,
             FileId.EF_USIM_HPPLMN to UsimEfDecoders::decodeHpplmn,
             FileId.EF_USIM_CNL to UsimEfDecoders::decodeCnl,
@@ -123,6 +129,31 @@ object EfDecoderRegistry {
             FileId.EF_USIM_EPSLOCI to UsimEfDecoders::decodeEpsloci,
             FileId.EF_USIM_EPSNSC to UsimEfDecoders::decodeEpsnsc,
             FileId.EF_USIM_UFC to UsimEfDecoders::decodeUfc,
+            FileId.EF_USIM_UICCIARI to UsimEfDecoders::decodeUicciari,
+            FileId.EF_USIM_NASCONFIG to UsimEfDecoders::decodeNasconfig,
+            FileId.EF_USIM_PWS to UsimEfDecoders::decodePws,
+            FileId.EF_USIM_FDNURI to UsimEfDecoders::decodeFdnuri,
+            FileId.EF_USIM_BDNURI to UsimEfDecoders::decodeBdnuri,
+            FileId.EF_USIM_SDNURI to UsimEfDecoders::decodeSdnuri,
+            FileId.EF_USIM_IAL to UsimEfDecoders::decodeIal,
+            // (Cyclic) FileId.EF_USIM_IPS,
+            FileId.EF_USIM_IPD to UsimEfDecoders::decodeIpd,
+            FileId.EF_USIM_EPDGID to UsimEfDecoders::decodeEpdgid,
+            FileId.EF_USIM_EPDGSELECTION to UsimEfDecoders::decodeEpdgselection,
+            FileId.EF_USIM_EPDGIDEM to UsimEfDecoders::decodeEpdgidem,
+            FileId.EF_USIM_EPDGSELECTIONEM to UsimEfDecoders::decodeEpdgselectionem,
+            FileId.EF_USIM_FROMPREFERRED to UsimEfDecoders::decodeFrompreferred,
+            // (BER-TLV) FileId.EF_USIM_IMS_CONFIG_DATA to
+            //         UsimEfDecoders::decodeImsConfigData,
+            FileId.EF_USIM_3GPPPSDATAOFF to UsimEfDecoders::decodeThreeGppPsDataOff,
+            FileId.EF_USIM_3GPPPSDATAOFF_SERVICE_LIST to
+                    UsimEfDecoders::decodeThreeGppPsDataOffServiceList,
+            FileId.EF_USIM_TVCONFIG to UsimEfDecoders::decodeTvconfig,
+            // (BER-TLV) FileId.EF_USIM_XCAP_CONFIG_DATA to
+            //         UsimEfDecoders::decodeXcapConfigData,
+            FileId.EF_USIM_EARFCN_LIST to UsimEfDecoders::decodeEarfcnList,
+            // (BER-TLV) FileId.EF_USIM_MUDMID_CONFIG_DATA to
+            //         UsimEfDecoders::decodeMudmidConfigData,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_SUCI_CALC_INFO to
                     Usim5gsEfDecoders::decodeSuciCalcInfo,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_OPL5G to Usim5gsEfDecoders::decodeOpl5g
