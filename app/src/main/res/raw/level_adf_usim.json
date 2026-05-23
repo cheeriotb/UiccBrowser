@@ -11,6 +11,36 @@
 
             "files": [
                 {
+                    "name": "5GS3GPPLOCI",
+                    "description": "5GS 3GPP location information",
+                    "id": "4F01"
+                },
+                {
+                    "name": "5GSN3GPPLOCI",
+                    "description": "5GS non-3GPP location information",
+                    "id": "4F02"
+                },
+                {
+                    "name": "5GS3GPPNSC",
+                    "description": "5GS 3GPP Access NAS Security Context",
+                    "id": "4F03"
+                },
+                {
+                    "name": "5GSN3GPPNSC",
+                    "description": "5GS non-3GPP Access NAS Security Context",
+                    "id": "4F04"
+                },
+                {
+                    "name": "5GAUTHKEYS",
+                    "description": "5G authentication keys",
+                    "id": "4F05"
+                },
+                {
+                    "name": "UAC_AIC",
+                    "description": "UAC Access Identities Configuration",
+                    "id": "4F06"
+                },
+                {
                     "name": "SUCI_Calc_Info",
                     "description": "Subscription Concealed Identifier Calculation Information",
                     "id": "4F07"
@@ -19,6 +49,61 @@
                     "name": "OPL5G",
                     "description": "5GS Operator PLMN List",
                     "id": "4F08"
+                },
+                {
+                    "name": "SUPI_NAI",
+                    "description": "SUPI as Network Access Identifier",
+                    "id": "4F09"
+                },
+                {
+                    "name": "Routing_Indicator",
+                    "description": "Routing Indicator EF",
+                    "id": "4F0A"
+                },
+                {
+                    "name": "URSP",
+                    "description": "UE Route Selection Policies",
+                    "id": "4F0B"
+                },
+                {
+                    "name": "TN3GPPSNN",
+                    "description": "Trusted non-3GPP Serving network names list",
+                    "id": "4F0C"
+                },
+                {
+                    "name": "CAG",
+                    "description": "Pre-configured CAG information list EF",
+                    "id": "4F0D"
+                },
+                {
+                    "name": "SOR-CMCI",
+                    "description": "Steering Of Roaming - Connected Mode Control Information",
+                    "id": "4F0E"
+                },
+                {
+                    "name": "DRI",
+                    "description": "Disaster roaming information EF",
+                    "id": "4F0F"
+                },
+                {
+                    "name": "5GSEDRX",
+                    "description": "5GS eDRX Parameters",
+                    "id": "4F10"
+                },
+                {
+                    "name": "5GNSWO_CONF",
+                    "description": "5G Non-Seamless WLAN Offload configuration",
+                    "id": "4F11"
+                },
+                {
+                    "name": "MCHPPLMN",
+                    "description": "Multiplier Coefficient for Higher Priority PLMN search",
+                    "id": "4F15"
+                },
+                {
+                    "name": "KAUSF_DERIVATION",
+                    "description": "KAUSF derivation configuration",
+                    "id": "4F16"
                 }
             ]
         },

@@ -154,9 +154,40 @@ object EfDecoderRegistry {
             FileId.EF_USIM_EARFCN_LIST to UsimEfDecoders::decodeEarfcnList,
             // (BER-TLV) FileId.EF_USIM_MUDMID_CONFIG_DATA to
             //         UsimEfDecoders::decodeMudmidConfigData,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_3GPP_LOCI to
+                    Usim5gsEfDecoders::decode5gs3gppLoci,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_N3GPP_LOCI to
+                    Usim5gsEfDecoders::decode5gsn3gppLoci,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_3GPP_NSC to
+                    Usim5gsEfDecoders::decode5gs3gppNsc,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_N3GPP_NSC to
+                    Usim5gsEfDecoders::decode5gsn3gppNsc,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_AUTH_KEYS to
+                    Usim5gsEfDecoders::decode5gAuthKeys,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_UAC_AIC to
+                    Usim5gsEfDecoders::decodeUacAic,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_SUCI_CALC_INFO to
                     Usim5gsEfDecoders::decodeSuciCalcInfo,
-            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_OPL5G to Usim5gsEfDecoders::decodeOpl5g
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_OPL5G to Usim5gsEfDecoders::decodeOpl5g,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_SUPI_NAI to
+                    Usim5gsEfDecoders::decodeSupiNai,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_ROUTING_INDICATOR to
+                    Usim5gsEfDecoders::decodeRoutingIndicator,
+            // (BER-TLV) FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_URSP to
+            //         Usim5gsEfDecoders::decodeUrsp,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_TN3GPPSNN to
+                    Usim5gsEfDecoders::decodeTn3gppsnn,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_CAG to Usim5gsEfDecoders::decodeCag,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_SOR_CMCI to
+                    Usim5gsEfDecoders::decodeSorCmci,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_DRI to Usim5gsEfDecoders::decodeDri,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_EDRX to Usim5gsEfDecoders::decode5gsEdrx,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_NSWO_CONF to
+                    Usim5gsEfDecoders::decode5gNswoConf,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_MCHPPLMN to
+                    Usim5gsEfDecoders::decodeMchpplmn,
+            FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_KAUSF_DERIVATION to
+                    Usim5gsEfDecoders::decodeKausfDerivation
         ),
         EfContext.ISIM to mapOf(
             FileId.EF_ISIM_IMPI to IsimEfDecoders::decodeImpi,

@@ -196,9 +196,9 @@ class GetFileListUseCaseUnitTest {
         val usimAid = "A0000000871002FFFFFFFFFFFFFFFF"
         val gsPath = FileId.PATH_ADF + "5FC0"  // "7FFF5FC0"
         initializeRepo()
+        coEvery { cacheIoMock.get(ICCID, usimAid, gsPath, any()) } returns null
         coEvery { cacheIoMock.get(ICCID, usimAid, gsPath, "4F07") } returns
                 okResponse(usimAid, gsPath, "4F07")
-        coEvery { cacheIoMock.get(ICCID, usimAid, gsPath, "4F08") } returns null
 
         val entries = useCase.execute(R.raw.level_adf_usim, 0, usimAid, gsPath)
 
