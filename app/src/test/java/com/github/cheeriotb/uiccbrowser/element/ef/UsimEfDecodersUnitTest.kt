@@ -442,7 +442,7 @@ class UsimEfDecodersUnitTest {
             assertThat(element.subElements[3].toString()).isEqualTo("2143FFFFFFFFFFFFFFFF (1234)")
         }
         assertThat(fdn!!.subElements[5].label).isEqualTo("Extension2 Record Identifier")
-        assertThat(msisdn!!.subElements[5].label).isEqualTo("Identifier")
+        assertThat(msisdn!!.subElements[5].label).isEqualTo("Extension5 Record Identifier")
         assertThat(sdn!!.subElements[5].label).isEqualTo("Extension3 Record Identifier")
     }
 
@@ -520,6 +520,79 @@ class UsimEfDecodersUnitTest {
     }
 
     @Test
+    fun decodeAdditionalUsimEf_validData_returnsExpectedChildren() {
+        val emlpp = UsimEfDecoders.decodeEmlpp(resources, hexStringToByteArray("1C0C"))
+        assertThat(emlpp).isNotNull()
+        assertThat(emlpp!!.subElements[0].toString())
+                .isEqualTo("1C (Priority levels 0, 1, 2)")
+
+        val bdn = UsimEfDecoders.decodeBdn(resources, hexStringToByteArray(DIALING_RECORD + "04"))
+        assertThat(bdn).isNotNull()
+        assertThat(bdn!!.subElements).hasSize(7)
+        assertThat(bdn.subElements[6].toString()).isEqualTo("04 (Record #4)")
+
+        val mwis = UsimEfDecoders.decodeMwis(resources, hexStringToByteArray("0502010000"))
+        assertThat(mwis).isNotNull()
+        assertThat(mwis!!.subElements[0].toString())
+                .isEqualTo("05 (Voicemail, Electronic Mail)")
+
+        val opl = UsimEfDecoders.decodeOpl(resources, hexStringToByteArray("1300620000FFFE01"))
+        assertThat(opl).isNotNull()
+        assertThat(opl!!.subElements[0].subElements[0].toString())
+                .isEqualTo("130062 (MCC 310, MNC 260)")
+    }
+
+    @Test
+    fun decodePnn_validData_labelsNetworkNameTags() {
+        val element = UsimEfDecoders.decodePnn(
+                resources,
+                hexStringToByteArray("4305843350900AFFFFFFFFFFFF")
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_pnn_label))
+        assertThat(element.subElements).hasSize(1)
+        assertThat(element.subElements[0].label).isEqualTo("Full name for network '43'")
+        assertThat(element.subElements[0].toString()).contains("GSM default alphabet")
+    }
+
+    @Test
+    fun decodeSpdi_validData_labelsPlmnList() {
+        val element = UsimEfDecoders.decodeSpdi(
+                resources,
+                hexStringToByteArray("A307800544F001FFFF")
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_spdi_label))
+        assertThat(element.subElements).hasSize(1)
+        assertThat(element.subElements[0].label)
+                .isEqualTo("Service Provider Display Information 'A3'")
+        assertThat(element.subElements[0].subElements[0].label)
+                .isEqualTo("Service Provider PLMN List '80'")
+        assertThat(element.subElements[0].subElements[0].subElements[0].label)
+                .isEqualTo("Service Provider PLMN 1")
+        assertThat(element.subElements[0].subElements[0].subElements[0].toString())
+                .isEqualTo("44F001 (MCC 440, MNC 10)")
+    }
+
+    @Test
+    fun decodeNetpar_validData_labelsFddCellInformation() {
+        val element = UsimEfDecoders.decodeNetpar(
+                resources,
+                hexStringToByteArray("A1058003042A01" + "FF".repeat(39))
+        )
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_netpar_label))
+        assertThat(element.subElements).hasSize(1)
+        assertThat(element.subElements[0].label).isEqualTo("FDD Cell Information 'A1'")
+        assertThat(element.subElements[0].subElements[0].label)
+                .isEqualTo("Intra Frequency Information '80'")
+        assertThat(element.subElements[0].subElements[0].toString()).isEqualTo("042A01")
+    }
+
+    @Test
     fun decodeFixedLengthFiles_invalidSize_returnsNull() {
         assertThat(UsimEfDecoders.decodeSpn(resources, hexStringToByteArray("00"))).isNull()
         assertThat(UsimEfDecoders.decodePuct(resources, hexStringToByteArray("555344"))).isNull()
@@ -534,6 +607,13 @@ class UsimEfDecodersUnitTest {
         assertThat(UsimEfDecoders.decodeSmss(resources, hexStringToByteArray("00"))).isNull()
         assertThat(UsimEfDecoders.decodeExt2(resources, hexStringToByteArray("00"))).isNull()
         assertThat(UsimEfDecoders.decodeCcp2(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeEmlpp(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeAaem(resources, hexStringToByteArray("0000"))).isNull()
+        assertThat(UsimEfDecoders.decodeHiddenkey(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeDck(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeStartHfn(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeThreshold(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeCfis(resources, hexStringToByteArray("00"))).isNull()
     }
 
     @Test
@@ -543,7 +623,9 @@ class UsimEfDecodersUnitTest {
                 FileId.EF_USIM_IMSI,
                 FileId.EF_USIM_KEYS,
                 FileId.EF_USIM_KEYS_PS,
+                FileId.EF_USIM_DCK,
                 FileId.EF_USIM_HPPLMN,
+                FileId.EF_USIM_CNL,
                 FileId.EF_USIM_ACM_MAX,
                 FileId.EF_USIM_UST,
                 FileId.EF_USIM_CBMID,
@@ -558,9 +640,32 @@ class UsimEfDecodersUnitTest {
                 FileId.EF_USIM_SDN,
                 FileId.EF_USIM_EXT2,
                 FileId.EF_USIM_EXT3,
+                FileId.EF_USIM_BDN,
                 FileId.EF_USIM_SMSR,
                 FileId.EF_USIM_EXT5,
                 FileId.EF_USIM_CCP2,
+                FileId.EF_USIM_EMLPP,
+                FileId.EF_USIM_AAEM,
+                FileId.EF_USIM_HIDDENKEY,
+                FileId.EF_USIM_EXT4,
+                FileId.EF_USIM_CMI,
+                FileId.EF_USIM_EST,
+                FileId.EF_USIM_ACL,
+                FileId.EF_USIM_START_HFN,
+                FileId.EF_USIM_THRESHOLD,
+                FileId.EF_USIM_OPLMN_W_ACT,
+                FileId.EF_USIM_HPLMN_W_ACT,
+                FileId.EF_USIM_NETPAR,
+                FileId.EF_USIM_PNN,
+                FileId.EF_USIM_OPL,
+                FileId.EF_USIM_MBDN,
+                FileId.EF_USIM_EXT6,
+                FileId.EF_USIM_MBI,
+                FileId.EF_USIM_MWIS,
+                FileId.EF_USIM_CFIS,
+                FileId.EF_USIM_EXT7,
+                FileId.EF_USIM_SPDI,
+                FileId.EF_USIM_MMSN,
                 FileId.EF_USIM_GID1,
                 FileId.EF_USIM_GID2,
                 FileId.EF_USIM_SPN,

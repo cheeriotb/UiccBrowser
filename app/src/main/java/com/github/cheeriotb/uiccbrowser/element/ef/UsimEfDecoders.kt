@@ -10,10 +10,13 @@ package com.github.cheeriotb.uiccbrowser.element.ef
 
 import android.content.res.Resources
 import com.github.cheeriotb.uiccbrowser.R
+import com.github.cheeriotb.uiccbrowser.element.BerTlvElement
 import com.github.cheeriotb.uiccbrowser.element.ConstructedElement
 import com.github.cheeriotb.uiccbrowser.element.Element
 import com.github.cheeriotb.uiccbrowser.element.PrimitiveElement
+import com.github.cheeriotb.uiccbrowser.util.BerTlv
 import com.github.cheeriotb.uiccbrowser.util.StringUtils
+import com.github.cheeriotb.uiccbrowser.util.Tlv
 import com.github.cheeriotb.uiccbrowser.util.byteArrayToHexString
 import kotlin.math.pow
 import java.util.Locale
@@ -46,6 +49,40 @@ class UsimEfDecoders {
         private const val PLMN_W_ACT_ENTRY_LENGTH = 5
         private const val MIN_PLMN_W_ACT_LENGTH = 40
         private const val MIN_FPLMN_LENGTH = 12
+        private const val EMLPP_LENGTH = 2
+        private const val AAEM_LENGTH = 1
+        private const val HIDDEN_KEY_LENGTH = 4
+        private const val BDN_TRAILER_LENGTH = 15
+        private const val CMI_MIN_LENGTH = 2
+        private const val DCK_LENGTH = 16
+        private const val CNL_ENTRY_LENGTH = 6
+        private const val START_HFN_LENGTH = 6
+        private const val THRESHOLD_LENGTH = 3
+        private const val MIN_HPLMN_W_ACT_LENGTH = 5
+        private const val MIN_NETPAR_LENGTH = 46
+        private const val MIN_PNN_LENGTH = 3
+        private const val OPL_ENTRY_LENGTH = 8
+        private const val MIN_MBI_LENGTH = 4
+        private const val MIN_MWIS_LENGTH = 5
+        private const val CFIS_LENGTH = 16
+        private const val MIN_MMSN_LENGTH = 5
+        private const val TAG_PNN_FULL_NAME = 0x43
+        private const val TAG_PNN_SHORT_NAME = 0x45
+        private const val TAG_PNN_ADDITIONAL_INFORMATION = 0x80
+        private const val TAG_SPDI_TEMPLATE = 0xA3
+        private const val TAG_SPDI_PLMN_LIST = 0x80
+        private const val TAG_NETPAR_GSM_CELL_INFORMATION = 0xA0
+        private const val TAG_NETPAR_FDD_CELL_INFORMATION = 0xA1
+        private const val TAG_NETPAR_TDD_CELL_INFORMATION = 0xA2
+        private const val TAG_NETPAR_INFORMATION_1 = 0x80
+        private const val TAG_NETPAR_INFORMATION_2 = 0x81
+        private const val TAG_NETPAR_CORE_NETWORK_BEARER = 0x82
+
+        private val netparCellInformationTags = setOf(
+                TAG_NETPAR_GSM_CELL_INFORMATION,
+                TAG_NETPAR_FDD_CELL_INFORMATION,
+                TAG_NETPAR_TDD_CELL_INFORMATION
+        )
 
         /**
          * Decodes EF LI into ordered two-byte ISO 639 language entries. Unused entries are
@@ -324,7 +361,7 @@ class UsimEfDecoders {
         }
 
         /**
-         * Decodes EF MSISDN into alpha identifier, dialling number, CCP2, and EXT1 references.
+         * Decodes EF MSISDN into alpha identifier, dialling number, CCP2, and EXT5 references.
          */
         fun decodeMsisdn(resources: Resources, bytes: ByteArray): Element? =
                 decodeDiallingNumberFile(
@@ -332,7 +369,7 @@ class UsimEfDecoders {
                         bytes,
                         R.string.ef_msisdn_label,
                         R.string.ccp2_record_identifier_label,
-                        R.string.identifier_label
+                        R.string.extension5_record_identifier_label
                 )
 
         /**
@@ -410,6 +447,284 @@ class UsimEfDecoders {
             return ConstructedElement.Builder(bytes)
                     .labelId(R.string.ef_ccp2_label)
                     .decoder(::ccp2Decoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF eMLPP into subscribed priority levels and fast call setup conditions.
+         */
+        fun decodeEmlpp(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size != EMLPP_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_emlpp_label)
+                    .decoder(::emlppDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF AaeM into automatic-answer priority levels.
+         */
+        fun decodeAaem(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_aaem_label,
+                        R.string.automatic_answer_priority_levels_label,
+                        AAEM_LENGTH,
+                        ::emlppPriorityMaskInterpreter
+                )
+
+        /**
+         * Decodes EF Hiddenkey into the non-swapped BCD hidden key.
+         */
+        fun decodeHiddenkey(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_hiddenkey_label,
+                        R.string.hidden_key_label,
+                        HIDDEN_KEY_LENGTH,
+                        ::nonSwappedBcdStringInterpreter
+                )
+
+        /**
+         * Decodes EF BDN into alpha identifier, dialling number, CCP2, EXT4, and CMI pointer.
+         */
+        fun decodeBdn(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size <= BDN_TRAILER_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_bdn_label)
+                    .decoder(::bdnDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF EXT4 into one extension record.
+         */
+        fun decodeExt4(resources: Resources, bytes: ByteArray): Element? =
+                decodeExtensionRecordFile(resources, bytes, R.string.ef_ext4_label)
+
+        /**
+         * Decodes EF CMI into alpha identifier and comparison method identifier.
+         */
+        fun decodeCmi(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < CMI_MIN_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_cmi_label)
+                    .decoder(::cmiDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF EST into enabled service bits.
+         */
+        fun decodeEst(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty()) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_est_label)
+                    .decoder(::estDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF ACL into APN/DNN count and TLV objects.
+         */
+        fun decodeAcl(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size <= 1) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_acl_label)
+                    .decoder(::aclDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF DCK into four de-personalisation control keys.
+         */
+        fun decodeDck(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size != DCK_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_dck_label)
+                    .decoder(::dckDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF CNL into co-operative network list entries.
+         */
+        fun decodeCnl(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty() || bytes.size % CNL_ENTRY_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_cnl_label)
+                    .decoder(::cnlDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF START-HFN into CS and PS START values.
+         */
+        fun decodeStartHfn(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size != START_HFN_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_start_hfn_label)
+                    .decoder(::startHfnDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF THRESHOLD into the maximum START value.
+         */
+        fun decodeThreshold(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_threshold_label,
+                        R.string.maximum_start_value_label,
+                        THRESHOLD_LENGTH,
+                        ::unsignedIntegerInterpreter
+                )
+
+        /**
+         * Decodes EF OPLMNwACT into operator-controlled PLMN entries.
+         */
+        fun decodeOplmnWAct(resources: Resources, bytes: ByteArray): Element? =
+                decodePlmnWActFile(resources, bytes, R.string.ef_oplmn_w_act_label,
+                        MIN_PLMN_W_ACT_LENGTH)
+
+        /**
+         * Decodes EF HPLMNwAcT into HPLMN entries.
+         */
+        fun decodeHplmnWAct(resources: Resources, bytes: ByteArray): Element? =
+                decodePlmnWActFile(resources, bytes, R.string.ef_hplmn_w_act_label,
+                        MIN_HPLMN_W_ACT_LENGTH)
+
+        /**
+         * Decodes EF NETPAR into BER-TLV cell information objects.
+         */
+        fun decodeNetpar(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < MIN_NETPAR_LENGTH) return null
+            if (BerTlv.listFrom(bytes).none { it.tag in netparCellInformationTags }) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_netpar_label)
+                    .decoder(::netparDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF PNN into network name TLV objects.
+         */
+        fun decodePnn(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < MIN_PNN_LENGTH) return null
+            if (BerTlv.listFrom(bytes).none { it.tag == TAG_PNN_FULL_NAME }) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_pnn_label)
+                    .decoder(::pnnDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF OPL into LAI/TAI and PLMN network name record identifier.
+         */
+        fun decodeOpl(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < OPL_ENTRY_LENGTH || bytes.size % OPL_ENTRY_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_opl_label)
+                    .decoder(::oplDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF MBDN into alpha identifier, dialling number, CCP2, and EXT6 references.
+         */
+        fun decodeMbdn(resources: Resources, bytes: ByteArray): Element? =
+                decodeDiallingNumberFile(
+                        resources,
+                        bytes,
+                        R.string.ef_mbdn_label,
+                        R.string.ccp2_record_identifier_label,
+                        R.string.extension6_record_identifier_label
+                )
+
+        /**
+         * Decodes EF EXT6 into one extension record.
+         */
+        fun decodeExt6(resources: Resources, bytes: ByteArray): Element? =
+                decodeExtensionRecordFile(resources, bytes, R.string.ef_ext6_label)
+
+        /**
+         * Decodes EF MBI into mailbox dialling number identifiers.
+         */
+        fun decodeMbi(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < MIN_MBI_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_mbi_label)
+                    .decoder(::mbiDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF MWIS into message waiting status and message counts.
+         */
+        fun decodeMwis(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < MIN_MWIS_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_mwis_label)
+                    .decoder(::mwisDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF CFIS into call forwarding indication fields.
+         */
+        fun decodeCfis(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size != CFIS_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_cfis_label)
+                    .decoder(::cfisDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF EXT7 into one extension record.
+         */
+        fun decodeExt7(resources: Resources, bytes: ByteArray): Element? =
+                decodeExtensionRecordFile(resources, bytes, R.string.ef_ext7_label)
+
+        /**
+         * Decodes EF SPDI into BER-TLV service provider display information.
+         */
+        fun decodeSpdi(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty()) return null
+            if (BerTlv.listFrom(bytes).none { it.tag == TAG_SPDI_TEMPLATE }) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_spdi_label)
+                    .decoder(::spdiDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF MMSN into MMS status, implementation, notification, and extension record.
+         */
+        fun decodeMmsn(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < MIN_MMSN_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_mmsn_label)
+                    .decoder(::mmsnDecoder)
                     .build(resources)
         }
 
@@ -615,6 +930,30 @@ class UsimEfDecoders {
                                 PrimitiveElement.Builder(rawData)
                                         .labelId(childLabelId)
                                         .parent(parent)
+                                        .build(innerResources)
+                        )
+                    }
+                    .build(resources)
+        }
+
+        private fun decodeSingleElementFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int,
+            childLabelId: Int,
+            expectedLength: Int,
+            interpreter: (Resources, ByteArray) -> String
+        ): Element? {
+            if (bytes.size != expectedLength) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder { innerResources, rawData, parent ->
+                        listOf(
+                                PrimitiveElement.Builder(rawData)
+                                        .labelId(childLabelId)
+                                        .parent(parent)
+                                        .interpreter(interpreter)
                                         .build(innerResources)
                         )
                     }
@@ -1046,6 +1385,562 @@ class UsimEfDecoders {
                         .build(resources)
         )
 
+        private fun emlppDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                        .labelId(R.string.priority_levels_label)
+                        .parent(parent)
+                        .interpreter(::emlppPriorityMaskInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(1, EMLPP_LENGTH))
+                        .labelId(R.string.fast_call_setup_conditions_label)
+                        .parent(parent)
+                        .interpreter(::emlppPriorityMaskInterpreter)
+                        .build(resources)
+        )
+
+        private fun bdnDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return diallingNumberDecoder(
+                    resources,
+                    rawData.copyOfRange(0, rawData.lastIndex),
+                    parent,
+                    R.string.ccp2_record_identifier_label,
+                    R.string.extension4_record_identifier_label
+            ) + PrimitiveElement.Builder(rawData.copyOfRange(rawData.lastIndex, rawData.size))
+                    .labelId(R.string.comparison_method_pointer_label)
+                    .parent(parent)
+                    .interpreter(::recordIdentifierInterpreter)
+                    .build(resources)
+        }
+
+        private fun cmiDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, rawData.lastIndex))
+                        .labelId(R.string.alpha_identifier_label)
+                        .parent(parent)
+                        .interpreter(::alphaIdentifierInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(rawData.lastIndex, rawData.size))
+                        .labelId(R.string.comparison_method_identifier_label)
+                        .parent(parent)
+                        .interpreter(::emptyOrUnsignedIntegerInterpreter)
+                        .build(resources)
+        )
+
+        private fun estDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return rawData.mapIndexed { byteIndex, byte ->
+                ConstructedElement.Builder(byteArrayOf(byte))
+                        .labelId(R.string.byte_number_label)
+                        .labelArgs(byteIndex + 1)
+                        .parent(parent)
+                        .decoder { innerResources, byteData, byteParent ->
+                            estByteDecoder(innerResources, byteData, byteParent, byteIndex)
+                        }
+                        .dataComposer(::ustByteDataComposer)
+                        .build(resources)
+            }
+        }
+
+        private fun estByteDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?,
+            byteIndex: Int
+        ): List<Element> {
+            val byte = rawData.firstOrNull() ?: return emptyList()
+            return (0 until 8).map { bitIndex ->
+                val serviceNumber = byteIndex * 8 + bitIndex + 1
+                val value = if (byte.toInt() and (1 shl bitIndex) != 0) 1 else 0
+                PrimitiveElement.Builder(byteArrayOf(value.toByte()))
+                        .labelId(R.string.est_service_number_label)
+                        .labelArgs(serviceNumber, estServiceName(resources, serviceNumber))
+                        .parent(parent)
+                        .interpreter(::activatedStateInterpreter)
+                        .build(resources)
+            }
+        }
+
+        private fun aclDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                        .labelId(R.string.number_of_apns_dnns_label)
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources),
+                tlvContainerElement(
+                        resources,
+                        rawData.copyOfRange(1, rawData.size),
+                        parent,
+                        R.string.apn_dnn_tlvs_label
+                )
+        )
+
+        private fun dckDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                dckElement(resources, rawData, parent, 0,
+                        R.string.network_depersonalisation_control_key_label),
+                dckElement(resources, rawData, parent, 4,
+                        R.string.network_subset_depersonalisation_control_key_label),
+                dckElement(resources, rawData, parent, 8,
+                        R.string.service_provider_depersonalisation_control_key_label),
+                dckElement(resources, rawData, parent, 12,
+                        R.string.corporate_depersonalisation_control_key_label)
+        )
+
+        private fun dckElement(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?,
+            offset: Int,
+            labelId: Int
+        ): Element = PrimitiveElement.Builder(rawData.copyOfRange(offset, offset + 4))
+                .labelId(labelId)
+                .parent(parent)
+                .interpreter(::nonSwappedBcdStringInterpreter)
+                .build(resources)
+
+        private fun cnlDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return rawData.asIterable().chunked(CNL_ENTRY_LENGTH).mapIndexed { index, entry ->
+                ConstructedElement.Builder(entry.toByteArray())
+                        .labelId(R.string.cooperative_network_entry_label)
+                        .labelArgs(index + 1)
+                        .parent(parent)
+                        .decoder(::cnlEntryDecoder)
+                        .interpreter { _, _ -> (index + 1).toString() }
+                        .build(resources)
+            }
+        }
+
+        private fun cnlEntryDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 3))
+                        .labelId(R.string.plmn_label)
+                        .parent(parent)
+                        .interpreter(::plmnInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(3, 4))
+                        .labelId(R.string.network_subset_digits_label)
+                        .parent(parent)
+                        .interpreter(::swappedBcdStringInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(4, 5))
+                        .labelId(R.string.service_provider_digits_label)
+                        .parent(parent)
+                        .interpreter(::swappedBcdStringInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(5, CNL_ENTRY_LENGTH))
+                        .labelId(R.string.corporate_digits_label)
+                        .parent(parent)
+                        .interpreter(::swappedBcdStringInterpreter)
+                        .build(resources)
+        )
+
+        private fun startHfnDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 3))
+                        .labelId(R.string.start_cs_label)
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(3, START_HFN_LENGTH))
+                        .labelId(R.string.start_ps_label)
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources)
+        )
+
+        private fun decodePlmnWActFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int,
+            minLength: Int
+        ): Element? {
+            if (bytes.size < minLength || bytes.size % PLMN_W_ACT_ENTRY_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder(::plmnWActDecoder)
+                    .build(resources)
+        }
+
+        private fun decodeTlvFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int,
+            minLength: Int
+        ): Element? {
+            if (bytes.size < minLength) return null
+            if (BerTlv.listFrom(bytes).isEmpty()) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder(::genericTlvDecoder)
+                    .build(resources)
+        }
+
+        private fun genericTlvDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return BerTlv.listFrom(rawData).map {
+                BerTlvElement.Builder(it)
+                        .parent(parent)
+                        .decoder(::genericBerTlvDecoder)
+                        .build(resources)
+            }
+        }
+
+        private fun genericBerTlvDecoder(
+            resources: Resources,
+            tlvs: List<Tlv>,
+            parent: Element?
+        ): List<Element> {
+            return tlvs.map {
+                BerTlvElement.Builder(it)
+                        .parent(parent)
+                        .decoder(::genericBerTlvDecoder)
+                        .build(resources)
+            }
+        }
+
+        private fun tlvContainerElement(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?,
+            labelId: Int
+        ): Element {
+            return ConstructedElement.Builder(rawData)
+                    .labelId(labelId)
+                    .parent(parent)
+                    .decoder(::genericTlvDecoder)
+                    .interpreter { _, _ -> "" }
+                    .build(resources)
+        }
+
+        private fun netparDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return BerTlv.listFrom(rawData).map { tlv ->
+                val builder = BerTlvElement.Builder(tlv).parent(parent)
+                when (tlv.tag) {
+                    TAG_NETPAR_GSM_CELL_INFORMATION -> builder
+                            .labelId(R.string.gsm_cell_information_label)
+                            .decoder(::netparCellInformationDecoder)
+                    TAG_NETPAR_FDD_CELL_INFORMATION -> builder
+                            .labelId(R.string.fdd_cell_information_label)
+                            .decoder(::netparCellInformationDecoder)
+                    TAG_NETPAR_TDD_CELL_INFORMATION -> builder
+                            .labelId(R.string.tdd_cell_information_label)
+                            .decoder(::netparCellInformationDecoder)
+                    else -> builder
+                            .decoder(::genericBerTlvDecoder)
+                }.build(resources)
+            }
+        }
+
+        private fun netparCellInformationDecoder(
+            resources: Resources,
+            tlvs: List<Tlv>,
+            parent: Element?
+        ): List<Element> {
+            return tlvs.map { tlv ->
+                val parentTag = parentTag(parent)
+                val builder = BerTlvElement.Builder(tlv).parent(parent)
+                when (tlv.tag) {
+                    TAG_NETPAR_INFORMATION_1 -> builder
+                            .labelId(netparInformation1Label(parentTag))
+                    TAG_NETPAR_INFORMATION_2 -> builder
+                            .labelId(netparInformation2Label(parentTag))
+                    TAG_NETPAR_CORE_NETWORK_BEARER -> builder
+                            .labelId(R.string.core_network_and_bearer_label)
+                    else -> builder
+                            .decoder(::genericBerTlvDecoder)
+                }.build(resources)
+            }
+        }
+
+        private fun parentTag(parent: Element?): Int? {
+            return (parent as? BerTlvElement)?.tag
+        }
+
+        private fun netparInformation1Label(parentTag: Int?): Int = when (parentTag) {
+            TAG_NETPAR_GSM_CELL_INFORMATION -> R.string.current_camped_bcch_frequency_label
+            TAG_NETPAR_FDD_CELL_INFORMATION -> R.string.intra_frequency_information_label
+            TAG_NETPAR_TDD_CELL_INFORMATION -> R.string.intra_frequency_information_label
+            else -> R.string.unknown_label
+        }
+
+        private fun netparInformation2Label(parentTag: Int?): Int = when (parentTag) {
+            TAG_NETPAR_GSM_CELL_INFORMATION -> R.string.neighbour_bcch_frequencies_label
+            TAG_NETPAR_FDD_CELL_INFORMATION -> R.string.inter_frequency_information_label
+            TAG_NETPAR_TDD_CELL_INFORMATION -> R.string.inter_frequency_information_label
+            else -> R.string.unknown_label
+        }
+
+        private fun pnnDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return BerTlv.listFrom(rawData).map { tlv ->
+                val builder = BerTlvElement.Builder(tlv).parent(parent)
+                when (tlv.tag) {
+                    TAG_PNN_FULL_NAME -> builder
+                            .labelId(R.string.full_name_for_network_label)
+                            .interpreter(::networkNameInterpreter)
+                    TAG_PNN_SHORT_NAME -> builder
+                            .labelId(R.string.short_name_for_network_label)
+                            .interpreter(::networkNameInterpreter)
+                    TAG_PNN_ADDITIONAL_INFORMATION -> builder
+                            .labelId(R.string.plmn_additional_information_label)
+                            .interpreter(PrimitiveElement::defaultStringInterpreter)
+                    else -> builder
+                }.build(resources)
+            }
+        }
+
+        private fun spdiDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return BerTlv.listFrom(rawData).map { tlv ->
+                val builder = BerTlvElement.Builder(tlv).parent(parent)
+                when (tlv.tag) {
+                    TAG_SPDI_TEMPLATE -> builder
+                            .labelId(R.string.service_provider_display_information_label)
+                            .decoder(::spdiTemplateDecoder)
+                    else -> builder
+                            .decoder(::genericBerTlvDecoder)
+                }.build(resources)
+            }
+        }
+
+        private fun spdiTemplateDecoder(
+            resources: Resources,
+            tlvs: List<Tlv>,
+            parent: Element?
+        ): List<Element> {
+            return tlvs.map { tlv ->
+                val builder = BerTlvElement.Builder(tlv).parent(parent)
+                when (tlv.tag) {
+                    TAG_SPDI_PLMN_LIST -> builder
+                            .labelId(R.string.service_provider_plmn_list_label)
+                            .separator(::spdiPlmnListSeparator)
+                    else -> builder
+                            .decoder(::genericBerTlvDecoder)
+                }.build(resources)
+            }
+        }
+
+        private fun spdiPlmnListSeparator(
+            resources: Resources,
+            value: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val trimmed = value.dropLastWhile { it.toInt() and 0xFF == 0xFF }.toByteArray()
+            if (trimmed.isEmpty()) return listOf()
+
+            val plmns = trimmed.asIterable().chunked(FPLMN_ENTRY_LENGTH).filter {
+                it.size == FPLMN_ENTRY_LENGTH
+            }
+            return plmns.mapIndexed { index, entry ->
+                PrimitiveElement.Builder(entry.toByteArray())
+                        .labelId(R.string.service_provider_plmn_label)
+                        .labelArgs(index + 1)
+                        .parent(parent)
+                        .interpreter(::plmnInterpreter)
+                        .build(resources)
+            }
+        }
+
+        private fun oplDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return rawData.asIterable().chunked(OPL_ENTRY_LENGTH).mapIndexed { index, entry ->
+                ConstructedElement.Builder(entry.toByteArray())
+                        .labelId(R.string.operator_plmn_list_entry_label)
+                        .labelArgs(index + 1)
+                        .parent(parent)
+                        .decoder(::oplEntryDecoder)
+                        .interpreter { _, _ -> (index + 1).toString() }
+                        .build(resources)
+            }
+        }
+
+        private fun oplEntryDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 3))
+                        .labelId(R.string.plmn_label)
+                        .parent(parent)
+                        .interpreter(::plmnInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(3, 5))
+                        .labelId(R.string.start_lac_tac_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(5, 7))
+                        .labelId(R.string.end_lac_tac_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(7, OPL_ENTRY_LENGTH))
+                        .labelId(R.string.plmn_network_name_record_identifier_label)
+                        .parent(parent)
+                        .interpreter(::recordIdentifierInterpreter)
+                        .build(resources)
+        )
+
+        private fun mbiDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val labels = listOf(
+                    R.string.mailbox_identifier_voicemail_label,
+                    R.string.mailbox_identifier_fax_label,
+                    R.string.mailbox_identifier_email_label,
+                    R.string.mailbox_identifier_other_label,
+                    R.string.mailbox_identifier_videomail_label
+            )
+            return rawData.mapIndexed { index, byte ->
+                PrimitiveElement.Builder(byteArrayOf(byte))
+                        .labelId(labels.getOrElse(index) { R.string.mailbox_identifier_label })
+                        .parent(parent)
+                        .interpreter(::recordIdentifierInterpreter)
+                        .build(resources)
+            }
+        }
+
+        private fun mwisDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val labels = listOf(
+                    R.string.number_of_voicemail_messages_waiting_label,
+                    R.string.number_of_fax_messages_waiting_label,
+                    R.string.number_of_email_messages_waiting_label,
+                    R.string.number_of_other_messages_waiting_label,
+                    R.string.number_of_videomail_messages_waiting_label
+            )
+            return listOf(
+                    PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                            .labelId(R.string.message_waiting_indicator_status_label)
+                            .parent(parent)
+                            .interpreter(::messageWaitingStatusInterpreter)
+                            .build(resources)
+            ) + rawData.copyOfRange(1, rawData.size).mapIndexed { index, byte ->
+                PrimitiveElement.Builder(byteArrayOf(byte))
+                        .labelId(labels.getOrElse(index) { R.string.message_count_label })
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources)
+            }
+        }
+
+        private fun cfisDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                        .labelId(R.string.msp_number_label)
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(1, 2))
+                        .labelId(R.string.cfu_indicator_status_label)
+                        .parent(parent)
+                        .interpreter(::cfuIndicatorStatusInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(2, 3))
+                        .labelId(R.string.bcd_number_length_label)
+                        .parent(parent)
+                        .interpreter(::unsignedIntegerInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(3, 4))
+                        .labelId(R.string.ton_npi_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(4, 14))
+                        .labelId(R.string.dialling_number_label)
+                        .parent(parent)
+                        .interpreter(::swappedBcdStringInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(14, 15))
+                        .labelId(R.string.ccp2_record_identifier_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(15, CFIS_LENGTH))
+                        .labelId(R.string.extension7_record_identifier_label)
+                        .parent(parent)
+                        .build(resources)
+        )
+
+        private fun mmsnDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 2))
+                        .labelId(R.string.mms_status_label)
+                        .parent(parent)
+                        .interpreter(::mmsStatusInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(2, 3))
+                        .labelId(R.string.mms_implementation_label)
+                        .parent(parent)
+                        .interpreter(::mmsImplementationInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(3, rawData.lastIndex))
+                        .labelId(R.string.mms_notification_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(rawData.lastIndex, rawData.size))
+                        .labelId(R.string.extension_record_identifier_label)
+                        .parent(parent)
+                        .interpreter(::recordIdentifierInterpreter)
+                        .build(resources)
+        )
+
         private fun languageCodeInterpreter(
             resources: Resources,
             rawData: ByteArray
@@ -1197,6 +2092,205 @@ class UsimEfDecoders {
             } else {
                 resources.getString(R.string.not_available_label)
             }
+        }
+
+        private fun estServiceName(
+            resources: Resources,
+            serviceNumber: Int
+        ): String = when (serviceNumber) {
+            1 -> resources.getString(R.string.est_service_fdn)
+            2 -> resources.getString(R.string.est_service_bdn)
+            3 -> resources.getString(R.string.est_service_acl)
+            else -> resources.getString(R.string.rfu_label)
+        }
+
+        private fun activatedStateInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val activated = rawData.firstOrNull()?.toInt()?.and(0x01) == 1
+            return if (activated) {
+                resources.getString(R.string.activated_label)
+            } else {
+                resources.getString(R.string.deactivated_label)
+            }
+        }
+
+        private fun emlppPriorityMaskInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val levels = listOf("A", "B", "0", "1", "2", "3", "4")
+                    .filterIndexed { index, _ -> value and (1 shl index) != 0 }
+            val suffix = if (levels.isEmpty()) {
+                resources.getString(R.string.no_priority_level_selected)
+            } else {
+                resources.getString(R.string.priority_levels_interpretation,
+                        levels.joinToString(", "))
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun nonSwappedBcdStringInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val text = rawData.flatMap { byte ->
+                val value = byte.toInt() and 0xFF
+                listOf((value ushr 4) and 0x0F, value and 0x0F)
+            }.map(::nibbleToDiallingChar)
+                    .filter { it != 'F' }
+                    .joinToString("")
+            return hexWithDescription(resources, rawData, text)
+        }
+
+        private fun emptyOrUnsignedIntegerInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            if (rawData.all { it.toInt() and 0xFF == 0xFF }) {
+                return hexWithDescription(
+                        resources,
+                        rawData,
+                        resources.getString(R.string.empty_label)
+                )
+            }
+            return unsignedIntegerInterpreter(resources, rawData)
+        }
+
+        private fun recordIdentifierInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val label = when (value) {
+                0x00 -> resources.getString(R.string.no_record_associated)
+                0xFF -> resources.getString(R.string.unused_label)
+                else -> resources.getString(R.string.record_number, value)
+            }
+            return hexWithDescription(resources, rawData, label)
+        }
+
+        private fun messageWaitingStatusInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String = bitStatusInterpreter(
+                resources,
+                rawData,
+                listOf(
+                        R.string.voicemail_label,
+                        R.string.fax_label,
+                        R.string.email_label,
+                        R.string.other_label,
+                        R.string.videomail_label
+                )
+        )
+
+        private fun cfuIndicatorStatusInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String = bitStatusInterpreter(
+                resources,
+                rawData,
+                listOf(
+                        R.string.voice_label,
+                        R.string.fax_label,
+                        R.string.all_data_teleservices_label,
+                        R.string.sms_label,
+                        R.string.all_bearer_services_label
+                )
+        )
+
+        private fun bitStatusInterpreter(
+            resources: Resources,
+            rawData: ByteArray,
+            labelIds: List<Int>
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val active = labelIds.mapIndexedNotNull { index, labelId ->
+                if (value and (1 shl index) != 0) resources.getString(labelId) else null
+            }
+            val suffix = if (active.isEmpty()) {
+                resources.getString(R.string.no_indicator_active)
+            } else {
+                active.joinToString(", ")
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun mmsStatusInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val first = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val space = if (first and 0x01 == 0) {
+                resources.getString(R.string.mms_status_free_space)
+            } else {
+                resources.getString(R.string.mms_status_used_space)
+            }
+            val read = if (first and 0x02 == 0) {
+                resources.getString(R.string.mms_status_notification_not_read)
+            } else {
+                resources.getString(R.string.mms_status_notification_read)
+            }
+            val retrieval = when ((first ushr 2) and 0x03) {
+                0 -> resources.getString(R.string.mms_status_not_retrieved)
+                1 -> resources.getString(R.string.mms_status_retrieved)
+                2 -> resources.getString(R.string.mms_status_rejected)
+                else -> resources.getString(R.string.mms_status_forwarded)
+            }
+            return hexWithDescription(resources, rawData, listOf(space, read, retrieval)
+                    .joinToString(", "))
+        }
+
+        private fun mmsImplementationInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val supported = mutableListOf<String>()
+            if (value and 0x01 != 0) supported.add(resources.getString(R.string.mms_impl_wap))
+            if (value and 0x02 != 0) supported.add(resources.getString(R.string.mms_impl_m_imap))
+            if (value and 0x04 != 0) supported.add(resources.getString(R.string.mms_impl_sip))
+            val suffix = if (supported.isEmpty()) {
+                resources.getString(R.string.no_mms_implementation_supported)
+            } else {
+                supported.joinToString(", ")
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun networkNameInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val header = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val codingScheme = (header ushr 4) and 0x07
+            val addCi = header and 0x08 != 0
+            val spareBits = header and 0x07
+            val nameBytes = rawData.copyOfRange(1, rawData.size)
+            val coding = when (codingScheme) {
+                0 -> resources.getString(R.string.gsm_default_alphabet_label)
+                1 -> resources.getString(R.string.ucs2_label)
+                else -> resources.getString(R.string.unknown_label)
+            }
+            val text = when (codingScheme) {
+                0 -> decodeGsm7Packed(nameBytes, spareBits)
+                1 -> StringUtils.decode(byteArrayOf(0x80.toByte()) + nameBytes)
+                else -> ""
+            }
+            val ci = if (addCi) {
+                resources.getString(R.string.country_initials_added)
+            } else {
+                resources.getString(R.string.country_initials_not_added)
+            }
+            val description = if (text.isEmpty()) {
+                resources.getString(R.string.network_name_interpretation_without_text, coding, ci)
+            } else {
+                resources.getString(R.string.network_name_interpretation, text, coding, ci)
+            }
+            return hexWithDescription(resources, rawData, description)
         }
 
         private fun alphaIdentifierInterpreter(
@@ -1508,6 +2602,68 @@ class UsimEfDecoders {
                 0x0E -> 'c'
                 else -> 'F'
             }
+        }
+
+        private fun decodeGsm7Packed(
+            rawData: ByteArray,
+            spareBits: Int
+        ): String {
+            if (rawData.isEmpty()) return ""
+
+            val actualSeptetCount = ((rawData.size * 8 - spareBits) / 7).coerceAtLeast(0)
+            val chars = mutableListOf<Char>()
+            var escaped = false
+            (0 until actualSeptetCount).forEach { index ->
+                val bitOffset = index * 7
+                val byteIndex = bitOffset / 8
+                val shift = bitOffset % 8
+                val first = rawData.getOrNull(byteIndex)?.toInt()?.and(0xFF) ?: return@forEach
+                val second = rawData.getOrNull(byteIndex + 1)?.toInt()?.and(0xFF) ?: 0
+                val septet = ((first ushr shift) or (second shl (8 - shift))) and 0x7F
+                if (escaped) {
+                    chars.add(gsm7ExtensionChar(septet))
+                    escaped = false
+                } else if (septet == 0x1B) {
+                    escaped = true
+                } else {
+                    chars.add(gsm7DefaultChar(septet))
+                }
+            }
+            return chars.joinToString("").trimEnd('@')
+        }
+
+        private fun gsm7DefaultChar(value: Int): Char {
+            val table = charArrayOf(
+                    '@', '\u00A3', '$', '\u00A5', '\u00E8', '\u00E9', '\u00F9', '\u00EC',
+                    '\u00F2', '\u00C7', '\n', '\u00D8', '\u00F8', '\r', '\u00C5',
+                    '\u00E5', '\u0394', '_', '\u03A6', '\u0393', '\u039B', '\u03A9',
+                    '\u03A0', '\u03A8', '\u03A3', '\u0398', '\u039E', '\u001B',
+                    '\u00C6', '\u00E6', '\u00DF', '\u00C9', ' ', '!', '"', '#',
+                    '\u00A4', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/',
+                    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<',
+                    '=', '>', '?', '\u00A1', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+                    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U',
+                    'V', 'W', 'X', 'Y', 'Z', '\u00C4', '\u00D6', '\u00D1', '\u00DC',
+                    '\u00A7', '\u00BF', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
+                    'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+                    'w', 'x', 'y', 'z', '\u00E4', '\u00F6', '\u00F1', '\u00FC',
+                    '\u00E0'
+            )
+            return table.getOrElse(value) { '?' }
+        }
+
+        private fun gsm7ExtensionChar(value: Int): Char = when (value) {
+            0x0A -> '\u000C'
+            0x14 -> '^'
+            0x28 -> '{'
+            0x29 -> '}'
+            0x2F -> '\\'
+            0x3C -> '['
+            0x3D -> '~'
+            0x3E -> ']'
+            0x40 -> '|'
+            0x65 -> '\u20AC'
+            else -> '?'
         }
 
     }
