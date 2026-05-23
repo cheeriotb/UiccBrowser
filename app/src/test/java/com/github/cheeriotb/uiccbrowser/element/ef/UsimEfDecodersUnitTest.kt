@@ -593,6 +593,83 @@ class UsimEfDecodersUnitTest {
     }
 
     @Test
+    fun decodeTask044TransparentFiles_validData_returnsElements() {
+        val ehplmn = UsimEfDecoders.decodeEhplmn(resources, hexStringToByteArray("44F001"))
+        val epsloci = UsimEfDecoders.decodeEpsloci(
+                resources,
+                hexStringToByteArray("00".repeat(12) + "44F0010001" + "02")
+        )
+        val ncpIp = UsimEfDecoders.decodeNcpIp(
+                resources,
+                hexStringToByteArray("80076D6D732E61706E830621200A000000")
+        )
+
+        assertThat(ehplmn).isNotNull()
+        assertThat(ehplmn!!.subElements[0].label).isEqualTo("EHPLMN 1")
+        assertThat(ehplmn.subElements[0].toString()).isEqualTo("44F001 (MCC 440, MNC 10)")
+        assertThat(epsloci).isNotNull()
+        assertThat(epsloci!!.subElements[1].label)
+                .isEqualTo(resources.getString(R.string.last_visited_registered_tai_label))
+        assertThat(epsloci.subElements[2].toString()).isEqualTo("02 (Roaming not allowed)")
+        assertThat(ncpIp).isNotNull()
+        assertThat(ncpIp!!.subElements[0].label).isEqualTo("Access Point Name '80'")
+        assertThat(ncpIp.subElements[1].subElements[0].toString())
+                .isEqualTo("21 (IPv4 address range)")
+    }
+
+    @Test
+    fun decodeTask044TlvFiles_validData_returnsDedicatedLabels() {
+        val mmsicp = UsimEfDecoders.decodeMmsicp(
+                resources,
+                hexStringToByteArray("AB0A8001018105687474703A")
+        )
+        val mmsup = UsimEfDecoders.decodeMmsup(
+                resources,
+                hexStringToByteArray("A00B8001018104546573748200")
+        )
+        val epsnsc = UsimEfDecoders.decodeEpsnsc(
+                resources,
+                hexStringToByteArray("A0348001038120" + "00".repeat(32) +
+                        "820400000001830400000002840100")
+        )
+
+        assertThat(mmsicp).isNotNull()
+        assertThat(mmsicp!!.subElements[0].label)
+                .isEqualTo("MMS Connectivity Parameters 'AB'")
+        assertThat(mmsicp.subElements[0].subElements[0].label)
+                .isEqualTo("MMS Implementation '80'")
+        assertThat(mmsup).isNotNull()
+        assertThat(mmsup!!.subElements[0].subElements[1].toString())
+                .isEqualTo("54657374 (Test)")
+        assertThat(epsnsc).isNotNull()
+        assertThat(epsnsc!!.subElements[0].label).isEqualTo("EPS NAS Security Context 'A0'")
+        assertThat(epsnsc.subElements[0].subElements[0].toString()).isEqualTo("03 (3)")
+    }
+
+    @Test
+    fun decodeTask044LinearFixedFiles_validData_returnsElements() {
+        val ext8 = UsimEfDecoders.decodeExt8(resources, hexStringToByteArray("020548656C6C6FFF"))
+        val nia = UsimEfDecoders.decodeNia(resources, hexStringToByteArray("0154657374FFFF"))
+        val vgcs = UsimEfDecoders.decodeVgcs(resources, hexStringToByteArray("2143FFFF"))
+        val vgcsca = UsimEfDecoders.decodeVgcsca(resources, hexStringToByteArray("0003"))
+        val gbabp = UsimEfDecoders.decodeGbabp(
+                resources,
+                hexStringToByteArray("04AABBCCDD03627469083230323630353233")
+        )
+
+        assertThat(ext8).isNotNull()
+        assertThat(ext8!!.subElements[2].toString()).isEqualTo("FF (Unused)")
+        assertThat(nia).isNotNull()
+        assertThat(nia!!.subElements[1].toString()).isEqualTo("54657374FFFF (Test)")
+        assertThat(vgcs).isNotNull()
+        assertThat(vgcs!!.subElements[0].toString()).isEqualTo("2143FFFF (1234)")
+        assertThat(vgcsca).isNotNull()
+        assertThat(vgcsca!!.subElements[1].toString()).isEqualTo("03 (GSM A5/3)")
+        assertThat(gbabp).isNotNull()
+        assertThat(gbabp!!.subElements[3].toString()).isEqualTo("627469 (bti)")
+    }
+
+    @Test
     fun decodeFixedLengthFiles_invalidSize_returnsNull() {
         assertThat(UsimEfDecoders.decodeSpn(resources, hexStringToByteArray("00"))).isNull()
         assertThat(UsimEfDecoders.decodePuct(resources, hexStringToByteArray("555344"))).isNull()
@@ -614,6 +691,8 @@ class UsimEfDecodersUnitTest {
         assertThat(UsimEfDecoders.decodeStartHfn(resources, hexStringToByteArray("00"))).isNull()
         assertThat(UsimEfDecoders.decodeThreshold(resources, hexStringToByteArray("00"))).isNull()
         assertThat(UsimEfDecoders.decodeCfis(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeEpsloci(resources, hexStringToByteArray("00"))).isNull()
+        assertThat(UsimEfDecoders.decodeVgcss(resources, hexStringToByteArray("00"))).isNull()
     }
 
     @Test
@@ -675,7 +754,32 @@ class UsimEfDecodersUnitTest {
                 FileId.EF_USIM_ACC,
                 FileId.EF_USIM_FPLMN,
                 FileId.EF_USIM_LOCI,
-                FileId.EF_USIM_AD
+                FileId.EF_USIM_AD,
+                FileId.EF_USIM_VGCS,
+                FileId.EF_USIM_VGCSS,
+                FileId.EF_USIM_VBS,
+                FileId.EF_USIM_VBSS,
+                FileId.EF_USIM_EXT8,
+                FileId.EF_USIM_MMSICP,
+                FileId.EF_USIM_MMSUP,
+                FileId.EF_USIM_MMSUCP,
+                FileId.EF_USIM_NIA,
+                FileId.EF_USIM_VGCSCA,
+                FileId.EF_USIM_VBSCA,
+                FileId.EF_USIM_GBABP,
+                FileId.EF_USIM_MSK,
+                FileId.EF_USIM_MUK,
+                FileId.EF_USIM_EHPLMN,
+                FileId.EF_USIM_GBANL,
+                FileId.EF_USIM_EHPLMNPI,
+                FileId.EF_USIM_LRPLMNSI,
+                FileId.EF_USIM_NAFKCA,
+                FileId.EF_USIM_SPNI,
+                FileId.EF_USIM_PNNI,
+                FileId.EF_USIM_NCP_IP,
+                FileId.EF_USIM_EPSLOCI,
+                FileId.EF_USIM_EPSNSC,
+                FileId.EF_USIM_UFC
         )
 
         registered.forEach { fileId ->

@@ -263,6 +263,26 @@
             "id": "6FAD"
         },
         {
+            "name": "VGCS",
+            "description": "Voice Group Call Service",
+            "id": "6FB1"
+        },
+        {
+            "name": "VGCSS",
+            "description": "Voice Group Call Service Status",
+            "id": "6FB2"
+        },
+        {
+            "name": "VBS",
+            "description": "Voice Broadcast Service",
+            "id": "6FB3"
+        },
+        {
+            "name": "VBSS",
+            "description": "Voice Broadcast Service Status",
+            "id": "6FB4"
+        },
+        {
             "name": "eMLPP",
             "description": "Enhanced Multi Level Precedence and Pre-emption",
             "id": "6FB5"
@@ -336,6 +356,111 @@
             "name": "MMSN",
             "description": "MMS Notification",
             "id": "6FCE"
+        },
+        {
+            "name": "EXT8",
+            "description": "Extension8",
+            "id": "6FCF"
+        },
+        {
+            "name": "MMSICP",
+            "description": "MMS Issuer Connectivity Parameters",
+            "id": "6FD0"
+        },
+        {
+            "name": "MMSUP",
+            "description": "MMS User Preferences",
+            "id": "6FD1"
+        },
+        {
+            "name": "MMSUCP",
+            "description": "MMS User Connectivity Parameters",
+            "id": "6FD2"
+        },
+        {
+            "name": "NIA",
+            "description": "Network's Indication of Alerting",
+            "id": "6FD3"
+        },
+        {
+            "name": "VGCSCA",
+            "description": "Voice Group Call Service Ciphering Algorithm",
+            "id": "6FD4"
+        },
+        {
+            "name": "VBSCA",
+            "description": "Voice Broadcast Service Ciphering Algorithm",
+            "id": "6FD5"
+        },
+        {
+            "name": "GBABP",
+            "description": "GBA Bootstrapping parameters",
+            "id": "6FD6"
+        },
+        {
+            "name": "MSK",
+            "description": "MBMS Service Keys List",
+            "id": "6FD7"
+        },
+        {
+            "name": "MUK",
+            "description": "MBMS User Key",
+            "id": "6FD8"
+        },
+        {
+            "name": "EHPLMN",
+            "description": "Equivalent HPLMN",
+            "id": "6FD9"
+        },
+        {
+            "name": "GBANL",
+            "description": "GBA NAF List",
+            "id": "6FDA"
+        },
+        {
+            "name": "EHPLMNPI",
+            "description": "Equivalent HPLMN Presentation Indication",
+            "id": "6FDB"
+        },
+        {
+            "name": "LRPLMNSI",
+            "description": "Last RPLMN Selection Indication",
+            "id": "6FDC"
+        },
+        {
+            "name": "NAFKCA",
+            "description": "NAF Key Centre Address",
+            "id": "6FDD"
+        },
+        {
+            "name": "SPNI",
+            "description": "Service Provider Name Icon",
+            "id": "6FDE"
+        },
+        {
+            "name": "PNNI",
+            "description": "PLMN Network Name Icon",
+            "id": "6FDF"
+        },
+        {
+            "name": "NCP-IP",
+            "description": "Network Connectivity Parameters for USIM IP connections",
+            "id": "6FE2"
+        },
+        {
+            "name": "EPSLOCI",
+            "description": "EPS location information",
+            "id": "6FE3"
+        },
+        {
+            "name": "EPSNSC",
+            "description": "EPS NAS Security Context",
+            "id": "6FE4"
+        },
+        {
+            "name": "UFC",
+            "description": "USAT Facility Control",
+            "id": "6FE6"
         }
     ]
 }

@@ -66,6 +66,18 @@ class UsimEfDecoders {
         private const val MIN_MWIS_LENGTH = 5
         private const val CFIS_LENGTH = 16
         private const val MIN_MMSN_LENGTH = 5
+        private const val MIN_EXT8_LENGTH = 2
+        private const val MIN_NIA_LENGTH = 2
+        private const val GROUP_ID_LENGTH = 4
+        private const val GROUP_STATUS_LENGTH = 7
+        private const val CIPHERING_ALGORITHM_PAIR_LENGTH = 2
+        private const val MIN_GBABP_LENGTH = 3
+        private const val MIN_MSK_LENGTH = 20
+        private const val MSK_TRAILING_ENTRY_LENGTH = 8
+        private const val EHPLMN_ENTRY_LENGTH = 3
+        private const val ONE_BYTE_FILE_LENGTH = 1
+        private const val EPSLOCI_LENGTH = 18
+        private const val EPSNSC_MIN_LENGTH = 54
         private const val TAG_PNN_FULL_NAME = 0x43
         private const val TAG_PNN_SHORT_NAME = 0x45
         private const val TAG_PNN_ADDITIONAL_INFORMATION = 0x80
@@ -77,6 +89,33 @@ class UsimEfDecoders {
         private const val TAG_NETPAR_INFORMATION_1 = 0x80
         private const val TAG_NETPAR_INFORMATION_2 = 0x81
         private const val TAG_NETPAR_CORE_NETWORK_BEARER = 0x82
+        private const val TAG_MMS_CONNECTIVITY_PARAMETERS = 0xAB
+        private const val TAG_MMS_IMPLEMENTATION = 0x80
+        private const val TAG_MMS_RELAY_SERVER = 0x81
+        private const val TAG_INTERFACE_CORE_NETWORK_BEARER = 0x82
+        private const val TAG_GATEWAY = 0x83
+        private const val TAG_MMS_AUTHENTICATION_MECHANISM = 0x84
+        private const val TAG_MMS_AUTHENTICATION_USER_NAME = 0x85
+        private const val TAG_MMS_USER_PREFERENCES = 0xA0
+        private const val TAG_MMS_USER_PROFILE_NAME = 0x81
+        private const val TAG_MMS_USER_PREFERENCE_INFORMATION = 0x82
+        private const val TAG_MUK_ID = 0xA0
+        private const val TAG_NAF_ID = 0x80
+        private const val TAG_B_TID = 0x81
+        private const val TAG_MUK_IDR = 0x80
+        private const val TAG_MUK_IDI = 0x82
+        private const val TAG_NAF_KEY_CENTRE_ADDRESS = 0x80
+        private const val TAG_DATA_DESTINATION_ADDRESS_RANGE = 0x83
+        private const val TAG_ACCESS_POINT_NAME = 0x80
+        private const val TAG_LOGIN = 0x81
+        private const val TAG_PASSWORD = 0x82
+        private const val TAG_BEARER_DESCRIPTION = 0x84
+        private const val TAG_EPS_NAS_SECURITY_CONTEXT = 0xA0
+        private const val TAG_KSIASME = 0x80
+        private const val TAG_KASME = 0x81
+        private const val TAG_UPLINK_NAS_COUNT = 0x82
+        private const val TAG_DOWNLINK_NAS_COUNT = 0x83
+        private const val TAG_NAS_SECURITY_ALGORITHMS = 0x84
 
         private val netparCellInformationTags = setOf(
                 TAG_NETPAR_GSM_CELL_INFORMATION,
@@ -727,6 +766,225 @@ class UsimEfDecoders {
                     .decoder(::mmsnDecoder)
                     .build(resources)
         }
+
+        /**
+         * Decodes EF EXT8 into one MMS notification extension record.
+         */
+        fun decodeExt8(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < MIN_EXT8_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_ext8_label)
+                    .decoder(::ext8Decoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF MMSICP into MMS connectivity parameter TLV objects.
+         */
+        fun decodeMmsicp(resources: Resources, bytes: ByteArray): Element? =
+                decodeMmsConnectivityFile(resources, bytes, R.string.ef_mmsicp_label)
+
+        /**
+         * Decodes EF MMSUP into MMS user preference TLV objects.
+         */
+        fun decodeMmsup(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty()) return null
+            if (BerTlv.listFrom(bytes).none { it.tag == TAG_MMS_USER_PREFERENCES }) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_mmsup_label)
+                    .decoder(::mmsupDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF MMSUCP into user-defined MMS connectivity parameter TLV objects.
+         */
+        fun decodeMmsucp(resources: Resources, bytes: ByteArray): Element? =
+                decodeMmsConnectivityFile(resources, bytes, R.string.ef_mmsucp_label)
+
+        /**
+         * Decodes EF NIA into alerting category and informative text.
+         */
+        fun decodeNia(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < MIN_NIA_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_nia_label)
+                    .decoder(::niaDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF VGCS into four-byte group identifiers.
+         */
+        fun decodeVgcs(resources: Resources, bytes: ByteArray): Element? =
+                decodeGroupIdFile(resources, bytes, R.string.ef_vgcs_label)
+
+        /**
+         * Decodes EF VGCSS into activation flags for VGCS group identifiers.
+         */
+        fun decodeVgcss(resources: Resources, bytes: ByteArray): Element? =
+                decodeGroupStatusFile(resources, bytes, R.string.ef_vgcss_label)
+
+        /**
+         * Decodes EF VBS into four-byte group identifiers.
+         */
+        fun decodeVbs(resources: Resources, bytes: ByteArray): Element? =
+                decodeGroupIdFile(resources, bytes, R.string.ef_vbs_label)
+
+        /**
+         * Decodes EF VBSS into activation flags for VBS group identifiers.
+         */
+        fun decodeVbss(resources: Resources, bytes: ByteArray): Element? =
+                decodeGroupStatusFile(resources, bytes, R.string.ef_vbss_label)
+
+        /**
+         * Decodes EF VGCSCA into ciphering algorithm identifiers.
+         */
+        fun decodeVgcsca(resources: Resources, bytes: ByteArray): Element? =
+                decodeCipheringAlgorithmFile(resources, bytes, R.string.ef_vgcsca_label)
+
+        /**
+         * Decodes EF VBSCA into ciphering algorithm identifiers.
+         */
+        fun decodeVbsca(resources: Resources, bytes: ByteArray): Element? =
+                decodeCipheringAlgorithmFile(resources, bytes, R.string.ef_vbsca_label)
+
+        /**
+         * Decodes EF GBABP into RAND, B-TID, and key lifetime.
+         */
+        fun decodeGbabp(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < MIN_GBABP_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_gbabp_label)
+                    .decoder(::gbabpDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF MSK into MBMS service key list fields.
+         */
+        fun decodeMsk(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size < MIN_MSK_LENGTH ||
+                    (bytes.size - MIN_MSK_LENGTH) % MSK_TRAILING_ENTRY_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_msk_label)
+                    .decoder(::mskDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF MUK into MBMS user key TLV objects.
+         */
+        fun decodeMuk(resources: Resources, bytes: ByteArray): Element? =
+                decodeTlvFile(resources, bytes, R.string.ef_muk_label, 1, ::mukDecoder)
+
+        /**
+         * Decodes EF GBANL into NAF key identifier TLV objects.
+         */
+        fun decodeGbanl(resources: Resources, bytes: ByteArray): Element? =
+                decodeTlvFile(resources, bytes, R.string.ef_gbanl_label, 1, ::gbanlDecoder)
+
+        /**
+         * Decodes EF EHPLMN into priority-ordered equivalent HPLMN entries.
+         */
+        fun decodeEhplmn(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.isEmpty() || bytes.size % EHPLMN_ENTRY_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_ehplmn_label)
+                    .decoder(::ehplmnDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF EHPLMNPI into the EHPLMN display mode.
+         */
+        fun decodeEhplmnpi(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_ehplmnpi_label,
+                        R.string.ehplmn_presentation_indication_label,
+                        ONE_BYTE_FILE_LENGTH,
+                        ::ehplmnPresentationIndicationInterpreter
+                )
+
+        /**
+         * Decodes EF LRPLMNSI into the last RPLMN selection policy.
+         */
+        fun decodeLrplmnsi(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_lrplmnsi_label,
+                        R.string.last_rplmn_selection_indication_label,
+                        ONE_BYTE_FILE_LENGTH,
+                        ::lastRplmnSelectionIndicationInterpreter
+                )
+
+        /**
+         * Decodes EF NAFKCA into NAF key centre TLV objects.
+         */
+        fun decodeNafkca(resources: Resources, bytes: ByteArray): Element? =
+                decodeTlvFile(resources, bytes, R.string.ef_nafkca_label, 1, ::nafkcaDecoder)
+
+        /**
+         * Decodes EF SPNI into service provider name icon TLV objects.
+         */
+        fun decodeSpni(resources: Resources, bytes: ByteArray): Element? =
+                decodeTlvFile(resources, bytes, R.string.ef_spni_label, 1, ::iconTlvDecoder)
+
+        /**
+         * Decodes EF PNNI into PLMN network name icon TLV objects.
+         */
+        fun decodePnni(resources: Resources, bytes: ByteArray): Element? =
+                decodeTlvFile(resources, bytes, R.string.ef_pnni_label, 1, ::iconTlvDecoder)
+
+        /**
+         * Decodes EF NCP-IP into network connectivity parameter TLV objects.
+         */
+        fun decodeNcpIp(resources: Resources, bytes: ByteArray): Element? =
+                decodeTlvFile(resources, bytes, R.string.ef_ncp_ip_label, 1, ::ncpIpDecoder)
+
+        /**
+         * Decodes EF EPSLOCI into EPS location information.
+         */
+        fun decodeEpsloci(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size != EPSLOCI_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_epsloci_label)
+                    .decoder(::epslociDecoder)
+                    .build(resources)
+        }
+
+        /**
+         * Decodes EF EPSNSC into EPS NAS security context TLV objects.
+         */
+        fun decodeEpsnsc(resources: Resources, bytes: ByteArray): Element? =
+                decodeTlvFile(
+                        resources,
+                        bytes,
+                        R.string.ef_epsnsc_label,
+                        EPSNSC_MIN_LENGTH,
+                        ::epsnscDecoder
+                )
+
+        /**
+         * Decodes EF UFC into the USAT facility list.
+         */
+        fun decodeUfc(resources: Resources, bytes: ByteArray): Element? =
+                decodeSingleElementFile(
+                        resources,
+                        bytes,
+                        R.string.ef_ufc_label,
+                        R.string.facility_list_label
+                )
 
         private fun liDecoder(
             resources: Resources,
@@ -1599,12 +1857,22 @@ class UsimEfDecoders {
             rootLabelId: Int,
             minLength: Int
         ): Element? {
+            return decodeTlvFile(resources, bytes, rootLabelId, minLength, ::genericTlvDecoder)
+        }
+
+        private fun decodeTlvFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int,
+            minLength: Int,
+            decoder: (Resources, ByteArray, Element?) -> List<Element>
+        ): Element? {
             if (bytes.size < minLength) return null
             if (BerTlv.listFrom(bytes).isEmpty()) return null
 
             return ConstructedElement.Builder(bytes)
                     .labelId(rootLabelId)
-                    .decoder(::genericTlvDecoder)
+                    .decoder(decoder)
                     .build(resources)
         }
 
@@ -1941,6 +2209,511 @@ class UsimEfDecoders {
                         .build(resources)
         )
 
+        private fun ext8Decoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                        .labelId(R.string.record_type_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(1, rawData.lastIndex))
+                        .labelId(R.string.extension_data_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(rawData.lastIndex, rawData.size))
+                        .labelId(R.string.identifier_label)
+                        .parent(parent)
+                        .interpreter(::recordIdentifierInterpreter)
+                        .build(resources)
+        )
+
+        private fun decodeMmsConnectivityFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int
+        ): Element? {
+            if (bytes.isEmpty()) return null
+            if (BerTlv.listFrom(bytes).none {
+                        it.tag == TAG_MMS_CONNECTIVITY_PARAMETERS
+                    }) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder(::mmsConnectivityDecoder)
+                    .build(resources)
+        }
+
+        private fun mmsConnectivityDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_MMS_CONNECTIVITY_PARAMETERS -> builder
+                        .labelId(R.string.mms_connectivity_parameters_label)
+                        .decoder(::mmsConnectivityParameterDecoder)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun mmsConnectivityParameterDecoder(
+            resources: Resources,
+            tlvs: List<Tlv>,
+            parent: Element?
+        ): List<Element> = tlvs.map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_MMS_IMPLEMENTATION -> builder
+                        .labelId(R.string.mms_implementation_label)
+                        .interpreter(::mmsImplementationInterpreter)
+                TAG_MMS_RELAY_SERVER -> builder.labelId(R.string.mms_relay_server_label)
+                TAG_INTERFACE_CORE_NETWORK_BEARER -> builder
+                        .labelId(R.string.interface_to_core_network_bearer_label)
+                TAG_GATEWAY -> builder.labelId(R.string.gateway_label)
+                TAG_MMS_AUTHENTICATION_MECHANISM -> builder
+                        .labelId(R.string.mms_authentication_mechanism_label)
+                TAG_MMS_AUTHENTICATION_USER_NAME -> builder
+                        .labelId(R.string.mms_authentication_user_name_label)
+                        .interpreter(PrimitiveElement::defaultStringInterpreter)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun mmsupDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_MMS_USER_PREFERENCES -> builder
+                        .labelId(R.string.mms_user_preferences_label)
+                        .decoder(::mmsupPreferenceDecoder)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun mmsupPreferenceDecoder(
+            resources: Resources,
+            tlvs: List<Tlv>,
+            parent: Element?
+        ): List<Element> = tlvs.map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_MMS_IMPLEMENTATION -> builder
+                        .labelId(R.string.mms_implementation_label)
+                        .interpreter(::mmsImplementationInterpreter)
+                TAG_MMS_USER_PROFILE_NAME -> builder
+                        .labelId(R.string.mms_user_preference_profile_name_label)
+                        .interpreter(::alphaIdentifierInterpreter)
+                TAG_MMS_USER_PREFERENCE_INFORMATION -> builder
+                        .labelId(R.string.mms_user_preference_information_label)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun niaDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                        .labelId(R.string.alerting_category_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(1, rawData.size))
+                        .labelId(R.string.informative_text_label)
+                        .parent(parent)
+                        .interpreter(::alphaIdentifierInterpreter)
+                        .build(resources)
+        )
+
+        private fun decodeGroupIdFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int
+        ): Element? {
+            if (bytes.isEmpty() || bytes.size % GROUP_ID_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder(::groupIdDecoder)
+                    .build(resources)
+        }
+
+        private fun groupIdDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = rawData.asIterable().chunked(GROUP_ID_LENGTH).mapIndexed {
+            index, entry ->
+                PrimitiveElement.Builder(entry.toByteArray())
+                        .labelId(R.string.group_id_label)
+                        .labelArgs(index + 1)
+                        .parent(parent)
+                        .interpreter(::swappedBcdStringInterpreter)
+                        .build(resources)
+        }
+
+        private fun decodeGroupStatusFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int
+        ): Element? {
+            if (bytes.size != GROUP_STATUS_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder(::groupStatusDecoder)
+                    .build(resources)
+        }
+
+        private fun groupStatusDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return rawData.flatMapIndexed { byteIndex, byte ->
+                (0 until 8).mapNotNull { bitIndex ->
+                    val groupNumber = byteIndex * 8 + bitIndex + 1
+                    if (groupNumber > 50) return@mapNotNull null
+                    val value = if (byte.toInt() and (1 shl bitIndex) != 0) 1 else 0
+                    PrimitiveElement.Builder(byteArrayOf(value.toByte()))
+                            .labelId(R.string.group_activation_status_label)
+                            .labelArgs(groupNumber)
+                            .parent(parent)
+                            .interpreter(::activatedStateInterpreter)
+                            .build(resources)
+                }
+            }
+        }
+
+        private fun decodeCipheringAlgorithmFile(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int
+        ): Element? {
+            if (bytes.isEmpty() ||
+                    bytes.size % CIPHERING_ALGORITHM_PAIR_LENGTH != 0) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder(::cipheringAlgorithmDecoder)
+                    .build(resources)
+        }
+
+        private fun cipheringAlgorithmDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = rawData.mapIndexed { index, byte ->
+            PrimitiveElement.Builder(byteArrayOf(byte))
+                    .labelId(R.string.group_ciphering_algorithm_label)
+                    .labelArgs(index / 2 + 1, index % 2 + 1)
+                    .parent(parent)
+                    .interpreter(::cipheringAlgorithmInterpreter)
+                    .build(resources)
+        }
+
+        private fun gbabpDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val randLength = rawData[0].toInt() and 0xFF
+            if (rawData.size < randLength + 3) return emptyList()
+            val bTidLengthOffset = randLength + 1
+            val bTidLength = rawData[bTidLengthOffset].toInt() and 0xFF
+            if (rawData.size < randLength + bTidLength + 3) return emptyList()
+            val lifetimeLengthOffset = randLength + bTidLength + 2
+            val lifetimeLength = rawData[lifetimeLengthOffset].toInt() and 0xFF
+            if (rawData.size != randLength + bTidLength + lifetimeLength + 3) return emptyList()
+
+            return listOf(
+                    PrimitiveElement.Builder(rawData.copyOfRange(0, 1))
+                            .labelId(R.string.length_of_rand_label)
+                            .parent(parent)
+                            .interpreter(::unsignedIntegerInterpreter)
+                            .build(resources),
+                    PrimitiveElement.Builder(rawData.copyOfRange(1, bTidLengthOffset))
+                            .labelId(R.string.rand_label)
+                            .parent(parent)
+                            .build(resources),
+                    PrimitiveElement.Builder(rawData.copyOfRange(bTidLengthOffset,
+                            bTidLengthOffset + 1))
+                            .labelId(R.string.length_of_b_tid_label)
+                            .parent(parent)
+                            .interpreter(::unsignedIntegerInterpreter)
+                            .build(resources),
+                    PrimitiveElement.Builder(rawData.copyOfRange(bTidLengthOffset + 1,
+                            lifetimeLengthOffset))
+                            .labelId(R.string.b_tid_label)
+                            .parent(parent)
+                            .interpreter(PrimitiveElement::defaultStringInterpreter)
+                            .build(resources),
+                    PrimitiveElement.Builder(rawData.copyOfRange(lifetimeLengthOffset,
+                            lifetimeLengthOffset + 1))
+                            .labelId(R.string.length_of_key_lifetime_label)
+                            .parent(parent)
+                            .interpreter(::unsignedIntegerInterpreter)
+                            .build(resources),
+                    PrimitiveElement.Builder(rawData.copyOfRange(lifetimeLengthOffset + 1,
+                            rawData.size))
+                            .labelId(R.string.key_lifetime_label)
+                            .parent(parent)
+                            .interpreter(PrimitiveElement::defaultStringInterpreter)
+                            .build(resources)
+            )
+        }
+
+        private fun mskDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            val elements = mutableListOf<Element>()
+            elements.add(PrimitiveElement.Builder(rawData.copyOfRange(0, 16))
+                    .labelId(R.string.key_domain_id_label)
+                    .parent(parent)
+                    .build(resources))
+            elements.add(PrimitiveElement.Builder(rawData.copyOfRange(16, 17))
+                    .labelId(R.string.number_of_stored_msk_ids_label)
+                    .parent(parent)
+                    .interpreter(::unsignedIntegerInterpreter)
+                    .build(resources))
+            elements.add(PrimitiveElement.Builder(rawData.copyOfRange(17, 20))
+                    .labelId(R.string.rfu_label)
+                    .parent(parent)
+                    .build(resources))
+            rawData.copyOfRange(20, rawData.size).asIterable()
+                    .chunked(MSK_TRAILING_ENTRY_LENGTH)
+                    .forEachIndexed { index, entry ->
+                        val entryData = entry.toByteArray()
+                        elements.add(PrimitiveElement.Builder(entryData.copyOfRange(0, 4))
+                                .labelId(R.string.msk_id_label)
+                                .labelArgs(index + 1)
+                                .parent(parent)
+                                .build(resources))
+                        elements.add(PrimitiveElement.Builder(entryData.copyOfRange(4, 8))
+                                .labelId(R.string.time_stamp_counter_label)
+                                .labelArgs(index + 1)
+                                .parent(parent)
+                                .build(resources))
+            }
+            return elements
+        }
+
+        private fun mukDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_MUK_ID -> builder
+                        .labelId(R.string.muk_id_label)
+                        .decoder(::mukIdDecoder)
+                TAG_B_TID -> builder.labelId(R.string.time_stamp_counter_label)
+                        .labelArgs(1)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun mukIdDecoder(
+            resources: Resources,
+            tlvs: List<Tlv>,
+            parent: Element?
+        ): List<Element> = tlvs.map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_MUK_IDR -> builder.labelId(R.string.muk_idr_label)
+                TAG_MUK_IDI -> builder.labelId(R.string.muk_idi_label)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun gbanlDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_NAF_ID -> builder.labelId(R.string.naf_id_label)
+                TAG_B_TID -> builder
+                        .labelId(R.string.b_tid_label)
+                        .interpreter(PrimitiveElement::defaultStringInterpreter)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun ehplmnDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            return rawData.asIterable().chunked(EHPLMN_ENTRY_LENGTH).mapIndexed { index, entry ->
+                PrimitiveElement.Builder(entry.toByteArray())
+                        .labelId(R.string.ehplmn_label)
+                        .labelArgs(index + 1)
+                        .parent(parent)
+                        .interpreter(::plmnInterpreter)
+                        .build(resources)
+            }
+        }
+
+        private fun nafkcaDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_NAF_KEY_CENTRE_ADDRESS -> builder
+                        .labelId(R.string.naf_key_centre_address_label)
+                        .interpreter(::utf8StringInterpreter)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun iconTlvDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            BerTlvElement.Builder(tlv)
+                    .labelId(R.string.icon_label)
+                    .parent(parent)
+                    .separator(::iconSeparator)
+                    .build(resources)
+        }
+
+        private fun iconSeparator(
+            resources: Resources,
+            value: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            if (value.isEmpty()) return emptyList()
+            return listOf(
+                    PrimitiveElement.Builder(value.copyOfRange(0, 1))
+                            .labelId(R.string.icon_qualifier_label)
+                            .parent(parent)
+                            .build(resources),
+                    PrimitiveElement.Builder(value.copyOfRange(1, value.size))
+                            .labelId(R.string.icon_link_label)
+                            .parent(parent)
+                            .interpreter(PrimitiveElement::defaultStringInterpreter)
+                            .build(resources)
+            )
+        }
+
+        private fun ncpIpDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_DATA_DESTINATION_ADDRESS_RANGE -> builder
+                        .labelId(R.string.data_destination_address_range_label)
+                        .separator(::dataDestinationAddressRangeSeparator)
+                TAG_ACCESS_POINT_NAME -> builder.labelId(R.string.access_point_name_label)
+                TAG_LOGIN -> builder
+                        .labelId(R.string.login_label)
+                        .interpreter(PrimitiveElement::defaultStringInterpreter)
+                TAG_PASSWORD -> builder
+                        .labelId(R.string.password_label)
+                        .interpreter(PrimitiveElement::defaultStringInterpreter)
+                TAG_BEARER_DESCRIPTION -> builder.labelId(R.string.bearer_description_label)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun dataDestinationAddressRangeSeparator(
+            resources: Resources,
+            value: ByteArray,
+            parent: Element?
+        ): List<Element> {
+            if (value.size < 2) return emptyList()
+            return listOf(
+                    PrimitiveElement.Builder(value.copyOfRange(0, 1))
+                            .labelId(R.string.type_of_address_label)
+                            .parent(parent)
+                            .interpreter(::typeOfAddressInterpreter)
+                            .build(resources),
+                    PrimitiveElement.Builder(value.copyOfRange(1, 2))
+                            .labelId(R.string.prefix_length_label)
+                            .parent(parent)
+                            .interpreter(::unsignedIntegerInterpreter)
+                            .build(resources),
+                    PrimitiveElement.Builder(value.copyOfRange(2, value.size))
+                            .labelId(R.string.prefix_label)
+                            .parent(parent)
+                            .build(resources)
+            )
+        }
+
+        private fun epslociDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 12))
+                        .labelId(R.string.guti_label)
+                        .parent(parent)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(12, 17))
+                        .labelId(R.string.last_visited_registered_tai_label)
+                        .parent(parent)
+                        .interpreter(::trackingAreaIdentityInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(17, EPSLOCI_LENGTH))
+                        .labelId(R.string.eps_update_status_label)
+                        .parent(parent)
+                        .interpreter(::epsUpdateStatusInterpreter)
+                        .build(resources)
+        )
+
+        private fun epsnscDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = BerTlv.listFrom(rawData).map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_EPS_NAS_SECURITY_CONTEXT -> builder
+                        .labelId(R.string.eps_nas_security_context_label)
+                        .decoder(::epsNasSecurityContextDecoder)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
+        private fun epsNasSecurityContextDecoder(
+            resources: Resources,
+            tlvs: List<Tlv>,
+            parent: Element?
+        ): List<Element> = tlvs.map { tlv ->
+            val builder = BerTlvElement.Builder(tlv).parent(parent)
+            when (tlv.tag) {
+                TAG_KSIASME -> builder
+                        .labelId(R.string.key_set_identifier_ksiasme_label)
+                        .interpreter(::keySetIdentifierInterpreter)
+                TAG_KASME -> builder.labelId(R.string.asme_key_label)
+                TAG_UPLINK_NAS_COUNT -> builder
+                        .labelId(R.string.uplink_nas_count_label)
+                        .interpreter(::unsignedIntegerInterpreter)
+                TAG_DOWNLINK_NAS_COUNT -> builder
+                        .labelId(R.string.downlink_nas_count_label)
+                        .interpreter(::unsignedIntegerInterpreter)
+                TAG_NAS_SECURITY_ALGORITHMS -> builder
+                        .labelId(R.string.nas_security_algorithms_label)
+                else -> builder.decoder(::genericBerTlvDecoder)
+            }.build(resources)
+        }
+
         private fun languageCodeInterpreter(
             resources: Resources,
             rawData: ByteArray
@@ -2259,6 +3032,90 @@ class UsimEfDecoders {
                 supported.joinToString(", ")
             }
             return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun cipheringAlgorithmInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0xFF) ?: return ""
+            val suffix = when (value) {
+                0x00 -> resources.getString(R.string.no_ciphering_label)
+                in 0x01..0x07 -> resources.getString(R.string.gsm_a5_algorithm, value)
+                else -> resources.getString(R.string.rfu_label)
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun ehplmnPresentationIndicationInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val suffix = when (rawData.firstOrNull()?.toInt()?.and(0xFF)) {
+                0x00 -> resources.getString(R.string.no_preference_display_mode)
+                0x01 -> resources.getString(R.string.display_highest_priority_ehplmn)
+                0x02 -> resources.getString(R.string.display_all_ehplmns)
+                else -> resources.getString(R.string.rfu_label)
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun lastRplmnSelectionIndicationInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val suffix = when (rawData.firstOrNull()?.toInt()?.and(0xFF)) {
+                0x00 -> resources.getString(R.string.select_last_rplmn)
+                0x01 -> resources.getString(R.string.select_hplmn_or_last_rplmn)
+                else -> resources.getString(R.string.rfu_label)
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun utf8StringInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val text = rawData.dropLastWhile { it.toInt() and 0xFF == 0xFF }
+                    .toByteArray()
+                    .toString(Charsets.UTF_8)
+            return hexWithDescription(resources, rawData, text)
+        }
+
+        private fun typeOfAddressInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val suffix = when (rawData.firstOrNull()?.toInt()?.and(0xFF)) {
+                0x21 -> resources.getString(R.string.ipv4_address_range)
+                0x57 -> resources.getString(R.string.ipv6_address_range)
+                else -> resources.getString(R.string.rfu_label)
+            }
+            return hexWithDescription(resources, rawData, suffix)
+        }
+
+        private fun trackingAreaIdentityInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            if (rawData.size != 5) return byteArrayToHexString(rawData)
+
+            val plmn = plmnInterpreter(resources, rawData.copyOfRange(0, 3))
+            val tac = byteArrayToHexString(rawData.copyOfRange(3, 5))
+            return hexWithDescription(resources, rawData, "$plmn, TAC $tac")
+        }
+
+        private fun epsUpdateStatusInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val status = when (rawData.firstOrNull()?.toInt()?.and(0x07)) {
+                0x00 -> resources.getString(R.string.eps_update_status_updated)
+                0x01 -> resources.getString(R.string.eps_update_status_not_updated)
+                0x02 -> resources.getString(R.string.eps_update_status_roaming_not_allowed)
+                else -> resources.getString(R.string.reserved_label)
+            }
+            return hexWithDescription(resources, rawData, status)
         }
 
         private fun networkNameInterpreter(
