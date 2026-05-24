@@ -192,7 +192,29 @@ object EfDecoderRegistry {
         EfContext.ISIM to mapOf(
             FileId.EF_ISIM_IMPI to IsimEfDecoders::decodeImpi,
             FileId.EF_ISIM_DOMAIN to IsimEfDecoders::decodeDomain,
-            FileId.EF_ISIM_IMPU to IsimEfDecoders::decodeImpu
+            FileId.EF_ISIM_IMPU to IsimEfDecoders::decodeImpu,
+            FileId.EF_ISIM_ARR to IsimEfDecoders::decodeArr,
+            FileId.EF_ISIM_IST to IsimEfDecoders::decodeIst,
+            FileId.EF_ISIM_P_CSCF to IsimEfDecoders::decodePcscf,
+            FileId.EF_ISIM_AC_GBAUAPI to IsimEfDecoders::decodeAcGbauapi,
+            FileId.EF_ISIM_IMSDCI to IsimEfDecoders::decodeImsdci,
+            FileId.EF_ISIM_SMS to IsimEfDecoders::decodeSms,
+            FileId.EF_ISIM_SMSP to IsimEfDecoders::decodeSmsp,
+            FileId.EF_ISIM_SMSS to IsimEfDecoders::decodeSmss,
+            FileId.EF_ISIM_SMSR to IsimEfDecoders::decodeSmsr,
+            FileId.EF_ISIM_AD to IsimEfDecoders::decodeAd,
+            FileId.EF_ISIM_GBABP to IsimEfDecoders::decodeGbabp,
+            FileId.EF_ISIM_GBANL to IsimEfDecoders::decodeGbanl,
+            FileId.EF_ISIM_NAFKCA to IsimEfDecoders::decodeNafkca,
+            FileId.EF_ISIM_UICCIARI to IsimEfDecoders::decodeUicciari,
+            FileId.EF_ISIM_FROMPREFERRED to IsimEfDecoders::decodeFrompreferred,
+            // (BER-TLV) FileId.EF_ISIM_IMS_CONFIG_DATA to
+            //         IsimEfDecoders::decodeImsConfigData,
+            FileId.EF_ISIM_WEBRTCURI to IsimEfDecoders::decodeWebrtcuri
+            // (BER-TLV) FileId.EF_ISIM_XCAP_CONFIG_DATA to
+            //         IsimEfDecoders::decodeXcapConfigData,
+            // (BER-TLV) FileId.EF_ISIM_MUDMID_CONFIG_DATA to
+            //         IsimEfDecoders::decodeMudmidConfigData,
         )
     )
 

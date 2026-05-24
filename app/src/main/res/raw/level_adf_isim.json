@@ -18,6 +18,101 @@
             "name": "IMPU",
             "description": "IMS public user identity",
             "id": "6F04"
+        },
+        {
+            "name": "ARR",
+            "description": "Access Rule Reference",
+            "id": "6F06"
+        },
+        {
+            "name": "IST",
+            "description": "ISIM Service Table",
+            "id": "6F07"
+        },
+        {
+            "name": "P-CSCF",
+            "description": "P-CSCF Address",
+            "id": "6F09"
+        },
+        {
+            "name": "AC_GBAUAPI",
+            "description": "Access Control to GBA_U_API",
+            "id": "6F0A"
+        },
+        {
+            "name": "IMSDCI",
+            "description": "IMS Data Channel Indication",
+            "id": "6F0B"
+        },
+        {
+            "name": "SMS",
+            "description": "Short messages",
+            "id": "6F3C"
+        },
+        {
+            "name": "SMSP",
+            "description": "Short message service parameters",
+            "id": "6F42"
+        },
+        {
+            "name": "SMSS",
+            "description": "SMS status",
+            "id": "6F43"
+        },
+        {
+            "name": "SMSR",
+            "description": "Short message status reports",
+            "id": "6F47"
+        },
+        {
+            "name": "AD",
+            "description": "Administrative Data",
+            "id": "6FAD"
+        },
+        {
+            "name": "GBABP",
+            "description": "GBA Bootstrapping parameters",
+            "id": "6FD5"
+        },
+        {
+            "name": "GBANL",
+            "description": "GBA NAF List",
+            "id": "6FD7"
+        },
+        {
+            "name": "NAFKCA",
+            "description": "NAF Key Centre Address",
+            "id": "6FDD"
+        },
+        {
+            "name": "UICCIARI",
+            "description": "UICC IARI",
+            "id": "6FE7"
+        },
+        {
+            "name": "FromPreferred",
+            "description": "From Preferred",
+            "id": "6FF7"
+        },
+        {
+            "name": "IMSConfigData",
+            "description": "IMS Configuration Data",
+            "id": "6FF8"
+        },
+        {
+            "name": "WebRTCURI",
+            "description": "WebRTC URI",
+            "id": "6FFA"
+        },
+        {
+            "name": "XCAPConfigData",
+            "description": "XCAP Configuration Data",
+            "id": "6FFC"
+        },
+        {
+            "name": "MuDMiDConfigData",
+            "description": "MuD and MiD Configuration Data",
+            "id": "6FFE"
         }
     ]
 }

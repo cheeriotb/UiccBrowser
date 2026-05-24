@@ -205,6 +205,9 @@
     <string name="ef_impi_label">EF IMPI</string>
     <string name="ef_domain_label">EF DOMAIN</string>
     <string name="ef_impu_label">EF IMPU</string>
+    <string name="ef_ist_label">EF IST</string>
+    <string name="ef_pcscf_label">EF P-CSCF</string>
+    <string name="ef_webrtcuri_label">EF WebRTCURI</string>
     <string name="preferred_language_label">Preferred language %1$d</string>
     <string name="uicc_max_power_consumption_label">UICC maximum power consumption</string>
     <string name="operator_timeout_label">Operator timeout</string>
@@ -520,6 +523,11 @@
     <string name="private_user_identity_label">Private user identity</string>
     <string name="home_network_domain_name_label">Home Network Domain Name</string>
     <string name="public_user_identity_label">Public user identity %1$d</string>
+    <string name="pcscf_address_record_label">P-CSCF address record %1$d</string>
+    <string name="pcscf_address_label">P-CSCF address</string>
+    <string name="pcscf_address_type_fqdn">FQDN</string>
+    <string name="pcscf_address_type_ipv4">IPv4 address</string>
+    <string name="pcscf_address_type_ipv6">IPv6 address</string>
     <string name="unused_label">Unused</string>
     <string name="empty_label">Empty</string>
     <string name="invalid_length_label">Invalid length</string>
@@ -681,6 +689,31 @@
     <string name="no_hpplmn_search_attempts">No higher priority PLMN search attempts</string>
     <string name="no_access_control_class_allocated">No access control class allocated</string>
     <string name="no_additional_information_enabled">No additional information enabled</string>
+
+    <string-array name="isim_service_names">
+        <item>P-CSCF address</item>
+        <item>Generic Bootstrapping Architecture (GBA)</item>
+        <item>HTTP Digest</item>
+        <item>GBA-based Local Key Establishment Mechanism</item>
+        <item>Support of P-CSCF discovery for IMS Local Break Out</item>
+        <item>Short Message Storage (SMS)</item>
+        <item>Short Message Status Reports (SMSR)</item>
+        <item>Support for SM-over-IP including data download via SMS-PP</item>
+        <item>Communication Control for IMS by ISIM</item>
+        <item>Support of UICC access to IMS</item>
+        <item>URI support by UICC</item>
+        <item>Media Type support</item>
+        <item>IMS call disconnection cause</item>
+        <item>URI support for MO SHORT MESSAGE CONTROL</item>
+        <item>Mission Critical Services</item>
+        <item>URI support for SMS-PP DOWNLOAD</item>
+        <item>From Preferred</item>
+        <item>IMS configuration data</item>
+        <item>XCAP Configuration Data</item>
+        <item>WebRTC URI</item>
+        <item>MuD and MiD configuration data</item>
+        <item>IMS Data Channel Indication</item>
+    </string-array>
 
     <string-array name="usim_service_names">
         <item>Local Phone Book</item>

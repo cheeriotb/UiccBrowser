@@ -10,14 +10,14 @@ This project is intended for users who already understand SIM/UICC file structur
 
 UICC Browser requires Android system-level privileges, so it can only be used on rooted Android device. The author has tested the application on an older Google Pixel 4 with Magisk installed.
 
-If you use Magisk, the easiest installation method is to install the ZIP file in the `release` directory from the Magisk "Modules" tab.
+If you use Magisk, the easiest installation method is to install the released ZIP file from the Magisk "Modules" tab.
 
 The application specifically requires the following privileged Android permissions:
 
 - `READ_PRIVILEGED_PHONE_STATE`
 - `MODIFY_PHONE_STATE`
 
-Any installation method should work as long as it can grant these permissions to the application.
+Any installation method should work as long as it can grant these permissions to the application. For example (if this method is available);
 
 ```
 $ adb shell pm grant com.github.cheeriotb.uiccbrowser android.permission.READ_PRIVILEGED_PHONE_STATE
@@ -63,8 +63,22 @@ Editing UICC contents can break SIM functionality or make a profile unusable. Us
 Current limitations are listed below.
 
 - Only USIM and ISIM are supported as ADF.
-- The number of supported EFs is currently quite limited.
 - Linear Fixed and Transparent EFs are supported, but Cyclic and BER-TLV EFs are not supported yet.
+- The following DFs are not supported yet.
+    - DFPHONEBOOK '5F3A'
+    - DFGSM-ACCESS '5F3B'
+    - DFMexE '5F3C'
+    - DFWLAN '5F40'
+    - DFHNB '5F50'
+    - DFSoLSA '5F70'
+    - DFBCAST '5F80'
+    - DFProSe '5F90'
+    - DFACDC '5FA0'
+    - DFTV '5FB0'
+    - DFSAIP '5FD0'
+    - DFSNPN '5FE0'
+    - DF5G_ProSe '5FF0'
+    - DF5MBSUECONFIG '5FF1'
 - Special EF operations such as create, delete, and resize are not supported.
 - Some features have not been fully verified because the number of SIM cards and devices available for testing is limited.
 
