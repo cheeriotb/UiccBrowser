@@ -89,6 +89,22 @@ class BinaryViewModelUnitTest {
     }
 
     @Test
+    fun recordNumberForClipboard_recordBasedEf_returnsCurrentRecordNumber() {
+        assertThat(BinaryViewModel.recordNumberForClipboard(
+            recordCount = 3,
+            currentRecordNo = 2
+        )).isEqualTo(2)
+    }
+
+    @Test
+    fun recordNumberForClipboard_transparentEf_returnsNull() {
+        assertThat(BinaryViewModel.recordNumberForClipboard(
+            recordCount = 0,
+            currentRecordNo = 1
+        )).isNull()
+    }
+
+    @Test
     fun insertByteAt_insertsZeroAndDropsLastByte() {
         val data = byteArrayOf(0xA5.toByte(), 0xA6.toByte(), 0xA7.toByte(), 0xA8.toByte())
 

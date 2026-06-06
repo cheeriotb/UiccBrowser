@@ -80,6 +80,9 @@ class BinaryViewModel(
         _error.value = null
     }
 
+    /** Returns the selected record number for a record-based EF, or null for a transparent EF. */
+    fun currentRecordNumber(): Int? = recordNumberForClipboard(recordCount.value, currentRecordNo)
+
     /** Starts editing at the first byte and keeps the cursor in view. */
     fun startEditMode() {
         val data = _data.value ?: return
@@ -290,6 +293,9 @@ class BinaryViewModel(
 
         internal fun nextCursorIndex(cursorIndex: Int, dataSize: Int): Int =
             if (cursorIndex + 1 < dataSize) cursorIndex + 1 else cursorIndex
+
+        internal fun recordNumberForClipboard(recordCount: Int, currentRecordNo: Int): Int? =
+            currentRecordNo.takeIf { recordCount > 0 }
 
         internal fun insertByteAt(data: ByteArray, index: Int): ByteArray {
             if (index !in data.indices) return data

@@ -8,6 +8,9 @@
 
 package com.github.cheeriotb.uiccbrowser.ui.efdetail
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Editable
@@ -15,6 +18,7 @@ import android.text.InputFilter
 import android.text.InputType
 import android.text.TextWatcher
 import android.text.method.PasswordTransformationMethod
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -36,10 +40,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager2.widget.ViewPager2
 import com.github.cheeriotb.uiccbrowser.R
 import com.github.cheeriotb.uiccbrowser.databinding.FragmentEfDetailBinding
+import com.github.cheeriotb.uiccbrowser.element.EfDecoderRegistry
+import com.github.cheeriotb.uiccbrowser.element.Element
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.repository.FileId
-import com.github.cheeriotb.uiccbrowser.repository.Result
 import com.github.cheeriotb.uiccbrowser.repository.KeyReference
+import com.github.cheeriotb.uiccbrowser.repository.Result
 import com.github.cheeriotb.uiccbrowser.ui.MainViewModel
 import com.github.cheeriotb.uiccbrowser.usecase.EditAccessUseCase
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -129,6 +135,8 @@ class EfDetailFragment : Fragment() {
                     val editItem = menu.findItem(R.id.action_edit)
                     editItem.isVisible = mainViewModel.isProModeEnabled.value
                     editItem.isEnabled = !editModeEnabled
+                    menu.findItem(R.id.action_copy_to_clipboard).isEnabled =
+                        isCopyToClipboardEnabled(binaryViewModel.data.value, editModeEnabled)
                 }
 
                 override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
@@ -145,6 +153,10 @@ class EfDetailFragment : Fragment() {
                             startEditMode()
                             true
                         }
+                        R.id.action_copy_to_clipboard -> {
+                            copyToClipboard()
+                            true
+                        }
                         else -> false
                     }
                 }
@@ -152,6 +164,37 @@ class EfDetailFragment : Fragment() {
             viewLifecycleOwner,
             Lifecycle.State.RESUMED
         )
+    }
+
+    private fun copyToClipboard() {
+        val data = binaryViewModel.data.value
+            ?.takeIf { isCopyToClipboardEnabled(it, editModeEnabled) }
+            ?: return
+        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE)
+            as ClipboardManager
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText(
+                getString(R.string.clipboard_ef_detail_label),
+                EfDetailClipboardFormatter.format(
+                    data,
+                    decodeForClipboard(data),
+                    binaryViewModel.currentRecordNumber()
+                )
+            )
+        )
+    }
+
+    private fun decodeForClipboard(data: ByteArray): Element? {
+        val decoder = EfDecoderRegistry.find(
+            viewModel.fileId.aid,
+            viewModel.fileId.path + viewModel.fileId.fileId
+        ) ?: return null
+        return try {
+            decoder(resources, data)
+        } catch (exception: RuntimeException) {
+            Log.w(TAG, "Failed to decode EF data for clipboard.", exception)
+            null
+        }
     }
 
     private fun startEditMode() {
@@ -581,6 +624,11 @@ class EfDetailFragment : Fragment() {
                     }
                 }
                 launch {
+                    binaryViewModel.data.collect {
+                        requireActivity().invalidateOptionsMenu()
+                    }
+                }
+                launch {
                     binaryViewModel.error.collect { result ->
                         if (result != null) {
                             handleReadError(result)
@@ -747,6 +795,10 @@ class EfDetailFragment : Fragment() {
             inProgress: Boolean
         ): Boolean = readError.sw == Result.SW_INSUFFICIENT_SECURITY && !inProgress
 
+        /** Returns true when current binary data can be copied outside Edit mode. */
+        internal fun isCopyToClipboardEnabled(data: ByteArray?, editModeEnabled: Boolean): Boolean =
+            !editModeEnabled && data != null && data.isNotEmpty()
+
         internal fun messageResId(failure: EditAccessUseCase.Failure) = when (failure) {
             EditAccessUseCase.Failure.CARD_UNAVAILABLE -> R.string.edit_mode_card_unavailable
             EditAccessUseCase.Failure.FCP_UNAVAILABLE -> R.string.edit_mode_fcp_unavailable
@@ -819,6 +871,7 @@ class EfDetailFragment : Fragment() {
         const val ARG_EF_FILE_ID = "efFileId"
         const val ARG_AID = "aid"
         const val ARG_PARENT_PATH = "parentPath"
+        private const val TAG = "EfDetailFragment"
         private const val MIN_VERIFY_CODE_DIGITS = 2
         private const val MAX_VERIFY_CODE_DIGITS = 16
     }

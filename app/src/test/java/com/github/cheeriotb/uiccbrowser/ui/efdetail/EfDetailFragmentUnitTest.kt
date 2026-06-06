@@ -157,6 +157,34 @@ class EfDetailFragmentUnitTest {
     }
 
     @Test
+    fun isCopyToClipboardEnabled_nonEmptyDataOutsideEditMode_returnsTrue() {
+        assertThat(EfDetailFragment.isCopyToClipboardEnabled(
+            byteArrayOf(0x00),
+            editModeEnabled = false
+        )).isTrue()
+    }
+
+    @Test
+    fun isCopyToClipboardEnabled_emptyOrNullData_returnsFalse() {
+        assertThat(EfDetailFragment.isCopyToClipboardEnabled(
+            byteArrayOf(),
+            editModeEnabled = false
+        )).isFalse()
+        assertThat(EfDetailFragment.isCopyToClipboardEnabled(
+            null,
+            editModeEnabled = false
+        )).isFalse()
+    }
+
+    @Test
+    fun isCopyToClipboardEnabled_editMode_returnsFalse() {
+        assertThat(EfDetailFragment.isCopyToClipboardEnabled(
+            byteArrayOf(0x00),
+            editModeEnabled = true
+        )).isFalse()
+    }
+
+    @Test
     fun messageResId_editAccessFailures_returnsMessageResources() {
         assertThat(EfDetailFragment.messageResId(EditAccessUseCase.Failure.CARD_UNAVAILABLE))
             .isEqualTo(R.string.edit_mode_card_unavailable)

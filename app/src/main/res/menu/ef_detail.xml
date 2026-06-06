@@ -11,4 +11,9 @@
         android:id="@+id/action_edit"
         android:title="@string/action_edit"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_copy_to_clipboard"
+        android:title="@string/action_copy_to_clipboard"
+        app:showAsAction="never" />
 </menu>
