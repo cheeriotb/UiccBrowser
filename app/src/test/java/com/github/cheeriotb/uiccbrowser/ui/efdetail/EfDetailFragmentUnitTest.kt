@@ -185,6 +185,26 @@ class EfDetailFragmentUnitTest {
     }
 
     @Test
+    fun isEditOptionEnabled_editableOutsideEditMode_returnsTrue() {
+        assertThat(EfDetailFragment.isEditOptionEnabled(
+            isEditable = true,
+            editModeEnabled = false
+        )).isTrue()
+    }
+
+    @Test
+    fun isEditOptionEnabled_cyclicOrActiveEditMode_returnsFalse() {
+        assertThat(EfDetailFragment.isEditOptionEnabled(
+            isEditable = false,
+            editModeEnabled = false
+        )).isFalse()
+        assertThat(EfDetailFragment.isEditOptionEnabled(
+            isEditable = true,
+            editModeEnabled = true
+        )).isFalse()
+    }
+
+    @Test
     fun messageResId_editAccessFailures_returnsMessageResources() {
         assertThat(EfDetailFragment.messageResId(EditAccessUseCase.Failure.CARD_UNAVAILABLE))
             .isEqualTo(R.string.edit_mode_card_unavailable)

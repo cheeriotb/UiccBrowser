@@ -43,6 +43,10 @@ class BinaryViewModel(
     private val _recordCount = MutableStateFlow(0)
     val recordCount: StateFlow<Int> = _recordCount.asStateFlow()
 
+    private val _isEditable = MutableStateFlow(false)
+    /** True after the current EF is identified as Transparent or Linear Fixed. */
+    val isEditable: StateFlow<Boolean> = _isEditable.asStateFlow()
+
     private val _error = MutableStateFlow<Result?>(null)
     val error: StateFlow<Result?> = _error.asStateFlow()
 
@@ -85,6 +89,7 @@ class BinaryViewModel(
 
     /** Starts editing at the first byte and keeps the cursor in view. */
     fun startEditMode() {
+        if (!isEditable.value) return
         val data = _data.value ?: return
         _editState.value = EditState(
             enabled = data.isNotEmpty(),
@@ -159,7 +164,7 @@ class BinaryViewModel(
             DataSource.LINEAR_FIXED -> repo.updateRecord(
                 UpdateRecordParams(fileId = fileId, recordNo = currentRecordNo, data = data)
             )
-            DataSource.UNKNOWN -> null
+            DataSource.CYCLIC, DataSource.UNKNOWN -> null
         }
     }
 
@@ -173,6 +178,7 @@ class BinaryViewModel(
 
     private suspend fun loadInitialDataInProgress() {
         dataSource = DataSource.UNKNOWN
+        _isEditable.value = false
         recordLength = 0
         currentRecordNo = 1
         _recordCount.value = 0
@@ -187,7 +193,11 @@ class BinaryViewModel(
             return
         }
         val info = infoResult.info ?: return
-        dataSource = DataSource.LINEAR_FIXED
+        dataSource = when (info.structure) {
+            ReadRecordUseCase.RecordStructure.LINEAR_FIXED -> DataSource.LINEAR_FIXED
+            ReadRecordUseCase.RecordStructure.CYCLIC -> DataSource.CYCLIC
+        }
+        _isEditable.value = info.structure == ReadRecordUseCase.RecordStructure.LINEAR_FIXED
         recordLength = info.recordLength
         _recordCount.value = info.numberOfRecords
         readCurrentRecord()
@@ -201,6 +211,7 @@ class BinaryViewModel(
         }
         val data = binaryResult.data ?: return false
         dataSource = DataSource.TRANSPARENT
+        _isEditable.value = true
         _readError.value = null
         _data.value = data
         return true
@@ -259,7 +270,8 @@ class BinaryViewModel(
     internal enum class DataSource {
         UNKNOWN,
         TRANSPARENT,
-        LINEAR_FIXED
+        LINEAR_FIXED,
+        CYCLIC
     }
 
     internal enum class RefreshTarget {
@@ -274,7 +286,7 @@ class BinaryViewModel(
             recordLength: Int
         ): RefreshTarget = when (dataSource) {
             DataSource.TRANSPARENT -> RefreshTarget.BINARY
-            DataSource.LINEAR_FIXED ->
+            DataSource.LINEAR_FIXED, DataSource.CYCLIC ->
                 if (recordLength > 0) RefreshTarget.CURRENT_RECORD else RefreshTarget.INITIAL
             DataSource.UNKNOWN -> RefreshTarget.INITIAL
         }

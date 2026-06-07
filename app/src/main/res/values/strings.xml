@@ -81,6 +81,7 @@
     <string name="ef_plmn_w_act_label">EF PLMNwAcT</string>
     <string name="ef_hpplmn_label">EF HPPLMN</string>
     <string name="ef_acm_max_label">EF ACMmax</string>
+    <string name="ef_acm_label">EF ACM</string>
     <string name="ef_ust_label">EF UST</string>
     <string name="ef_cbmid_label">EF CBMID</string>
     <string name="ef_ecc_label">EF ECC</string>
@@ -95,6 +96,10 @@
     <string name="ef_ext2_label">EF EXT2</string>
     <string name="ef_ext3_label">EF EXT3</string>
     <string name="ef_smsr_label">EF SMSR</string>
+    <string name="ef_ici_label">EF ICI</string>
+    <string name="ef_oci_label">EF OCI</string>
+    <string name="ef_ict_label">EF ICT</string>
+    <string name="ef_oct_label">EF OCT</string>
     <string name="ef_ext5_label">EF EXT5</string>
     <string name="ef_ccp2_label">EF CCP2</string>
     <string name="ef_emlpp_label">EF eMLPP</string>
@@ -312,6 +317,14 @@
     <string name="extension6_record_identifier_label">Extension6 Record Identifier</string>
     <string name="extension7_record_identifier_label">Extension7 Record Identifier</string>
     <string name="extension_record_identifier_label">Extension Record Identifier</string>
+    <string name="accumulated_units_label">Accumulated count of units</string>
+    <string name="call_date_time_label">Call date and time</string>
+    <string name="call_duration_label">Call duration</string>
+    <string name="call_status_label">Call status</string>
+    <string name="phone_book_link_label">Link to phone book entry</string>
+    <string name="accumulated_call_timer_label">Accumulated call timer</string>
+    <string name="pairing_status_label">Pairing status</string>
+    <string name="pairing_device_record_label">EF IPD record link</string>
     <string name="sms_status_label">SMS status</string>
     <string name="sms_tpdu_label">SMS TPDU</string>
     <string name="sms_parameters_indicator_label">SMS parameters indicator</string>
@@ -543,6 +556,12 @@
     <string name="location_area_interpretation">%1$s, LAC %2$s</string>
     <string name="power_consumption_ma">%1$d mA</string>
     <string name="timeout_seconds">%1$d seconds</string>
+    <string name="call_answered">Answered</string>
+    <string name="call_not_answered">Not answered</string>
+    <string name="pairing_successful">Pairing successful</string>
+    <string name="pairing_unsuccessful">Pairing unsuccessful</string>
+    <string name="global_phone_book_link">Global phone book: PBR #%1$d, ADN #%2$d</string>
+    <string name="local_phone_book_link">Local phone book: PBR #%1$d, ADN #%2$d</string>
     <string name="increased_idle_current_required">Increased idle current required</string>
     <string name="increased_idle_current_not_required">Increased idle current not required</string>
     <string name="uicc_suspension_supported">UICC suspension supported</string>

@@ -54,6 +54,16 @@ class BinaryViewModelUnitTest {
     }
 
     @Test
+    fun buildRefreshTarget_cyclicWithRecordLength_returnsCurrentRecord() {
+        val target = BinaryViewModel.buildRefreshTarget(
+            BinaryViewModel.DataSource.CYCLIC,
+            recordLength = 4
+        )
+
+        assertThat(target).isEqualTo(BinaryViewModel.RefreshTarget.CURRENT_RECORD)
+    }
+
+    @Test
     fun byteIndexForGridPosition_offsetColumn_returnsNull() {
         assertThat(BinaryViewModel.byteIndexForGridPosition(0, dataSize = 16)).isNull()
         assertThat(BinaryViewModel.byteIndexForGridPosition(9, dataSize = 16)).isNull()

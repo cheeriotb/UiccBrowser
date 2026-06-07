@@ -18,15 +18,25 @@ import com.github.cheeriotb.uiccbrowser.repository.Result
 
 class ReadRecordUseCase(private val context: Context) {
 
-    data class LinearFixedInfo(val recordLength: Int, val numberOfRecords: Int)
-    data class InfoOutcome(val info: LinearFixedInfo? = null, val error: Result? = null)
+    enum class RecordStructure {
+        LINEAR_FIXED,
+        CYCLIC
+    }
+
+    data class RecordInfo(
+        val recordLength: Int,
+        val numberOfRecords: Int,
+        val structure: RecordStructure
+    )
+
+    data class InfoOutcome(val info: RecordInfo? = null, val error: Result? = null)
     data class ReadOutcome(val data: ByteArray? = null, val error: Result? = null)
 
     /**
-     * Returns [LinearFixedInfo] if [fileId] is a Linear Fixed EF, null otherwise.
+     * Returns [RecordInfo] if [fileId] is a Linear Fixed or Cyclic EF, null otherwise.
      * Uses only the FCP cache — no card I/O is performed.
      */
-    suspend fun getInfo(slotId: Int, fileId: FileId): LinearFixedInfo? {
+    suspend fun getInfo(slotId: Int, fileId: FileId): RecordInfo? {
         return getInfoDetailed(slotId, fileId).info
     }
 
@@ -46,19 +56,24 @@ class ReadRecordUseCase(private val context: Context) {
             .find { it.tag == FcpTemplate.TAG_FILE_DESCRIPTOR }
             ?: return InfoOutcome()
 
-        // Bits 2-0 of the File Descriptor Byte: 0x02 = Linear Fixed EF (ETSI TS 102.221 §11.1.1.4.3)
+        // Bits 2-0: 0x02 = Linear Fixed EF, 0x06 = Cyclic EF.
         // The FD element must be at least 5 bytes to contain record length and number of records.
-        if (fdElement.data.size < 5 || fdElement.data[0].toInt() and 0x07 != 0x02) return InfoOutcome()
+        if (fdElement.data.size < 5) return InfoOutcome()
+        val structure = when (fdElement.data[0].toInt() and 0x07) {
+            0x02 -> RecordStructure.LINEAR_FIXED
+            0x06 -> RecordStructure.CYCLIC
+            else -> return InfoOutcome()
+        }
 
         val recordLength = ((fdElement.data[2].toInt() and 0xFF) shl 8) or
                 (fdElement.data[3].toInt() and 0xFF)
         val numberOfRecords = fdElement.data[4].toInt() and 0xFF
 
-        return InfoOutcome(LinearFixedInfo(recordLength, numberOfRecords))
+        return InfoOutcome(RecordInfo(recordLength, numberOfRecords, structure))
     }
 
     /**
-     * Reads the record at [recordNo] (1-based) from the Linear Fixed EF identified by [fileId].
+     * Reads [recordNo] (1-based) from the record-structured EF identified by [fileId].
      * Returns null if the repository is inaccessible or the READ RECORD command fails.
      */
     suspend fun execute(slotId: Int, fileId: FileId, recordNo: Int, recordLength: Int): ByteArray? {

@@ -28,6 +28,7 @@ class UsimEfDecoders {
         private const val KEYS_LENGTH = 33
         private const val HPPLMN_LENGTH = 1
         private const val ACM_MAX_LENGTH = 3
+        private const val ACM_LENGTH = 3
         private const val SPN_LENGTH = 17
         private const val PUCT_LENGTH = 5
         private const val ACC_LENGTH = 2
@@ -43,6 +44,9 @@ class UsimEfDecoders {
         private const val SMSP_TRAILER_LENGTH = 28
         private const val SMSS_LENGTH = 2
         private const val SMSR_MIN_LENGTH = 30
+        private const val ICI_TRAILER_LENGTH = 28
+        private const val OCI_TRAILER_LENGTH = 27
+        private const val CALL_TIMER_LENGTH = 3
         private const val EXTENSION_RECORD_LENGTH = 13
         private const val CCP2_MIN_LENGTH = 15
         private const val FPLMN_ENTRY_LENGTH = 3
@@ -80,6 +84,7 @@ class UsimEfDecoders {
         private const val EPSNSC_MIN_LENGTH = 54
         private const val PWS_MIN_LENGTH = 1
         private const val IAL_ENTRY_LENGTH = 8
+        private const val IPS_LENGTH = 4
         private const val IPD_LENGTH = 8
         private const val EPDG_SELECTION_ENTRY_LENGTH = 7
         private const val THREE_GPP_PS_DATA_OFF_LENGTH = 4
@@ -236,6 +241,16 @@ class UsimEfDecoders {
                     .decoder(::acmMaxDecoder)
                     .build(resources)
         }
+
+        /** Decodes one EF ACM cyclic record into its accumulated unit count. */
+        fun decodeAcm(resources: Resources, bytes: ByteArray): Element? =
+                decodeThreeByteCounter(
+                        resources,
+                        bytes,
+                        ACM_LENGTH,
+                        R.string.ef_acm_label,
+                        R.string.accumulated_units_label
+                )
 
         /**
          * Decodes EF UST into one child for each advertised USIM service bit.
@@ -494,6 +509,36 @@ class UsimEfDecoders {
                     .decoder(::smsrDecoder)
                     .build(resources)
         }
+
+        /** Decodes one EF ICI cyclic record containing incoming call information. */
+        fun decodeIci(resources: Resources, bytes: ByteArray): Element? =
+                decodeCallInformation(resources, bytes, R.string.ef_ici_label, incoming = true)
+
+        /** Decodes one EF OCI cyclic record containing outgoing call information. */
+        fun decodeOci(resources: Resources, bytes: ByteArray): Element? =
+                decodeCallInformation(resources, bytes, R.string.ef_oci_label, incoming = false)
+
+        /** Decodes one EF ICT cyclic record into its accumulated incoming call duration. */
+        fun decodeIct(resources: Resources, bytes: ByteArray): Element? =
+                decodeThreeByteCounter(
+                        resources,
+                        bytes,
+                        CALL_TIMER_LENGTH,
+                        R.string.ef_ict_label,
+                        R.string.accumulated_call_timer_label,
+                        ::secondsInterpreter
+                )
+
+        /** Decodes one EF OCT cyclic record into its accumulated outgoing call duration. */
+        fun decodeOct(resources: Resources, bytes: ByteArray): Element? =
+                decodeThreeByteCounter(
+                        resources,
+                        bytes,
+                        CALL_TIMER_LENGTH,
+                        R.string.ef_oct_label,
+                        R.string.accumulated_call_timer_label,
+                        ::secondsInterpreter
+                )
 
         /**
          * Decodes EF EXT5 into one extension record.
@@ -1063,6 +1108,16 @@ class UsimEfDecoders {
             return ConstructedElement.Builder(bytes)
                     .labelId(R.string.ef_ial_label)
                     .decoder(::ialDecoder)
+                    .build(resources)
+        }
+
+        /** Decodes one EF IPS cyclic record containing the latest pairing result. */
+        fun decodeIps(resources: Resources, bytes: ByteArray): Element? {
+            if (bytes.size != IPS_LENGTH) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(R.string.ef_ips_label)
+                    .decoder(::ipsDecoder)
                     .build(resources)
         }
 
@@ -1720,6 +1775,143 @@ class UsimEfDecoders {
                     }
                     .build(resources)
         }
+
+        private fun decodeThreeByteCounter(
+            resources: Resources,
+            bytes: ByteArray,
+            requiredLength: Int,
+            rootLabelId: Int,
+            valueLabelId: Int,
+            interpreter: (Resources, ByteArray) -> String = ::unsignedIntegerInterpreter
+        ): Element? {
+            if (bytes.size != requiredLength) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder { innerResources, rawData, parent ->
+                        listOf(
+                                PrimitiveElement.Builder(rawData)
+                                        .labelId(valueLabelId)
+                                        .parent(parent)
+                                        .interpreter(interpreter)
+                                        .build(innerResources)
+                        )
+                    }
+                    .build(resources)
+        }
+
+        private fun decodeCallInformation(
+            resources: Resources,
+            bytes: ByteArray,
+            rootLabelId: Int,
+            incoming: Boolean
+        ): Element? {
+            val trailerLength = if (incoming) ICI_TRAILER_LENGTH else OCI_TRAILER_LENGTH
+            if (bytes.size < trailerLength) return null
+
+            return ConstructedElement.Builder(bytes)
+                    .labelId(rootLabelId)
+                    .decoder { innerResources, rawData, parent ->
+                        callInformationDecoder(
+                                innerResources,
+                                rawData,
+                                parent,
+                                incoming
+                        )
+                    }
+                    .build(resources)
+        }
+
+        private fun callInformationDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?,
+            incoming: Boolean
+        ): List<Element> {
+            val trailerLength = if (incoming) ICI_TRAILER_LENGTH else OCI_TRAILER_LENGTH
+            val alphaLength = rawData.size - trailerLength
+            val elements = mutableListOf<Element>()
+            elements += PrimitiveElement.Builder(rawData.copyOfRange(0, alphaLength))
+                    .labelId(R.string.alpha_identifier_label)
+                    .parent(parent)
+                    .interpreter(::alphaIdentifierInterpreter)
+                    .build(resources)
+            elements += PrimitiveElement.Builder(rawData.copyOfRange(alphaLength, alphaLength + 1))
+                    .labelId(R.string.bcd_number_length_label)
+                    .parent(parent)
+                    .interpreter(::unsignedIntegerInterpreter)
+                    .build(resources)
+            elements += PrimitiveElement.Builder(
+                    rawData.copyOfRange(alphaLength + 1, alphaLength + 2))
+                    .labelId(R.string.ton_npi_label)
+                    .parent(parent)
+                    .build(resources)
+            elements += PrimitiveElement.Builder(
+                    rawData.copyOfRange(alphaLength + 2, alphaLength + 12))
+                    .labelId(R.string.dialling_number_label)
+                    .parent(parent)
+                    .interpreter(::swappedBcdStringInterpreter)
+                    .build(resources)
+            elements += PrimitiveElement.Builder(
+                    rawData.copyOfRange(alphaLength + 12, alphaLength + 13))
+                    .labelId(R.string.ccp2_record_identifier_label)
+                    .parent(parent)
+                    .build(resources)
+            elements += PrimitiveElement.Builder(
+                    rawData.copyOfRange(alphaLength + 13, alphaLength + 14))
+                    .labelId(R.string.extension5_record_identifier_label)
+                    .parent(parent)
+                    .build(resources)
+            elements += PrimitiveElement.Builder(
+                    rawData.copyOfRange(alphaLength + 14, alphaLength + 21))
+                    .labelId(R.string.call_date_time_label)
+                    .parent(parent)
+                    .interpreter(::callDateTimeInterpreter)
+                    .build(resources)
+            elements += PrimitiveElement.Builder(
+                    rawData.copyOfRange(alphaLength + 21, alphaLength + 24))
+                    .labelId(R.string.call_duration_label)
+                    .parent(parent)
+                    .interpreter(::secondsInterpreter)
+                    .build(resources)
+            var linkOffset = alphaLength + 24
+            if (incoming) {
+                elements += PrimitiveElement.Builder(
+                        rawData.copyOfRange(linkOffset, linkOffset + 1))
+                        .labelId(R.string.call_status_label)
+                        .parent(parent)
+                        .interpreter(::callStatusInterpreter)
+                        .build(resources)
+                linkOffset++
+            }
+            elements += PrimitiveElement.Builder(rawData.copyOfRange(linkOffset, linkOffset + 3))
+                    .labelId(R.string.phone_book_link_label)
+                    .parent(parent)
+                    .interpreter(::phoneBookLinkInterpreter)
+                    .build(resources)
+            return elements
+        }
+
+        private fun ipsDecoder(
+            resources: Resources,
+            rawData: ByteArray,
+            parent: Element?
+        ): List<Element> = listOf(
+                PrimitiveElement.Builder(rawData.copyOfRange(0, 2))
+                        .labelId(R.string.pairing_status_label)
+                        .parent(parent)
+                        .interpreter(::pairingStatusInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(2, 3))
+                        .labelId(R.string.pairing_device_record_label)
+                        .parent(parent)
+                        .interpreter(::recordIdentifierInterpreter)
+                        .build(resources),
+                PrimitiveElement.Builder(rawData.copyOfRange(3, IPS_LENGTH))
+                        .labelId(R.string.rfu_label)
+                        .parent(parent)
+                        .build(resources)
+        )
 
         private fun diallingNumberDecoder(
             resources: Resources,
@@ -3774,6 +3966,107 @@ class UsimEfDecoders {
         ): String {
             val value = rawData.fold(0) { acc, byte -> (acc shl 8) or (byte.toInt() and 0xFF) }
             return byteArrayToHexString(rawData) + " ($value)"
+        }
+
+        private fun secondsInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val seconds = rawData.fold(0) { acc, byte -> (acc shl 8) or (byte.toInt() and 0xFF) }
+            return hexWithDescription(
+                    resources,
+                    rawData,
+                    resources.getString(R.string.timeout_seconds, seconds)
+            )
+        }
+
+        private fun callDateTimeInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            if (rawData.size != 7 || rawData.all { it.toInt() and 0xFF == 0xFF }) {
+                return byteArrayToHexString(rawData)
+            }
+            val values = rawData.take(6).map { swappedBcdByteValue(it) }
+            if (values.any { it == null }) return byteArrayToHexString(rawData)
+            val timezoneByte = rawData[6].toInt() and 0xFF
+            val timezone = if (timezoneByte == 0xFF) {
+                ""
+            } else {
+                val negative = timezoneByte and 0x08 != 0
+                val quarters = swappedBcdByteValue((timezoneByte and 0xF7).toByte())
+                        ?: return byteArrayToHexString(rawData)
+                val minutes = quarters * 15
+                " %s%02d:%02d".format(
+                        Locale.US,
+                        if (negative) "-" else "+",
+                        minutes / 60,
+                        minutes % 60
+                )
+            }
+            val description = "%02d-%02d-%02d %02d:%02d:%02d%s".format(
+                    Locale.US,
+                    values[0]!!,
+                    values[1]!!,
+                    values[2]!!,
+                    values[3]!!,
+                    values[4]!!,
+                    values[5]!!,
+                    timezone
+            )
+            return hexWithDescription(resources, rawData, description)
+        }
+
+        private fun callStatusInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val value = rawData.firstOrNull()?.toInt()?.and(0x01)
+                    ?: return byteArrayToHexString(rawData)
+            val status = if (value == 0) {
+                resources.getString(R.string.call_answered)
+            } else {
+                resources.getString(R.string.call_not_answered)
+            }
+            return hexWithDescription(resources, rawData, status)
+        }
+
+        private fun phoneBookLinkInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            if (rawData.size != 3 || rawData.all { it.toInt() and 0xFF == 0xFF }) {
+                return byteArrayToHexString(rawData)
+            }
+            val local = rawData[0].toInt() and 0x01 != 0
+            val pbrRecord = rawData[1].toInt() and 0xFF
+            val adnRecord = rawData[2].toInt() and 0xFF
+            val description = resources.getString(
+                    if (local) R.string.local_phone_book_link else R.string.global_phone_book_link,
+                    pbrRecord,
+                    adnRecord
+            )
+            return hexWithDescription(resources, rawData, description)
+        }
+
+        private fun pairingStatusInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val status = when (rawData.toString(Charsets.US_ASCII)) {
+                "OK" -> resources.getString(R.string.pairing_successful)
+                "KO" -> resources.getString(R.string.pairing_unsuccessful)
+                else -> return byteArrayToHexString(rawData)
+            }
+            return hexWithDescription(resources, rawData, status)
+        }
+
+        private fun swappedBcdByteValue(byte: Byte): Int? {
+            val value = byte.toInt() and 0xFF
+            val first = value and 0x0F
+            val second = value ushr 4
+            if (first > 9 || second > 9) return null
+            return first * 10 + second
         }
 
         private fun usimServiceName(

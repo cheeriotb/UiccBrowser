@@ -214,6 +214,66 @@ class UsimEfDecodersUnitTest {
     }
 
     @Test
+    fun decodeAcm_validData_interpretsAccumulatedUnits() {
+        val element = UsimEfDecoders.decodeAcm(resources, hexStringToByteArray("000030"))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.label).isEqualTo(resources.getString(R.string.ef_acm_label))
+        assertThat(element.subElements.single().toString()).isEqualTo("000030 (48)")
+    }
+
+    @Test
+    fun decodeCallTimers_validData_interpretSeconds() {
+        val ict = UsimEfDecoders.decodeIct(resources, hexStringToByteArray("000030"))
+        val oct = UsimEfDecoders.decodeOct(resources, hexStringToByteArray("00003C"))
+
+        assertThat(ict!!.subElements.single().toString()).isEqualTo("000030 (48 seconds)")
+        assertThat(oct!!.subElements.single().toString()).isEqualTo("00003C (60 seconds)")
+    }
+
+    @Test
+    fun decodeIci_validData_interpretsCallInformation() {
+        val record =
+                "03" + "81" + "2143" + "FF".repeat(8) + "FF" + "FF" +
+                "62105121436500" + "000030" + "00" + "000102"
+
+        val element = UsimEfDecoders.decodeIci(resources, hexStringToByteArray(record))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.subElements).hasSize(10)
+        assertThat(element.subElements[6].toString())
+                .isEqualTo("62105121436500 (26-01-15 12:34:56 +00:00)")
+        assertThat(element.subElements[7].toString()).isEqualTo("000030 (48 seconds)")
+        assertThat(element.subElements[8].toString()).isEqualTo("00 (Answered)")
+        assertThat(element.subElements[9].toString())
+                .isEqualTo("000102 (Global phone book: PBR #1, ADN #2)")
+    }
+
+    @Test
+    fun decodeOci_validData_interpretsCallInformation() {
+        val record =
+                "03" + "81" + "2143" + "FF".repeat(8) + "FF" + "FF" +
+                "62105121436500" + "00003C" + "010203"
+
+        val element = UsimEfDecoders.decodeOci(resources, hexStringToByteArray(record))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.subElements).hasSize(9)
+        assertThat(element.subElements[7].toString()).isEqualTo("00003C (60 seconds)")
+        assertThat(element.subElements[8].toString())
+                .isEqualTo("010203 (Local phone book: PBR #2, ADN #3)")
+    }
+
+    @Test
+    fun decodeIps_validData_interpretsPairingStatusAndRecordLink() {
+        val element = UsimEfDecoders.decodeIps(resources, hexStringToByteArray("4F4B02FF"))
+
+        assertThat(element).isNotNull()
+        assertThat(element!!.subElements[0].toString()).isEqualTo("4F4B (Pairing successful)")
+        assertThat(element.subElements[1].toString()).isEqualTo("02 (Record #2)")
+    }
+
+    @Test
     fun decodeUst_validData_returnsServiceBits() {
         val element = UsimEfDecoders.decodeUst(resources, hexStringToByteArray("0504"))
 
@@ -955,14 +1015,25 @@ class UsimEfDecodersUnitTest {
     }
 
     @Test
-    fun efDecoderRegistry_cyclicUsimEfDecodersAreNotRegistered() {
-        val notRegistered = listOf(
+    fun efDecoderRegistry_cyclicUsimEfDecodersAreRegistered() {
+        val registered = listOf(
                 FileId.EF_USIM_ACM,
                 FileId.EF_USIM_ICI,
                 FileId.EF_USIM_OCI,
                 FileId.EF_USIM_ICT,
                 FileId.EF_USIM_OCT,
-                FileId.EF_USIM_IPS,
+                FileId.EF_USIM_IPS
+        )
+
+        registered.forEach { fileId ->
+            assertThat(EfDecoderRegistry.has(AID_USIM, FileId.PATH_ADF + fileId)).isTrue()
+            assertThat(EfDecoderRegistry.find(AID_USIM, FileId.PATH_ADF + fileId)).isNotNull()
+        }
+    }
+
+    @Test
+    fun efDecoderRegistry_berTlvUsimEfDecodersAreNotRegistered() {
+        val notRegistered = listOf(
                 FileId.EF_USIM_IMS_CONFIG_DATA,
                 FileId.EF_USIM_XCAP_CONFIG_DATA,
                 FileId.EF_USIM_MUDMID_CONFIG_DATA

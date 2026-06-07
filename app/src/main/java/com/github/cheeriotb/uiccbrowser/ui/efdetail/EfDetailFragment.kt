@@ -134,7 +134,10 @@ class EfDetailFragment : Fragment() {
                     menuInflater.inflate(R.menu.ef_detail, menu)
                     val editItem = menu.findItem(R.id.action_edit)
                     editItem.isVisible = mainViewModel.isProModeEnabled.value
-                    editItem.isEnabled = !editModeEnabled
+                    editItem.isEnabled = isEditOptionEnabled(
+                        binaryViewModel.isEditable.value,
+                        editModeEnabled
+                    )
                     menu.findItem(R.id.action_copy_to_clipboard).isEnabled =
                         isCopyToClipboardEnabled(binaryViewModel.data.value, editModeEnabled)
                 }
@@ -198,6 +201,7 @@ class EfDetailFragment : Fragment() {
     }
 
     private fun startEditMode() {
+        if (!binaryViewModel.isEditable.value) return
         val slotId = mainViewModel.selectedSlot.value?.slotId ?: return
         val repo = CardRepository.from(requireContext(), slotId) ?: return
         viewLifecycleOwner.lifecycleScope.launch {
@@ -629,6 +633,11 @@ class EfDetailFragment : Fragment() {
                     }
                 }
                 launch {
+                    binaryViewModel.isEditable.collect {
+                        requireActivity().invalidateOptionsMenu()
+                    }
+                }
+                launch {
                     binaryViewModel.error.collect { result ->
                         if (result != null) {
                             handleReadError(result)
@@ -798,6 +807,10 @@ class EfDetailFragment : Fragment() {
         /** Returns true when current binary data can be copied outside Edit mode. */
         internal fun isCopyToClipboardEnabled(data: ByteArray?, editModeEnabled: Boolean): Boolean =
             !editModeEnabled && data != null && data.isNotEmpty()
+
+        /** Returns true when the current EF supports Edit mode and Edit mode is inactive. */
+        internal fun isEditOptionEnabled(isEditable: Boolean, editModeEnabled: Boolean): Boolean =
+            isEditable && !editModeEnabled
 
         internal fun messageResId(failure: EditAccessUseCase.Failure) = when (failure) {
             EditAccessUseCase.Failure.CARD_UNAVAILABLE -> R.string.edit_mode_card_unavailable

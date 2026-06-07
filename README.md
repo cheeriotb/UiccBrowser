@@ -63,7 +63,8 @@ Editing UICC contents can break SIM functionality or make a profile unusable. Us
 Current limitations are listed below.
 
 - Only USIM and ISIM are supported as ADF.
-- Linear Fixed and Transparent EFs are supported, but Cyclic and BER-TLV EFs are not supported yet.
+- BER-TLV EFs are not supported yet.
+- Cyclic EFs are readable, but not editable.
 - The following DFs are not supported yet.
     - DFPHONEBOOK '5F3A'
     - DFGSM-ACCESS '5F3B'
@@ -93,5 +94,6 @@ Cheerio (cheerio.the.bear@gmail.com)
 ## References
 
 - [ETSI TS 102 221 V18.4.0](https://www.etsi.org/deliver/etsi_ts/102200_102299/102221/18.04.00_60/ts_102221v180400p.pdf)
+- [ETSI TS 102 222 V17.1.0](https://www.etsi.org/deliver/etsi_ts/102200_102299/102222/17.01.00_60/ts_102222v170100p.pdf)
 - [ETSI TS 131 102 V19.4.0](https://www.etsi.org/deliver/etsi_ts/131100_131199/131102/19.04.00_60/ts_131102v190400p.pdf)
 - [ETSI TS 131 103 V19.0.0](https://www.etsi.org/deliver/etsi_ts/131100_131199/131103/19.00.00_60/ts_131103v190000p.pdf)

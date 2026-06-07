@@ -56,6 +56,9 @@ class ReadRecordUseCaseUnitTest {
         // Linear Fixed EF (2F02): FD byte = 0x42, 2 records of 10 bytes
         private const val FCP_LINEAR_FIXED = "620F82054221000A028002001483022F02"
         private const val EF_LF = "2F02"
+        // Cyclic EF (2F03): FD byte = 0x46, 3 records of 4 bytes
+        private const val FCP_CYCLIC = "620F820546210004038002000C83022F03"
+        private const val EF_CYCLIC = "2F03"
 
         private val SW_OK = "%04X".format(Result.SW_NORMAL)
         private val SW_FAIL = "%04X".format(0x6A82)
@@ -109,6 +112,24 @@ class ReadRecordUseCaseUnitTest {
         assertThat(info).isNotNull()
         assertThat(info!!.recordLength).isEqualTo(10)
         assertThat(info.numberOfRecords).isEqualTo(2)
+        assertThat(info.structure).isEqualTo(ReadRecordUseCase.RecordStructure.LINEAR_FIXED)
+    }
+
+    @Test
+    fun getInfo_cyclicEf_returnsCorrectInfo() = runBlocking {
+        initializeRepo()
+
+        val fileId = FileId(FileId.AID_NONE, FileId.PATH_MF, EF_CYCLIC)
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, EF_CYCLIC) } returns
+            SelectResponse(ICCID, FileId.AID_NONE, FileId.PATH_MF, EF_CYCLIC,
+                hexStringToByteArray(FCP_CYCLIC), Result.SW_NORMAL)
+
+        val info = useCase.getInfo(0, fileId)
+
+        assertThat(info).isNotNull()
+        assertThat(info!!.recordLength).isEqualTo(4)
+        assertThat(info.numberOfRecords).isEqualTo(3)
+        assertThat(info.structure).isEqualTo(ReadRecordUseCase.RecordStructure.CYCLIC)
     }
 
     @Test
