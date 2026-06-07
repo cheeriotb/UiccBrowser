@@ -20,6 +20,13 @@
     <string name="total_file_size_label">Total file size</string>
     <string name="file_descriptor_label">File descriptor</string>
     <string name="file_descriptor_byte_label">File descriptor byte</string>
+    <string name="not_sharable">Not sharable</string>
+    <string name="sharable">Sharable</string>
+    <string name="df_or_adf">DF or ADF</string>
+    <string name="transparent">Transparent</string>
+    <string name="linear_fixed">Linear Fixed</string>
+    <string name="cyclic">Cyclic</string>
+    <string name="ber_tlv">BER-TLV</string>
     <string name="data_coding_byte_label">Data coding byte</string>
     <string name="record_length_label">Record length</string>
     <string name="number_of_records_label">Number of records</string>

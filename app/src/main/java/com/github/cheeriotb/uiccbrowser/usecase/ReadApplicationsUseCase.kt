@@ -12,6 +12,7 @@ import android.content.Context
 import android.util.Log
 import com.github.cheeriotb.uiccbrowser.element.BerTlvElement
 import com.github.cheeriotb.uiccbrowser.element.ef.AppTemplate
+import com.github.cheeriotb.uiccbrowser.element.fcp.FileDescriptor
 import com.github.cheeriotb.uiccbrowser.element.fcp.FcpTemplate
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.repository.FileId
@@ -69,7 +70,7 @@ class ReadApplicationsUseCase(private val context: Context) {
     /**
      * Extracts (recordSize, numberOfRecords) from the raw FCP bytes of a linear fixed EF by
      * parsing with FcpTemplate and reading the File Descriptor (tag 0x82).
-     * Returns null when the FCP cannot be parsed or does not describe a record-structured EF.
+     * Returns null when the FCP cannot be parsed or does not describe a linear fixed EF.
      */
     private fun recordParamsFrom(fcpBytes: ByteArray): Pair<Int, Int>? {
         val fcpElement = FcpTemplate.decode(context.resources, fcpBytes) ?: return null
@@ -78,13 +79,14 @@ class ReadApplicationsUseCase(private val context: Context) {
                 .find { it.tag == FcpTemplate.TAG_FILE_DESCRIPTOR }
                 ?: return null
 
-        // File Descriptor for a linear fixed or cyclic EF is 5 bytes:
+        // File Descriptor for a linear fixed EF is 5 bytes:
         //   [0] file descriptor byte
         //   [1] data coding byte
         //   [2..3] record length (big-endian)
         //   [4] number of records
         val fd = fdElement.data
         if (fd.size < 5) return null
+        if (FileDescriptor.typeOf(fd[0]) != FileDescriptor.Type.LINEAR_FIXED_EF) return null
 
         val recordSize = ((fd[2].toInt() and 0xFF) shl 8) or (fd[3].toInt() and 0xFF)
         val numberOfRecords = fd[4].toInt() and 0xFF

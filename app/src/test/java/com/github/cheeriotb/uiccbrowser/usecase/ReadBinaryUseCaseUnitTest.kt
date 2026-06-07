@@ -56,6 +56,10 @@ class ReadBinaryUseCaseUnitTest {
         // Linear Fixed EF: FD byte = 0x42 (bits 2-0 = 010 = Linear Fixed), 2 records of 10 bytes
         private const val FCP_LINEAR_FIXED = "620F82054221000A028002001483022F02"
 
+        // BER-TLV EF: FD byte = 0x79 (bits 6-1 = 111001), file size = 10
+        private const val FCP_BER_TLV = "620C820279218002000A83022FE4"
+        private const val EF_BER_TLV = "2FE4"
+
         // Transparent EF with file size = 260 (0x0104) for multi-chunk read test
         // 62 0C 82 02 41 21 80 02 01 04 83 02 2F E3
         private const val FCP_TRANSPARENT_260 = "620C820241218002010483022FE3"
@@ -154,6 +158,20 @@ class ReadBinaryUseCaseUnitTest {
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, "2F02") } returns
             SelectResponse(ICCID, FileId.AID_NONE, FileId.PATH_MF, "2F02",
                 hexStringToByteArray(FCP_LINEAR_FIXED), Result.SW_NORMAL)
+
+        val result = useCase.execute(0, fileId)
+
+        assertThat(result).isNull()
+    }
+
+    @Test
+    fun execute_berTlvEf_returnsNull() = runBlocking {
+        initializeRepo()
+
+        val fileId = FileId(FileId.AID_NONE, FileId.PATH_MF, EF_BER_TLV)
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, EF_BER_TLV) } returns
+            SelectResponse(ICCID, FileId.AID_NONE, FileId.PATH_MF, EF_BER_TLV,
+                hexStringToByteArray(FCP_BER_TLV), Result.SW_NORMAL)
 
         val result = useCase.execute(0, fileId)
 

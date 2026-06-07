@@ -50,6 +50,7 @@ class ReadApplicationsUseCaseUnitTest {
         // FCP for EF DIR: linear fixed EF, record size 0x1B=27, 2 records
         //   62 0B 82 05 42 21 00 1B 02 83 02 2F 00
         private const val FCP_DIR = "620B8205422100" + "1B02" + "83022F00"
+        private const val FCP_DIR_CYCLIC = "620B8205462100" + "1B02" + "83022F00"
 
         // FCP for EF ICCID (transparent EF) — re-used for the initialize() call
         private const val FCP_ICCID = "621E8202412183022FE2A506C00100CA01808A01058B032F06048002000A8800"
@@ -149,6 +150,19 @@ class ReadApplicationsUseCaseUnitTest {
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_DIR) } returns
                 SelectResponse(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_DIR,
                         ByteArray(0), Result.SW_NOT_FOUND)
+
+        val aids = useCase.execute(0)
+
+        assertThat(aids).isEmpty()
+    }
+
+    @Test
+    fun execute_dirIsNotLinearFixed_returnsEmpty() = runBlocking {
+        initializeRepo()
+
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_DIR) } returns
+                SelectResponse(ICCID, FileId.AID_NONE, FileId.PATH_MF, FileId.EF_DIR,
+                        hexStringToByteArray(FCP_DIR_CYCLIC), Result.SW_NORMAL)
 
         val aids = useCase.execute(0)
 

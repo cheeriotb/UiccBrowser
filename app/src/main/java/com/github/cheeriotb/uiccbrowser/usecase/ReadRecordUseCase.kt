@@ -10,6 +10,7 @@ package com.github.cheeriotb.uiccbrowser.usecase
 
 import android.content.Context
 import com.github.cheeriotb.uiccbrowser.element.BerTlvElement
+import com.github.cheeriotb.uiccbrowser.element.fcp.FileDescriptor
 import com.github.cheeriotb.uiccbrowser.element.fcp.FcpTemplate
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.repository.FileId
@@ -56,12 +57,11 @@ class ReadRecordUseCase(private val context: Context) {
             .find { it.tag == FcpTemplate.TAG_FILE_DESCRIPTOR }
             ?: return InfoOutcome()
 
-        // Bits 2-0: 0x02 = Linear Fixed EF, 0x06 = Cyclic EF.
         // The FD element must be at least 5 bytes to contain record length and number of records.
         if (fdElement.data.size < 5) return InfoOutcome()
-        val structure = when (fdElement.data[0].toInt() and 0x07) {
-            0x02 -> RecordStructure.LINEAR_FIXED
-            0x06 -> RecordStructure.CYCLIC
+        val structure = when (FileDescriptor.typeOf(fdElement.data[0])) {
+            FileDescriptor.Type.LINEAR_FIXED_EF -> RecordStructure.LINEAR_FIXED
+            FileDescriptor.Type.CYCLIC_EF -> RecordStructure.CYCLIC
             else -> return InfoOutcome()
         }
 

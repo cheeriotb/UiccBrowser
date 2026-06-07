@@ -10,6 +10,7 @@ package com.github.cheeriotb.uiccbrowser.usecase
 
 import android.content.Context
 import com.github.cheeriotb.uiccbrowser.element.BerTlvElement
+import com.github.cheeriotb.uiccbrowser.element.fcp.FileDescriptor
 import com.github.cheeriotb.uiccbrowser.element.fcp.FcpTemplate
 import com.github.cheeriotb.uiccbrowser.repository.CardRepository
 import com.github.cheeriotb.uiccbrowser.repository.FileId
@@ -46,8 +47,10 @@ class ReadBinaryUseCase(private val context: Context) {
             .find { it.tag == FcpTemplate.TAG_FILE_DESCRIPTOR }
             ?: return ReadOutcome()
 
-        // Bits 2-0 of the File Descriptor Byte: 0x01 = Transparent EF (ETSI TS 102.221 §11.1.1.4.3)
-        if (fdElement.data.isEmpty() || fdElement.data[0].toInt() and 0x07 != 0x01) return ReadOutcome()
+        val descriptorByte = fdElement.data.firstOrNull() ?: return ReadOutcome()
+        if (FileDescriptor.typeOf(descriptorByte) != FileDescriptor.Type.TRANSPARENT_EF) {
+            return ReadOutcome()
+        }
 
         val fileSizeElement = fcpElement.subElements
             .filterIsInstance<BerTlvElement>()

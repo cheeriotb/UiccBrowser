@@ -184,6 +184,7 @@ class FcpTemplate {
             list.add(PrimitiveElement.Builder(byteArrayOf(value[0]))
                     .labelId(R.string.file_descriptor_byte_label)
                     .parent(parent)
+                    .interpreter(::fileDescriptorByteInterpreter)
                     .build(resources))
             list.add(PrimitiveElement.Builder(byteArrayOf(value[1]))
                     .labelId(R.string.data_coding_byte_label)
@@ -207,6 +208,36 @@ class FcpTemplate {
             }
 
             return list
+        }
+
+        // ETSI TS 102.221 Table 11.5
+        // File descriptor byte
+        private fun fileDescriptorByteInterpreter(
+            resources: Resources,
+            rawData: ByteArray
+        ): String {
+            val defaultInterpretation = PrimitiveElement.defaultInterpreter(resources, rawData)
+            if (rawData.size != 1) return defaultInterpretation
+
+            val descriptor = rawData[0].toInt() and 0xFF
+            if (descriptor and 0x80 != 0) return defaultInterpretation
+
+            val fileType = when {
+                descriptor and 0x3F == 0x38 -> resources.getString(R.string.df_or_adf)
+                descriptor and 0x3F == 0x39 -> resources.getString(R.string.ber_tlv)
+                descriptor and 0x38 == 0x38 -> null
+                descriptor and 0x07 == 0x01 -> resources.getString(R.string.transparent)
+                descriptor and 0x07 == 0x02 -> resources.getString(R.string.linear_fixed)
+                descriptor and 0x07 == 0x06 -> resources.getString(R.string.cyclic)
+                else -> null
+            } ?: return defaultInterpretation
+
+            val accessibility = if (descriptor and 0x40 == 0) {
+                resources.getString(R.string.not_sharable)
+            } else {
+                resources.getString(R.string.sharable)
+            }
+            return "$defaultInterpretation ($accessibility / $fileType)"
         }
 
         // ETSI TS 102 221 Clause 11.1.1.4.7.3
