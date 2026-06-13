@@ -61,6 +61,34 @@
             ]
         },
         {
+            "name": "MExE",
+            "description": "Mobile Execution Environment",
+            "id": "5F3C",
+
+            "files": [
+                {
+                    "name": "MExE-ST",
+                    "description": "MExE Service table",
+                    "id": "4F40"
+                },
+                {
+                    "name": "ORPK",
+                    "description": "Operator Root Public Key",
+                    "id": "4F41"
+                },
+                {
+                    "name": "ARPK",
+                    "description": "Administrator Root Public Key",
+                    "id": "4F42"
+                },
+                {
+                    "name": "TPRPK",
+                    "description": "Third Party Root Public Key",
+                    "id": "4F43"
+                }
+            ]
+        },
+        {
             "name": "5GS",
             "description": "5G System",
             "id": "5FC0",

@@ -16,6 +16,7 @@ import com.github.cheeriotb.uiccbrowser.element.ef.MfEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.Usim5gsEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimGsmAccessEfDecoders
+import com.github.cheeriotb.uiccbrowser.element.ef.UsimMexeEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimPhonebookEfDecoders
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 
@@ -180,6 +181,11 @@ object EfDecoderRegistry {
                     UsimGsmAccessEfDecoders::decodeCpbcch,
             FileId.DF_GSM_ACCESS + FileId.EF_GSM_ACCESS_INVSCAN to
                     UsimGsmAccessEfDecoders::decodeInvScan,
+            FileId.DF_MEXE + FileId.EF_MEXE_ST to UsimMexeEfDecoders::decodeMexeSt,
+            FileId.DF_MEXE + FileId.EF_MEXE_ORPK to UsimMexeEfDecoders::decodeOrpk,
+            FileId.DF_MEXE + FileId.EF_MEXE_ARPK to UsimMexeEfDecoders::decodeArpk,
+            FileId.DF_MEXE + FileId.EF_MEXE_TPRPK to UsimMexeEfDecoders::decodeTprpk,
+            // EF TKCDF uses an implementation-specific file identifier in the 4FXX range.
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_3GPP_LOCI to
                     Usim5gsEfDecoders::decode5gs3gppLoci,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_N3GPP_LOCI to

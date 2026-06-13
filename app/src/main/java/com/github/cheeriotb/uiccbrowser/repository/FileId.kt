@@ -41,6 +41,12 @@ data class FileId(
         const val EF_GSM_ACCESS_CPBCCH = "4F63"
         const val EF_GSM_ACCESS_INVSCAN = "4F64"
 
+        const val DF_MEXE = "5F3C"
+        const val EF_MEXE_ST = "4F40"
+        const val EF_MEXE_ORPK = "4F41"
+        const val EF_MEXE_ARPK = "4F42"
+        const val EF_MEXE_TPRPK = "4F43"
+
         const val EF_USIM_EAKA = "6F01"
         const val EF_USIM_OCST = "6F02"
         const val EF_USIM_LI = "6F05"

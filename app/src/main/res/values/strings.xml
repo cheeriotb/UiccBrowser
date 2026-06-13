@@ -1049,4 +1049,36 @@
     <string name="test5">Label 5</string>
     <string name="record">Record</string>
 
+    <string name="ef_mexe_st_label">EF MExE-ST</string>
+    <string name="ef_orpk_label">EF ORPK</string>
+    <string name="ef_arpk_label">EF ARPK</string>
+    <string name="ef_tprpk_label">EF TPRPK</string>
+    <string name="ef_tkcdf_label">EF TKCDF</string>
+    <string name="mexe_service_label">MExE service %1$d</string>
+    <string
+        name="mexe_operator_root_public_key_service_label">Operator Root Public Key service</string>
+    <string
+        name="mexe_administrator_root_public_key_service_label">Administrator Root Public Key service</string>
+    <string
+        name="mexe_third_party_root_public_key_service_label">Third Party Root Public Key service</string>
+    <string name="mexe_rfu_service_label">RFU service %1$d</string>
+    <string name="parameters_indicator_label">Parameters indicator</string>
+    <string name="flags_label">Flags</string>
+    <string name="certificate_type_label">Type of certificate</string>
+    <string name="key_certificate_file_id_label">Key/certificate data file identifier</string>
+    <string name="key_certificate_offset_label">Offset into key/certificate data file</string>
+    <string name="key_certificate_length_label">Length of key/certificate data</string>
+    <string name="key_identifier_length_label">Key identifier length</string>
+    <string name="key_identifier_label">Key identifier</string>
+    <string name="certificate_identifier_length_label">Certificate identifier length</string>
+    <string name="certificate_identifier_label">Certificate identifier</string>
+    <string name="key_certificate_data_label">Key/certificate data</string>
+    <string name="key_descriptor_valid_label">Key descriptor valid</string>
+    <string name="certificate_descriptor_valid_label">Certificate descriptor valid</string>
+    <string name="authority_certificate_label">Authority certificate</string>
+    <string name="non_authority_certificate_label">Non-authority certificate</string>
+    <string name="wtls_certificate_label">WTLS certificate</string>
+    <string name="x509_certificate_label">X.509 certificate</string>
+    <string name="x968_certificate_label">X9.68 certificate</string>
+
 </resources>
