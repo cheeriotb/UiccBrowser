@@ -127,6 +127,8 @@ class GetFileListUseCaseUnitTest {
                 notFoundResponse(FileId.AID_NONE, FileId.PATH_MF, "2F08")
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, "2FE2") } returns
                 notFoundResponse(FileId.AID_NONE, FileId.PATH_MF, "2FE2")
+        coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, "7F10") } returns
+                notFoundResponse(FileId.AID_NONE, FileId.PATH_MF, "7F10")
 
         val entries = useCase.execute(R.raw.level_mf, 0, FileId.AID_NONE, FileId.PATH_MF)
 
@@ -214,7 +216,7 @@ class GetFileListUseCaseUnitTest {
             cacheIoMock.deleteAllInDirectory(ICCID, FileId.AID_NONE, FileId.PATH_MF)
         } answers { nothing }
         coEvery { cacheIoMock.get(ICCID, FileId.AID_NONE, FileId.PATH_MF, any()) } returns null
-        listOf("2F00", "2F01", "2F05", "2F06", "2F08", "2FE2").forEach { fileId ->
+        listOf("2F00", "2F01", "2F05", "2F06", "2F08", "2FE2", "7F10").forEach { fileId ->
             every {
                 cardIoMock.transmit(Command(
                     Iso7816.INS_SELECT_FILE,
@@ -243,6 +245,7 @@ class GetFileListUseCaseUnitTest {
             cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "2F06"))
             cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "2F08"))
             cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "2FE2"))
+            cacheIoMock.insert(insertedOkResponse(FileId.AID_NONE, FileId.PATH_MF, "7F10"))
         }
     }
 

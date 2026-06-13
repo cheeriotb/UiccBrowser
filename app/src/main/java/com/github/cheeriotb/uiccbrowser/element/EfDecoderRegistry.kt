@@ -15,6 +15,7 @@ import com.github.cheeriotb.uiccbrowser.element.ef.IsimEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.MfEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.Usim5gsEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimEfDecoders
+import com.github.cheeriotb.uiccbrowser.element.ef.UsimPhonebookEfDecoders
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 
 typealias EfDecoder = (Resources, ByteArray) -> Element?
@@ -32,7 +33,15 @@ object EfDecoderRegistry {
             FileId.EF_PL to MfEfDecoders::decodePl,
             FileId.EF_ARR to EfArrRecord::decode,
             FileId.EF_UMPC to MfEfDecoders::decodeUmpc,
-            FileId.EF_ICCID to MfEfDecoders::decodeIccid
+            FileId.EF_ICCID to MfEfDecoders::decodeIccid,
+            FileId.DF_TELECOM + FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PSC to
+                    UsimPhonebookEfDecoders::decodePsc,
+            FileId.DF_TELECOM + FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_CC to
+                    UsimPhonebookEfDecoders::decodeCc,
+            FileId.DF_TELECOM + FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PUID to
+                    UsimPhonebookEfDecoders::decodePuid,
+            FileId.DF_TELECOM + FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PBR to
+                    UsimPhonebookEfDecoders::decodePbr
         ),
         EfContext.USIM to mapOf(
             FileId.EF_USIM_EAKA to UsimEfDecoders::decodeEaka,
@@ -154,6 +163,14 @@ object EfDecoderRegistry {
             FileId.EF_USIM_EARFCN_LIST to UsimEfDecoders::decodeEarfcnList,
             // (BER-TLV) FileId.EF_USIM_MUDMID_CONFIG_DATA to
             //         UsimEfDecoders::decodeMudmidConfigData,
+            FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PSC to
+                    UsimPhonebookEfDecoders::decodePsc,
+            FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_CC to
+                    UsimPhonebookEfDecoders::decodeCc,
+            FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PUID to
+                    UsimPhonebookEfDecoders::decodePuid,
+            FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PBR to
+                    UsimPhonebookEfDecoders::decodePbr,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_3GPP_LOCI to
                     Usim5gsEfDecoders::decode5gs3gppLoci,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_N3GPP_LOCI to

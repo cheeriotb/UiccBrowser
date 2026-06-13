@@ -5,6 +5,34 @@
 
     "files": [
         {
+            "name": "PHONEBOOK",
+            "description": "Local Phone Book",
+            "id": "5F3A",
+
+            "files": [
+                {
+                    "name": "PSC",
+                    "description": "Phone book Synchronisation Counter",
+                    "id": "4F22"
+                },
+                {
+                    "name": "CC",
+                    "description": "Change Counter",
+                    "id": "4F23"
+                },
+                {
+                    "name": "PUID",
+                    "description": "Previous Unique Identifier",
+                    "id": "4F24"
+                },
+                {
+                    "name": "PBR",
+                    "description": "Phone Book Reference file",
+                    "id": "4F30"
+                }
+            ]
+        },
+        {
             "name": "5GS",
             "description": "5G System",
             "id": "5FC0",

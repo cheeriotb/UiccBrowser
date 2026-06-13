@@ -28,6 +28,13 @@ data class FileId(
         const val EF_UMPC = "2F08"
         const val EF_ICCID = "2FE2"
 
+        const val DF_TELECOM = "7F10"
+        const val DF_PHONEBOOK = "5F3A"
+        const val EF_PHONEBOOK_PSC = "4F22"
+        const val EF_PHONEBOOK_CC = "4F23"
+        const val EF_PHONEBOOK_PUID = "4F24"
+        const val EF_PHONEBOOK_PBR = "4F30"
+
         const val EF_USIM_EAKA = "6F01"
         const val EF_USIM_OCST = "6F02"
         const val EF_USIM_LI = "6F05"

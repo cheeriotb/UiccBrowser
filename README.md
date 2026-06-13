@@ -66,7 +66,6 @@ Current limitations are listed below.
 - BER-TLV EFs are not supported yet.
 - Cyclic EFs are readable, but not editable.
 - The following DFs are not supported yet.
-    - DFPHONEBOOK '5F3A'
     - DFGSM-ACCESS '5F3B'
     - DFMexE '5F3C'
     - DFWLAN '5F40'
@@ -80,6 +79,7 @@ Current limitations are listed below.
     - DFSNPN '5FE0'
     - DF5G_ProSe '5FF0'
     - DF5MBSUECONFIG '5FF1'
+- EFIAP, EFADN, EFEXT1, EFPBC, EFGRP, EFGAS, EFANR, EFSNE, EFCCP1, EFUID, EFEMAIL and EFPURI under DFPHONEBOOK are not supported yet.
 - Special EF operations such as create, delete, and resize are not supported.
 - Some features have not been fully verified because the number of SIM cards and devices available for testing is limited.
 
