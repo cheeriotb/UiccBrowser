@@ -15,6 +15,7 @@ import com.github.cheeriotb.uiccbrowser.element.ef.IsimEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.MfEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.Usim5gsEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimEfDecoders
+import com.github.cheeriotb.uiccbrowser.element.ef.UsimGsmAccessEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimPhonebookEfDecoders
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 
@@ -171,6 +172,14 @@ object EfDecoderRegistry {
                     UsimPhonebookEfDecoders::decodePuid,
             FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PBR to
                     UsimPhonebookEfDecoders::decodePbr,
+            FileId.DF_GSM_ACCESS + FileId.EF_GSM_ACCESS_KC to
+                    UsimGsmAccessEfDecoders::decodeKc,
+            FileId.DF_GSM_ACCESS + FileId.EF_GSM_ACCESS_KC_GPRS to
+                    UsimGsmAccessEfDecoders::decodeKcGprs,
+            FileId.DF_GSM_ACCESS + FileId.EF_GSM_ACCESS_CPBCCH to
+                    UsimGsmAccessEfDecoders::decodeCpbcch,
+            FileId.DF_GSM_ACCESS + FileId.EF_GSM_ACCESS_INVSCAN to
+                    UsimGsmAccessEfDecoders::decodeInvScan,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_3GPP_LOCI to
                     Usim5gsEfDecoders::decode5gs3gppLoci,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_N3GPP_LOCI to

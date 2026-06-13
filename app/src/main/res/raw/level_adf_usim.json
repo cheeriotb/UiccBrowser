@@ -33,6 +33,34 @@
             ]
         },
         {
+            "name": "GSM-ACCESS",
+            "description": "Files required for GSM Access",
+            "id": "5F3B",
+
+            "files": [
+                {
+                    "name": "Kc",
+                    "description": "GSM Ciphering key Kc",
+                    "id": "4F20"
+                },
+                {
+                    "name": "KcGPRS",
+                    "description": "GPRS Ciphering key KcGPRS",
+                    "id": "4F52"
+                },
+                {
+                    "name": "CPBCCH",
+                    "description": "CPBCCH Information",
+                    "id": "4F63"
+                },
+                {
+                    "name": "InvScan",
+                    "description": "Investigation Scan",
+                    "id": "4F64"
+                }
+            ]
+        },
+        {
             "name": "5GS",
             "description": "5G System",
             "id": "5FC0",

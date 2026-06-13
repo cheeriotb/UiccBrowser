@@ -35,6 +35,12 @@ data class FileId(
         const val EF_PHONEBOOK_PUID = "4F24"
         const val EF_PHONEBOOK_PBR = "4F30"
 
+        const val DF_GSM_ACCESS = "5F3B"
+        const val EF_GSM_ACCESS_KC = "4F20"
+        const val EF_GSM_ACCESS_KC_GPRS = "4F52"
+        const val EF_GSM_ACCESS_CPBCCH = "4F63"
+        const val EF_GSM_ACCESS_INVSCAN = "4F64"
+
         const val EF_USIM_EAKA = "6F01"
         const val EF_USIM_OCST = "6F02"
         const val EF_USIM_LI = "6F05"
