@@ -1,7 +1,6 @@
 {
     "name": "MF",
     "description": "Master File",
-
     "files": [
         {
             "name": "DIR",
@@ -32,17 +31,16 @@
             "name": "ICCID",
             "description": "ICC Identification",
             "id": "2FE2"
-        },        {
+        },
+        {
             "name": "TELECOM",
             "description": "Telecommunication services",
             "id": "7F10",
-
             "files": [
                 {
                     "name": "PHONEBOOK",
                     "description": "Global Phone Book",
                     "id": "5F3A",
-
                     "files": [
                         {
                             "name": "PSC",
@@ -63,6 +61,121 @@
                             "name": "PBR",
                             "description": "Phone Book Reference file",
                             "id": "4F30"
+                        }
+                    ]
+                },
+                {
+                    "name": "MULTIMEDIA",
+                    "description": "Multimedia storage",
+                    "id": "5F3B",
+                    "files": [
+                        {
+                            "name": "MML",
+                            "description": "Multimedia Messages List",
+                            "id": "4F47"
+                        },
+                        {
+                            "name": "MMDF",
+                            "description": "Multimedia Messages Data File",
+                            "id": "4F48"
+                        }
+                    ]
+                },
+                {
+                    "name": "MCS",
+                    "description": "Mission Critical Services",
+                    "id": "5F3D",
+                    "files": [
+                        {
+                            "name": "MST",
+                            "description": "MCS Service Table",
+                            "id": "4F01"
+                        },
+                        {
+                            "name": "MCS_CONFIG",
+                            "description": "MCS configuration data",
+                            "id": "4F02"
+                        }
+                    ]
+                },
+                {
+                    "name": "V2X",
+                    "description": "Vehicle-to-Everything",
+                    "id": "5F3E",
+                    "files": [
+                        {
+                            "name": "VST",
+                            "description": "V2X Service Table",
+                            "id": "4F01"
+                        },
+                        {
+                            "name": "V2X_CONFIG",
+                            "description": "V2X configuration data",
+                            "id": "4F02"
+                        },
+                        {
+                            "name": "V2XP_PC5",
+                            "description": "V2X data policy over PC5",
+                            "id": "4F03"
+                        },
+                        {
+                            "name": "V2XP_Uu",
+                            "description": "V2X data policy over Uu",
+                            "id": "4F04"
+                        }
+                    ]
+                },
+                {
+                    "name": "A2X",
+                    "description": "Application-to-Everything",
+                    "id": "5F3F",
+                    "files": [
+                        {
+                            "name": "AST",
+                            "description": "A2X Service Table",
+                            "id": "4F01"
+                        },
+                        {
+                            "name": "A2X_CONFIG",
+                            "description": "A2X configuration data",
+                            "id": "4F02"
+                        },
+                        {
+                            "name": "A2XP_PC5",
+                            "description": "A2X policy data over PC5",
+                            "id": "4F03"
+                        },
+                        {
+                            "name": "A2X_DDAAP_PC5",
+                            "description": "A2X Direct Detect And Avoid policy data over PC5",
+                            "id": "4F04"
+                        },
+                        {
+                            "name": "A2X_DC2P_PC5",
+                            "description": "A2X Direct C2 communication policy data over PC5",
+                            "id": "4F05"
+                        },
+                        {
+                            "name": "A2XP_Uu",
+                            "description": "A2X policy data over Uu",
+                            "id": "4F06"
+                        }
+                    ]
+                },
+                {
+                    "name": "GRAPHICS",
+                    "description": "Graphical information",
+                    "id": "5F50",
+                    "files": [
+                        {
+                            "name": "IMG",
+                            "description": "Image",
+                            "id": "4F20"
+                        },
+                        {
+                            "name": "ICE_graphics",
+                            "description": "In Case of Emergency - Graphics",
+                            "id": "4F21"
                         }
                     ]
                 },

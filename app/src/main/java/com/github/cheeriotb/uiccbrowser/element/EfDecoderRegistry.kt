@@ -9,9 +9,12 @@
 package com.github.cheeriotb.uiccbrowser.element
 
 import android.content.res.Resources
+import com.github.cheeriotb.uiccbrowser.element.ef.A2xEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.AppTemplate
 import com.github.cheeriotb.uiccbrowser.element.ef.EfArrRecord
+import com.github.cheeriotb.uiccbrowser.element.ef.GraphicsEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.IsimEfDecoders
+import com.github.cheeriotb.uiccbrowser.element.ef.McsEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.MfEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.TelecomEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.Usim5gsEfDecoders
@@ -20,6 +23,7 @@ import com.github.cheeriotb.uiccbrowser.element.ef.UsimGsmAccessEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimMexeEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimPhonebookEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimWlanEfDecoders
+import com.github.cheeriotb.uiccbrowser.element.ef.V2xEfDecoders
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 
 typealias EfDecoder = (Resources, ByteArray) -> Element?
@@ -51,7 +55,39 @@ object EfDecoderRegistry {
             FileId.DF_TELECOM + FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PUID to
                     UsimPhonebookEfDecoders::decodePuid,
             FileId.DF_TELECOM + FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PBR to
-                    UsimPhonebookEfDecoders::decodePbr
+                    UsimPhonebookEfDecoders::decodePbr,
+            FileId.DF_TELECOM + FileId.DF_GRAPHICS + FileId.EF_GRAPHICS_IMG to
+                    GraphicsEfDecoders::decodeImg,
+            // EFIIDF uses implementation-specific file identifiers in the 4FXX range.
+            // FileId.DF_TELECOM + FileId.DF_GRAPHICS + implementationSpecificIidfId to
+            //         GraphicsEfDecoders::decodeIidf,
+            // (BER-TLV) FileId.DF_TELECOM + FileId.DF_GRAPHICS + FileId.EF_GRAPHICS_ICE to
+            //         GraphicsEfDecoders::decodeIceGraphics,
+            // (BER-TLV) FileId.DF_TELECOM + FileId.DF_MULTIMEDIA + FileId.EF_MULTIMEDIA_MML to
+            //         MultimediaEfDecoders::decodeMml,
+            // (BER-TLV) FileId.DF_TELECOM + FileId.DF_MULTIMEDIA + FileId.EF_MULTIMEDIA_MMDF to
+            //         MultimediaEfDecoders::decodeMmdf,
+            FileId.DF_TELECOM + FileId.DF_MCS + FileId.EF_MCS_MST to McsEfDecoders::decodeMst,
+            // (BER-TLV) FileId.DF_TELECOM + FileId.DF_MCS + FileId.EF_MCS_CONFIG to
+            //         McsEfDecoders::decodeMcsConfig,
+            FileId.DF_TELECOM + FileId.DF_V2X + FileId.EF_V2X_VST to V2xEfDecoders::decodeVst,
+            // (BER-TLV) FileId.DF_TELECOM + FileId.DF_V2X + FileId.EF_V2X_CONFIG to
+            //         V2xEfDecoders::decodeV2xConfig,
+            FileId.DF_TELECOM + FileId.DF_V2X + FileId.EF_V2X_POLICY_PC5 to
+                    V2xEfDecoders::decodeV2xpPc5,
+            FileId.DF_TELECOM + FileId.DF_V2X + FileId.EF_V2X_POLICY_UU to
+                    V2xEfDecoders::decodeV2xpUu,
+            FileId.DF_TELECOM + FileId.DF_A2X + FileId.EF_A2X_AST to A2xEfDecoders::decodeAst,
+            FileId.DF_TELECOM + FileId.DF_A2X + FileId.EF_A2X_CONFIG to
+                    A2xEfDecoders::decodeA2xConfig,
+            FileId.DF_TELECOM + FileId.DF_A2X + FileId.EF_A2X_POLICY_PC5 to
+                    A2xEfDecoders::decodeA2xpPc5,
+            FileId.DF_TELECOM + FileId.DF_A2X + FileId.EF_A2X_DDAAP_PC5 to
+                    A2xEfDecoders::decodeA2xDdaapPc5,
+            FileId.DF_TELECOM + FileId.DF_A2X + FileId.EF_A2X_DC2P_PC5 to
+                    A2xEfDecoders::decodeA2xDc2pPc5,
+            FileId.DF_TELECOM + FileId.DF_A2X + FileId.EF_A2X_POLICY_UU to
+                    A2xEfDecoders::decodeA2xpUu
         ),
         EfContext.USIM to mapOf(
             FileId.EF_USIM_EAKA to UsimEfDecoders::decodeEaka,

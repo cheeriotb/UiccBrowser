@@ -78,8 +78,9 @@ Current limitations are listed below.
     - DF5MBSUECONFIG '5FF1'
 - EFIAP, EFADN, EFEXT1, EFPBC, EFGRP, EFGAS, EFANR, EFSNE, EFCCP1, EFUID, EFEMAIL and EFPURI under DFPHONEBOOK are not supported yet.
 - EFTPRPK under DFMexE is not supported yet.
+- EFIIDF under DFGRAPHICS is not supported yet.
 - Special EF operations such as create, delete, and resize are not supported.
-- Some features have not been fully verified because the number of SIM cards and devices available for testing is limited.
+- Some features have not been fully verified because the number of SIM cards and devices available for testing are limited.
 
 ## License
 
