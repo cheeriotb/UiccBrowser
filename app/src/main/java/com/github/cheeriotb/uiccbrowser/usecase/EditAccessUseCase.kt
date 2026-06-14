@@ -87,11 +87,11 @@ class EditAccessUseCase(private val context: Context) {
             ?: return Outcome(failure = Failure.FCP_UNAVAILABLE)
 
         val requiredMode = requiredAccess.bits
-        val enabledKeyReferences = currentEnabledKeyReferences(fileId)
+        val disabledKeyReferences = currentDisabledKeyReferences(fileId)
         val directOutcome = directSecurityAttributeOutcome(
             fcpElement,
             requiredMode,
-            enabledKeyReferences
+            disabledKeyReferences
         )
         if (directOutcome != null) return directOutcome
 
@@ -102,14 +102,14 @@ class EditAccessUseCase(private val context: Context) {
             fileId,
             arrRef,
             requiredMode,
-            enabledKeyReferences
+            disabledKeyReferences
         )
     }
 
     private fun directSecurityAttributeOutcome(
         fcpElement: Element,
         requiredMode: Int,
-        enabledKeyReferences: Set<KeyReference>?
+        disabledKeyReferences: Set<KeyReference>?
     ): Outcome? {
         val children = fcpElement.subElements.filterIsInstance<BerTlvElement>()
         val expanded = children.find { it.tag == FcpTemplate.TAG_SECURITY_ATTR_EXPAND }
@@ -117,7 +117,7 @@ class EditAccessUseCase(private val context: Context) {
             return outcomeFromExpandedChildren(
                 expanded.subElements,
                 requiredMode,
-                enabledKeyReferences
+                disabledKeyReferences
             )
         }
 
@@ -126,7 +126,7 @@ class EditAccessUseCase(private val context: Context) {
             return outcomeFromAccessRules(
                 parseCompact(compact.data),
                 requiredMode,
-                enabledKeyReferences
+                disabledKeyReferences
             )
         }
 
@@ -138,7 +138,7 @@ class EditAccessUseCase(private val context: Context) {
         fileId: FileId,
         reference: ArrReference,
         requiredMode: Int,
-        enabledKeyReferences: Set<KeyReference>?
+        disabledKeyReferences: Set<KeyReference>?
     ): Outcome {
         val recordNo = applicableArrRecordNumber(fileId, reference)
             ?: return Outcome(failure = Failure.SECURITY_CONDITION_UNSUPPORTED)
@@ -158,7 +158,7 @@ class EditAccessUseCase(private val context: Context) {
         return outcomeFromExpandedChildren(
             element.subElements,
             requiredMode,
-            enabledKeyReferences
+            disabledKeyReferences
         )
     }
 
@@ -195,20 +195,20 @@ class EditAccessUseCase(private val context: Context) {
     private fun outcomeFromExpandedChildren(
         children: List<Element>,
         requiredMode: Int,
-        enabledKeyReferences: Set<KeyReference>?
+        disabledKeyReferences: Set<KeyReference>?
     ): Outcome = outcomeFromAccessRules(
         parseExpanded(children),
         requiredMode,
-        enabledKeyReferences
+        disabledKeyReferences
     )
 
     private fun outcomeFromAccessRules(
         rules: AccessRules,
         requiredMode: Int,
-        enabledKeyReferences: Set<KeyReference>?
+        disabledKeyReferences: Set<KeyReference>?
     ): Outcome {
         val keyReferenceOptions = rules.keyReferenceOptionsFor(requiredMode)
-            .filterDisabledKeyReferences(enabledKeyReferences)
+            .removeDisabledKeyReferences(disabledKeyReferences)
         if (keyReferenceOptions.isEmpty()) {
             return Outcome(failure = Failure.SECURITY_CONDITION_UNSUPPORTED)
         }
@@ -216,12 +216,12 @@ class EditAccessUseCase(private val context: Context) {
         return Outcome(keyReferenceOptions = keyReferenceOptions)
     }
 
-    private fun List<List<KeyReference>>.filterDisabledKeyReferences(
-        enabledKeyReferences: Set<KeyReference>?
+    private fun List<List<KeyReference>>.removeDisabledKeyReferences(
+        disabledKeyReferences: Set<KeyReference>?
     ): List<List<KeyReference>> {
-        if (enabledKeyReferences == null) return this
+        if (disabledKeyReferences == null) return this
         return map { option ->
-            option.filter { it in enabledKeyReferences }
+            option.filterNot { it in disabledKeyReferences }
         }.distinct()
     }
 
@@ -351,7 +351,12 @@ class EditAccessUseCase(private val context: Context) {
         return enabledKeyReferencesFrom(pinStatusTemplate)?.toList().orEmpty()
     }
 
-    private fun currentEnabledKeyReferences(fileId: FileId): Set<KeyReference>? {
+    /**
+     * Returns key references explicitly marked disabled by the current PIN status template.
+     *
+     * A key omitted from the template has unknown status and must remain a VERIFY requirement.
+     */
+    private fun currentDisabledKeyReferences(fileId: FileId): Set<KeyReference>? {
         val fcpData = CurrentDirectoryFcpUseCase(context)
             .queryForDirectory(fileId.aid, fileId.path)
             ?.takeIf { it.isOk }
@@ -362,7 +367,13 @@ class EditAccessUseCase(private val context: Context) {
             .filterIsInstance<BerTlvElement>()
             .find { it.tag == FcpTemplate.TAG_PIN_STATUS_TEMPLATE }
             ?: return null
-        return enabledKeyReferencesFrom(pinStatusTemplate)
+        val children = pinStatusTemplate.subElements.filterIsInstance<BerTlvElement>()
+        val psData = children.find { it.tag == FcpTemplate.TAG_PS_DO }?.data
+            ?: return emptySet()
+        return pinStatusTemplateEntries(children)
+            .filterIndexed { index, _ -> !psData.isPinEnabled(index) }
+            .mapNotNull { it.keyReference?.keyReference }
+            .toSet()
     }
 
     /**

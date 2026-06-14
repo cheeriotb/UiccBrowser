@@ -70,6 +70,9 @@ class EfDetailFragment : Fragment() {
     /** True while a READ failure is being recovered by VERIFY and refresh. */
     private var readAccessRecoveryInProgress = false
 
+    /** True after automatic READ access recovery was attempted for the current load. */
+    private var readAccessRecoveryAttempted = false
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -148,7 +151,7 @@ class EfDetailFragment : Fragment() {
                             if (editModeEnabled) {
                                 stopEditMode(refresh = true)
                             } else {
-                                binaryViewModel.refresh()
+                                refreshBinaryData()
                             }
                             true
                         }
@@ -210,7 +213,7 @@ class EfDetailFragment : Fragment() {
                 viewModel.enableEditMode()
                 binaryViewModel.startEditMode()
                 if (binaryViewModel.data.value == null) {
-                    binaryViewModel.refresh()
+                    refreshBinaryData()
                 }
                 requireActivity().invalidateOptionsMenu()
                 showMessage(getString(R.string.edit_mode_enabled))
@@ -702,7 +705,12 @@ class EfDetailFragment : Fragment() {
         viewModel.disableEditMode()
         binaryViewModel.cancelEditMode()
         requireActivity().invalidateOptionsMenu()
-        if (refresh) binaryViewModel.refresh()
+        if (refresh) refreshBinaryData()
+    }
+
+    private fun refreshBinaryData() {
+        readAccessRecoveryAttempted = false
+        binaryViewModel.refresh()
     }
 
     private suspend fun confirm(messageResId: Int): Boolean =
@@ -724,32 +732,45 @@ class EfDetailFragment : Fragment() {
         }
 
     private fun handleReadError(result: Result) {
-        if (shouldAttemptReadAccessRecovery(result, readAccessRecoveryInProgress)) {
-            readAccessRecoveryInProgress = true
-            binaryViewModel.clearError()
-            viewLifecycleOwner.lifecycleScope.launch {
-                val recovered = try {
-                    val slotId = mainViewModel.selectedSlot.value?.slotId
-                    val repo = slotId?.let { CardRepository.from(requireContext(), it) }
-                    if (slotId != null && repo != null) {
-                        enableReadAccess(slotId, repo)
-                    } else {
-                        false
+        when (readAccessRecoveryDecision(
+            result,
+            mainViewModel.isProModeEnabled.value,
+            readAccessRecoveryInProgress,
+            readAccessRecoveryAttempted
+        )) {
+            ReadAccessRecoveryDecision.REQUIRE_PRO_MODE -> {
+                readAccessRecoveryAttempted = true
+                showMessage(getString(R.string.read_access_requires_pro_mode))
+                binaryViewModel.clearError()
+            }
+            ReadAccessRecoveryDecision.ATTEMPT_VERIFY -> {
+                readAccessRecoveryAttempted = true
+                readAccessRecoveryInProgress = true
+                binaryViewModel.clearError()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val recovered = try {
+                        val slotId = mainViewModel.selectedSlot.value?.slotId
+                        val repo = slotId?.let { CardRepository.from(requireContext(), it) }
+                        if (slotId != null && repo != null) {
+                            enableReadAccess(slotId, repo)
+                        } else {
+                            false
+                        }
+                    } finally {
+                        readAccessRecoveryInProgress = false
                     }
-                } finally {
-                    readAccessRecoveryInProgress = false
-                }
-                if (recovered) {
-                    binaryViewModel.refresh()
-                } else {
-                    showReadError(result)
+                    if (recovered) {
+                        binaryViewModel.refresh()
+                    } else {
+                        showReadError(result)
+                    }
                 }
             }
-            return
+            ReadAccessRecoveryDecision.SHOW_ERROR -> {
+                showReadError(result)
+                binaryViewModel.clearError()
+            }
         }
-
-        showReadError(result)
-        binaryViewModel.clearError()
     }
 
     private fun showReadError(result: Result) {
@@ -799,10 +820,18 @@ class EfDetailFragment : Fragment() {
         internal fun requiresReadAccessForEdit(readError: Result?): Boolean =
             readError?.sw == Result.SW_INSUFFICIENT_SECURITY
 
-        internal fun shouldAttemptReadAccessRecovery(
+        internal fun readAccessRecoveryDecision(
             readError: Result,
-            inProgress: Boolean
-        ): Boolean = readError.sw == Result.SW_INSUFFICIENT_SECURITY && !inProgress
+            isProModeEnabled: Boolean,
+            inProgress: Boolean,
+            attempted: Boolean
+        ): ReadAccessRecoveryDecision = when {
+            readError.sw != Result.SW_INSUFFICIENT_SECURITY ->
+                ReadAccessRecoveryDecision.SHOW_ERROR
+            inProgress || attempted -> ReadAccessRecoveryDecision.SHOW_ERROR
+            !isProModeEnabled -> ReadAccessRecoveryDecision.REQUIRE_PRO_MODE
+            else -> ReadAccessRecoveryDecision.ATTEMPT_VERIFY
+        }
 
         /** Returns true when current binary data can be copied outside Edit mode. */
         internal fun isCopyToClipboardEnabled(data: ByteArray?, editModeEnabled: Boolean): Boolean =
@@ -915,5 +944,11 @@ class EfDetailFragment : Fragment() {
         BLOCKED,
         LAST_ATTEMPT,
         UNKNOWN
+    }
+
+    internal enum class ReadAccessRecoveryDecision {
+        REQUIRE_PRO_MODE,
+        ATTEMPT_VERIFY,
+        SHOW_ERROR
     }
 }

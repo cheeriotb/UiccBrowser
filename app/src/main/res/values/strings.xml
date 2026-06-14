@@ -955,6 +955,7 @@
     <string name="action_edit">Edit</string>
     <string name="action_copy_to_clipboard">Copy to clipboard</string>
     <string name="clipboard_ef_detail_label">EF detail</string>
+    <string name="read_access_requires_pro_mode">Enable Pro Mode, then verify the required ADM key to read this file.</string>
     <string name="action_show_fcp_template">Show FCP Template</string>
     <string name="edit_mode_verify_title">Verify %1$s</string>
     <string name="edit_mode_verify_option_title">Select verification method</string>

@@ -133,27 +133,63 @@ class EfDetailFragmentUnitTest {
     }
 
     @Test
-    fun shouldAttemptReadAccessRecovery_insufficientSecurityAndIdle_returnsTrue() {
+    fun readAccessRecoveryDecision_insufficientSecurityInProMode_attemptsVerify() {
         val result = Result.Builder().sw(Result.SW_INSUFFICIENT_SECURITY).build()
 
-        assertThat(EfDetailFragment.shouldAttemptReadAccessRecovery(result, inProgress = false))
-            .isTrue()
+        assertThat(EfDetailFragment.readAccessRecoveryDecision(
+            result,
+            isProModeEnabled = true,
+            inProgress = false,
+            attempted = false
+        )).isEqualTo(EfDetailFragment.ReadAccessRecoveryDecision.ATTEMPT_VERIFY)
     }
 
     @Test
-    fun shouldAttemptReadAccessRecovery_alreadyInProgress_returnsFalse() {
+    fun readAccessRecoveryDecision_insufficientSecurityOutsideProMode_requiresProMode() {
         val result = Result.Builder().sw(Result.SW_INSUFFICIENT_SECURITY).build()
 
-        assertThat(EfDetailFragment.shouldAttemptReadAccessRecovery(result, inProgress = true))
-            .isFalse()
+        assertThat(EfDetailFragment.readAccessRecoveryDecision(
+            result,
+            isProModeEnabled = false,
+            inProgress = false,
+            attempted = false
+        )).isEqualTo(EfDetailFragment.ReadAccessRecoveryDecision.REQUIRE_PRO_MODE)
     }
 
     @Test
-    fun shouldAttemptReadAccessRecovery_otherError_returnsFalse() {
+    fun readAccessRecoveryDecision_alreadyAttempted_showsError() {
+        val result = Result.Builder().sw(Result.SW_INSUFFICIENT_SECURITY).build()
+
+        assertThat(EfDetailFragment.readAccessRecoveryDecision(
+            result,
+            isProModeEnabled = true,
+            inProgress = false,
+            attempted = true
+        )).isEqualTo(EfDetailFragment.ReadAccessRecoveryDecision.SHOW_ERROR)
+    }
+
+    @Test
+    fun readAccessRecoveryDecision_alreadyInProgress_showsError() {
+        val result = Result.Builder().sw(Result.SW_INSUFFICIENT_SECURITY).build()
+
+        assertThat(EfDetailFragment.readAccessRecoveryDecision(
+            result,
+            isProModeEnabled = true,
+            inProgress = true,
+            attempted = false
+        )).isEqualTo(EfDetailFragment.ReadAccessRecoveryDecision.SHOW_ERROR)
+    }
+
+    @Test
+    fun readAccessRecoveryDecision_otherError_showsError() {
         val result = Result.Builder().sw(Result.SW_NOT_FOUND).build()
 
-        assertThat(EfDetailFragment.shouldAttemptReadAccessRecovery(result, inProgress = false))
-            .isFalse()
+        assertThat(EfDetailFragment.readAccessRecoveryDecision(
+            result,
+            isProModeEnabled = true,
+            inProgress = false,
+            attempted = false
+        )).isEqualTo(EfDetailFragment.ReadAccessRecoveryDecision.SHOW_ERROR)
     }
 
     @Test

@@ -216,6 +216,19 @@ class EditAccessUseCaseUnitTest {
     }
 
     @Test
+    fun execute_keyReferenceOmittedFromPinStatus_keepsVerifyOption() {
+        runBlocking {
+            cacheFcp(FCP_EXPANDED_ADM1_READ_UPDATE)
+            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_APPLICATION_PIN1)
+
+            val outcome = useCase.execute(0, FILE_ID, EditAccessUseCase.RequiredAccess.READ)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
+        }
+    }
+
+    @Test
     fun execute_expandedOrSecurityAttributes_returnsKeyReferenceOptions() {
         runBlocking {
             cacheFcp(FCP_EXPANDED_PIN1_OR_ADM1_UPDATE_READ_ALWAYS)
@@ -281,6 +294,24 @@ class EditAccessUseCaseUnitTest {
                     } returns Response(hexStringToByteArray(ARR_RECORD_ADM1_READ_UPDATE + "9000"))
 
             val outcome = useCase.execute(0, FILE_ID)
+
+            assertThat(outcome.failure).isNull()
+            assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
+        }
+    }
+
+    @Test
+    fun execute_arrRequiredAdmOmittedFromPinStatus_keepsVerifyOption() {
+        runBlocking {
+            cacheFcp(FCP_ARR_REF_RECORD4)
+            prepareCurrentDirectoryFcp(FCP_ADF_PIN_STATUS_APPLICATION_PIN1)
+            every { cardIoMock.transmit(Command(Iso7816.INS_SELECT_FILE, 0x08, 0x0C,
+                    hexStringToByteArray(PATH_ADF + FID_ARR))) } returns
+                    Response(hexStringToByteArray("9000"))
+            every { cardIoMock.transmit(Command(Iso7816.INS_READ_RECORD, 0x04, 0x04, 0x100))
+                    } returns Response(hexStringToByteArray(ARR_RECORD_ADM1_READ_UPDATE + "9000"))
+
+            val outcome = useCase.execute(0, FILE_ID, EditAccessUseCase.RequiredAccess.READ)
 
             assertThat(outcome.failure).isNull()
             assertThat(outcome.keyReferences).containsExactly(KeyReference.ADM1)
