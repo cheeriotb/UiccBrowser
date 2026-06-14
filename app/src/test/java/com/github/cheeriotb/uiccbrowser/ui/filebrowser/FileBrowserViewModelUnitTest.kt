@@ -35,6 +35,13 @@ class FileBrowserViewModelUnitTest {
     }
 
     @Test
+    fun buildSubTitle_mfChild_omitsLeadingSlash() {
+        val title = FileBrowserViewModel.buildSubTitle("DF TELECOM", "7F10", "")
+
+        assertThat(title).isEqualTo("DF TELECOM (7F10)")
+    }
+
+    @Test
     fun buildSubTitle_deeperNesting_includesFullPath() {
         val title = FileBrowserViewModel.buildSubTitle("SomeEF", "4F07", "7FFF/5FC0")
 

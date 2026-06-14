@@ -109,8 +109,12 @@ class FileBrowserViewModel(
          * Builds the action bar title for a sub-level DF destination.
          * The path in parentheses is the display path of the DF (e.g. "7FFF/5FC0").
          */
-        fun buildSubTitle(dfName: String, dfId: String, parentDisplayPath: String): String =
-            "$dfName ($parentDisplayPath/$dfId)"
+        fun buildSubTitle(dfName: String, dfId: String, parentDisplayPath: String): String {
+            val displayPath = listOf(parentDisplayPath, dfId)
+                .filter(String::isNotEmpty)
+                .joinToString("/")
+            return "$dfName ($displayPath)"
+        }
 
         /**
          * Converts a concatenated hex path into a slash-separated display path.
