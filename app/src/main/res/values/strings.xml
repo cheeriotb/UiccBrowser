@@ -1120,4 +1120,28 @@
     <string
         name="wlan_attempt_home_network">Attempt registration on the I-WLAN home network</string>
 
+    <string name="ef_sume_label">EF SUME</string>
+    <string name="ef_ice_dn_label">EF ICE_DN</string>
+    <string name="ef_ice_ff_label">EF ICE_FF</string>
+    <string name="ef_rma_label">EF RMA</string>
+    <string name="ef_psismsc_label">EF PSISMSC</string>
+    <string name="title_alpha_identifier_label">Title Alpha Identifier</string>
+    <string name="title_icon_identifier_label">Title Icon Identifier</string>
+    <string name="title_text_attribute_label">Title Text Attribute</string>
+    <string name="comprehension_tlv_number_label">Comprehension TLV %1$d</string>
+    <string name="comprehension_tlv_tag_label">Comprehension TLV tag</string>
+    <string name="comprehension_tlv_length_label">Comprehension TLV length</string>
+    <string name="comprehension_tlv_value_label">Comprehension TLV value</string>
+    <string name="comprehension_tlv_set_length_label">Length of Comprehension TLV set</string>
+    <string name="comprehension_required_label">Comprehension required</string>
+    <string name="comprehension_not_required_label">Comprehension not required</string>
+    <string name="ice_free_format_label_label">ICE Free Format Label</string>
+    <string name="ice_free_format_content_label">ICE Free Format Content</string>
+    <string name="public_service_identity_sm_sc_label">Public Service Identity of the SM-SC</string>
+    <string name="ccp1_record_identifier_label">Capability/Configuration1 Record Identifier</string>
+    <string name="extension1_record_identifier_label">Extension1 Record Identifier</string>
+    <string name="text_string_label">Text string</string>
+    <string name="eight_bit_data_label">8-bit data</string>
+    <string name="ton_npi_interpretation">TON: %1$d, NPI: %2$d</string>
+
 </resources>

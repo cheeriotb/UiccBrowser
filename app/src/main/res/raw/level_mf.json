@@ -65,6 +65,36 @@
                             "id": "4F30"
                         }
                     ]
+                },
+                {
+                    "name": "ARR",
+                    "description": "Access Rule Reference",
+                    "id": "6F06"
+                },
+                {
+                    "name": "RMA",
+                    "description": "Remote Management Actions",
+                    "id": "6F53"
+                },
+                {
+                    "name": "SUME",
+                    "description": "SetUpMenu Elements",
+                    "id": "6F54"
+                },
+                {
+                    "name": "ICE_DN",
+                    "description": "In Case of Emergency - Dialling Number",
+                    "id": "6FE0"
+                },
+                {
+                    "name": "ICE_FF",
+                    "description": "In Case of Emergency - Free Format",
+                    "id": "6FE1"
+                },
+                {
+                    "name": "PSISMSC",
+                    "description": "Public Service Identity of the SM-SC",
+                    "id": "6FE5"
                 }
             ]
         }

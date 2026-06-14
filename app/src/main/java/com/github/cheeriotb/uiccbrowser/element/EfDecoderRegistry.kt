@@ -13,6 +13,7 @@ import com.github.cheeriotb.uiccbrowser.element.ef.AppTemplate
 import com.github.cheeriotb.uiccbrowser.element.ef.EfArrRecord
 import com.github.cheeriotb.uiccbrowser.element.ef.IsimEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.MfEfDecoders
+import com.github.cheeriotb.uiccbrowser.element.ef.TelecomEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.Usim5gsEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimGsmAccessEfDecoders
@@ -37,6 +38,12 @@ object EfDecoderRegistry {
             FileId.EF_ARR to EfArrRecord::decode,
             FileId.EF_UMPC to MfEfDecoders::decodeUmpc,
             FileId.EF_ICCID to MfEfDecoders::decodeIccid,
+            FileId.DF_TELECOM + FileId.EF_TELECOM_ARR to TelecomEfDecoders::decodeArr,
+            FileId.DF_TELECOM + FileId.EF_TELECOM_RMA to TelecomEfDecoders::decodeRma,
+            FileId.DF_TELECOM + FileId.EF_TELECOM_SUME to TelecomEfDecoders::decodeSume,
+            FileId.DF_TELECOM + FileId.EF_TELECOM_ICE_DN to TelecomEfDecoders::decodeIceDn,
+            FileId.DF_TELECOM + FileId.EF_TELECOM_ICE_FF to TelecomEfDecoders::decodeIceFf,
+            FileId.DF_TELECOM + FileId.EF_TELECOM_PSISMSC to TelecomEfDecoders::decodePsismsc,
             FileId.DF_TELECOM + FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_PSC to
                     UsimPhonebookEfDecoders::decodePsc,
             FileId.DF_TELECOM + FileId.DF_PHONEBOOK + FileId.EF_PHONEBOOK_CC to

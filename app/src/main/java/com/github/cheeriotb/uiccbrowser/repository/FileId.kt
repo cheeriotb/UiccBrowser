@@ -29,6 +29,12 @@ data class FileId(
         const val EF_ICCID = "2FE2"
 
         const val DF_TELECOM = "7F10"
+        const val EF_TELECOM_ARR = "6F06"
+        const val EF_TELECOM_RMA = "6F53"
+        const val EF_TELECOM_SUME = "6F54"
+        const val EF_TELECOM_ICE_DN = "6FE0"
+        const val EF_TELECOM_ICE_FF = "6FE1"
+        const val EF_TELECOM_PSISMSC = "6FE5"
         const val DF_PHONEBOOK = "5F3A"
         const val EF_PHONEBOOK_PSC = "4F22"
         const val EF_PHONEBOOK_CC = "4F23"
