@@ -89,6 +89,69 @@
             ]
         },
         {
+            "name": "WLAN",
+            "description": "Wireless LAN",
+            "id": "5F40",
+
+            "files": [
+                {
+                    "name": "Pseudo",
+                    "description": "Pseudonym",
+                    "id": "4F41"
+                },
+                {
+                    "name": "UPLMNWLAN",
+                    "description": "User controlled PLMN selector for I-WLAN Access",
+                    "id": "4F42"
+                },
+                {
+                    "name": "OPLMNWLAN",
+                    "description": "Operator controlled PLMN selector for I-WLAN Access",
+                    "id": "4F43"
+                },
+                {
+                    "name": "UWSIDL",
+                    "description": "User controlled WLAN Specific Identifier List",
+                    "id": "4F44"
+                },
+                {
+                    "name": "OWSIDL",
+                    "description": "Operator controlled WLAN Specific Identifier List",
+                    "id": "4F45"
+                },
+                {
+                    "name": "WRI",
+                    "description": "WLAN Reauthentication Identity",
+                    "id": "4F46"
+                },
+                {
+                    "name": "HWSIDL",
+                    "description": "Home I-WLAN Specific Identifier List",
+                    "id": "4F47"
+                },
+                {
+                    "name": "WEHPLMNPI",
+                    "description": "I-WLAN Equivalent HPLMN Presentation Indication",
+                    "id": "4F48"
+                },
+                {
+                    "name": "WHPI",
+                    "description": "I-WLAN HPLMN Priority Indication",
+                    "id": "4F49"
+                },
+                {
+                    "name": "WLRPLMN",
+                    "description": "I-WLAN Last Registered PLMN",
+                    "id": "4F4A"
+                },
+                {
+                    "name": "HPLMNDAI",
+                    "description": "HPLMN Direct Access Indicator",
+                    "id": "4F4B"
+                }
+            ]
+        },
+        {
             "name": "5GS",
             "description": "5G System",
             "id": "5FC0",

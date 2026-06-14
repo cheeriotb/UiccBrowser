@@ -1081,4 +1081,43 @@
     <string name="x509_certificate_label">X.509 certificate</string>
     <string name="x968_certificate_label">X9.68 certificate</string>
 
+    <string name="ef_wlan_pseudo_label">EF Pseudo</string>
+    <string name="ef_wlan_uplmn_label">EF UPLMNWLAN</string>
+    <string name="ef_wlan_oplmn_label">EF OPLMNWLAN</string>
+    <string name="ef_wlan_uwsidl_label">EF UWSIDL</string>
+    <string name="ef_wlan_owsidl_label">EF OWSIDL</string>
+    <string name="ef_wlan_wri_label">EF WRI</string>
+    <string name="ef_wlan_hwsidl_label">EF HWSIDL</string>
+    <string name="ef_wlan_wehplmnpi_label">EF WEHPLMNPI</string>
+    <string name="ef_wlan_whpi_label">EF WHPI</string>
+    <string name="ef_wlan_wlrplmn_label">EF WLRPLMN</string>
+    <string name="ef_wlan_hplmndai_label">EF HPLMNDAI</string>
+    <string name="pseudonym_length_label">Pseudonym length</string>
+    <string name="pseudonym_label">Pseudonym</string>
+    <string name="wlan_plmn_number_label">I-WLAN PLMN %1$d</string>
+    <string name="wsid_length_label">Length of WSID</string>
+    <string name="wsid_label">WLAN specific identifier</string>
+    <string name="reauthentication_identity_label">Reauthentication identity</string>
+    <string name="master_key_label">Master key</string>
+    <string name="counter_value_label">Counter</string>
+    <string name="wlan_tlv_tag_label">Tag</string>
+    <string name="wlan_tlv_length_label">Length</string>
+    <string name="wlan_tlv_value_label">Value</string>
+    <string name="wlan_ehplmn_presentation_indication_label">
+        I-WLAN EHPLMN presentation indication
+    </string>
+    <string name="wlan_last_rplmn_selection_indication_label">
+        I-WLAN last RPLMN selection indication
+    </string>
+    <string name="wlan_last_registered_plmn_label">I-WLAN last registered PLMN</string>
+    <string name="hplmn_direct_access_indication_label">HPLMN direct access indication</string>
+    <string name="wlan_ehplmn_display_no_preference">No preference for the display mode</string>
+    <string name="wlan_ehplmn_display_highest_priority">
+        Display the highest-priority available EHPLMN only
+    </string>
+    <string name="wlan_ehplmn_display_all">Display all the available EHPLMNs</string>
+    <string name="wlan_attempt_last_rplmn">Attempt registration on the last I-WLAN RPLMN</string>
+    <string
+        name="wlan_attempt_home_network">Attempt registration on the I-WLAN home network</string>
+
 </resources>

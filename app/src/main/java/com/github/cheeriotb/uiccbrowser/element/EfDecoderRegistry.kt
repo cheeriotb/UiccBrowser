@@ -18,6 +18,7 @@ import com.github.cheeriotb.uiccbrowser.element.ef.UsimEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimGsmAccessEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimMexeEfDecoders
 import com.github.cheeriotb.uiccbrowser.element.ef.UsimPhonebookEfDecoders
+import com.github.cheeriotb.uiccbrowser.element.ef.UsimWlanEfDecoders
 import com.github.cheeriotb.uiccbrowser.repository.FileId
 
 typealias EfDecoder = (Resources, ByteArray) -> Element?
@@ -186,6 +187,17 @@ object EfDecoderRegistry {
             FileId.DF_MEXE + FileId.EF_MEXE_ARPK to UsimMexeEfDecoders::decodeArpk,
             FileId.DF_MEXE + FileId.EF_MEXE_TPRPK to UsimMexeEfDecoders::decodeTprpk,
             // EF TKCDF uses an implementation-specific file identifier in the 4FXX range.
+            FileId.DF_WLAN + FileId.EF_WLAN_PSEUDO to UsimWlanEfDecoders::decodePseudo,
+            FileId.DF_WLAN + FileId.EF_WLAN_UPLMN to UsimWlanEfDecoders::decodeUplmnWlan,
+            FileId.DF_WLAN + FileId.EF_WLAN_OPLMN to UsimWlanEfDecoders::decodeOplmnWlan,
+            FileId.DF_WLAN + FileId.EF_WLAN_UWSIDL to UsimWlanEfDecoders::decodeUwsidl,
+            FileId.DF_WLAN + FileId.EF_WLAN_OWSIDL to UsimWlanEfDecoders::decodeOwsidl,
+            FileId.DF_WLAN + FileId.EF_WLAN_WRI to UsimWlanEfDecoders::decodeWri,
+            FileId.DF_WLAN + FileId.EF_WLAN_HWSIDL to UsimWlanEfDecoders::decodeHwsidl,
+            FileId.DF_WLAN + FileId.EF_WLAN_WEHPLMNPI to UsimWlanEfDecoders::decodeWehplmnpi,
+            FileId.DF_WLAN + FileId.EF_WLAN_WHPI to UsimWlanEfDecoders::decodeWhpi,
+            FileId.DF_WLAN + FileId.EF_WLAN_WLRPLMN to UsimWlanEfDecoders::decodeWlrplmn,
+            FileId.DF_WLAN + FileId.EF_WLAN_HPLMNDAI to UsimWlanEfDecoders::decodeHplmndai,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_3GPP_LOCI to
                     Usim5gsEfDecoders::decode5gs3gppLoci,
             FileId.DF_USIM_5GS + FileId.EF_USIM_5GS_N3GPP_LOCI to

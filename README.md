@@ -66,7 +66,6 @@ Current limitations are listed below.
 - BER-TLV EFs are not supported yet.
 - Cyclic EFs are readable, but not editable.
 - The following DFs are not supported yet.
-    - DFWLAN '5F40'
     - DFHNB '5F50'
     - DFSoLSA '5F70'
     - DFBCAST '5F80'
